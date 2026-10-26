@@ -410,7 +410,6 @@ function upcoming(){
   S.mashawer.filter(m => !m.done && m.date >= t).forEach(m => out.push({d:m.date + (m.time || ''), e:'\u{1F4CD}', title:m.name, when:nice(m.date) + (m.time ? ' · ' + m.time : '')}));
   S.exp.filter(x => !x.done && x.date && x.date >= t).forEach(x => out.push({d:x.date, e:'✨', title:x.title, when:nice(x.date) + (x.with && x.with.length ? ' · with ' + x.with.join(', ') : '')}));
   Object.values(S.selfcare).forEach(l => l.filter(s => !s.done && s.planned && s.planned >= t).forEach(s => out.push({d:s.planned, e:s.e, title:s.name, when:nice(s.planned) + (s.price ? ' · ' + money(s.price) : '')})));
-  if (S.wedding && S.wedding.beauty) S.wedding.beauty.filter(b => !b.done && b.planned && b.planned >= t).forEach(b => out.push({d:b.planned, e:b.e, title:b.name, when:nice(b.planned) + (b.price ? ' · ' + money(b.price) : '')}));
   S.tasks.filter(x => !x.done && x.due && x.due >= t && x.prio !== 'urgent').forEach(x => out.push({d:x.due, e:x.kind === 'work' ? '\u{1F4BC}' : '✅', title:x.title, when:'Due ' + nice(x.due)}));
   return out.sort((a, b) => a.d < b.d ? -1 : 1);
 }
@@ -536,7 +535,7 @@ VIEWS['food.groc'] = function(el){
 VIEWS['food.tips'] = function(el){
   const tip = (t, l) => '<div class="card"><h2>' + t + '</h2><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">' + l.map(x => '<li>' + x + '</li>').join('') + '</ul></div>';
   el.innerHTML = tip('Iron that actually absorbs', ['Eat the guava, orange, mandarin or pomegranate with lunch.','No tea or coffee for 1 hour around meals.','Take iron and vitamin D with lunch, 2 hours away from yogurt, milk and cheese.']) +
-    tip('No added sugar', ['Tea with milk, no sugar. No iced coffee, juices or desserts.','Fruit is your sweet treat.','Skip ketchup, BBQ, teriyaki, oyster and sweet chili sauce. Use low-sodium soy sauce, 1 to 2 tbsp per meal.']) +
+    tip('No added sugar', ['Tea with milk, no sugar. No iced coffee, juices or desserts.','Fruit is your sweet treat. Light (low-sugar) jam is fine too, about a tablespoon.','Skip ketchup, BBQ, teriyaki, oyster and sweet chili sauce. Use low-sodium soy sauce, 1 to 2 tbsp per meal.']) +
     tip('Butter, measured', ['1 tsp on eggs and vegetables.','2 tsp in mash or a soup.','Omelets get a small handful (30 g) of mozzarella.']) +
     tip('Gym days', ['Banana, apple or 3 fresh dates 60 to 90 minutes before.','Dinner after the gym is your recovery meal; keep the full protein.']) +
     tip('Supplements', ['Check your Centrum label; most contain iron and vitamin D already. Show the doctor all three labels.','Stop Centrum 2 to 3 days before blood tests; its biotin can distort thyroid results.','10 to 20 minutes of midday sun, 3 to 4 times a week.']);
@@ -742,8 +741,8 @@ VIEWS['plans.selfcare'] = function(el){
   $$('[data-scf]', el).forEach(i => i.onchange = () => {
     const s = list.find(x => x.id === i.dataset.id), f = i.dataset.scf, wasDone = !!s.done; s[f] = f === 'price' ? (+i.value || '') : i.value;
     S.spend = S.spend.filter(x => x.id !== s.spendId); s.spendId = '';
-    if (s.done && +s.price > 0){ s.spendId = uid(); S.spend.push({id:s.spendId, date:s.done, amount:+s.price, cat:'selfcare', note:s.e + ' ' + s.name}); }
-    save();
+    if (s.done && +s.price > 0){ s.spendId = uid(); S.spend.push({id:s.spendId, date:s.done, amount:+s.price, cat:s.wedding ? 'wedding' : 'selfcare', note:s.e + ' ' + s.name}); }
+    scHabit(s); save();
     if (f === 'done' && s.done && !wasDone){ if (list.every(x => x.done)) celebrate({key:'sc-all-' + k, e:'\u{1F451}', title:'Self-care month complete!', msg:'All ' + list.length + ' sessions done. You invested in you.'}); else toast(s.e + ' Logged. Glowing! ♡'); }
     again(); });
   $$('[data-scw]', el).forEach(b => b.onclick = () => { const s = list.find(x => x.id === b.dataset.scw); s.wedding = !s.wedding; save(); toast(s.wedding ? 'Added to wedding prep \u{1F48D}' : 'Removed from wedding prep'); again(); });

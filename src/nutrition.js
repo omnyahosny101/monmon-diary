@@ -11,9 +11,9 @@ const INGREDIENTS = [
   ['White beans (canned)', 'g', 139, 9.7], ['Sweet corn (canned)', 'g', 81, 2.6], ['Peas', 'g', 81, 5.4], ['Green beans', 'g', 31, 1.8],
   ['Lettuce', 'g', 15, 1.4], ['Cucumber', 'g', 15, 0.7], ['Tomato', 'g', 18, 0.9], ['Carrot', 'g', 41, 0.9], ['Zucchini', 'g', 17, 1.2],
   ['Mushrooms', 'g', 22, 3.1], ['Broccoli', 'g', 35, 2.4], ['Spinach', 'g', 23, 2.9], ['Colored peppers', 'g', 26, 1],
-  ['Mahshi warak enab (1 piece)', 'pc', 45, 1], ['Tahini (1 tbsp)', 'pc', 89, 2.6], ['Honey (1 tsp)', 'pc', 21, 0], ['Soy sauce (1 tbsp)', 'pc', 9, 1.3],
+  ['Mahshi warak enab (1 piece)', 'pc', 45, 1], ['Tahini (1 tbsp)', 'pc', 89, 2.6], ['Honey (1 tsp)', 'pc', 21, 0], ['Light jam (1 tbsp)', 'pc', 25, 0], ['Soy sauce (1 tbsp)', 'pc', 9, 1.3],
   ['Banana', 'pc', 105, 1.3], ['Apple', 'pc', 95, 0.5], ['Guava', 'pc', 70, 1], ['Orange', 'pc', 70, 1.3], ['Mandarin', 'pc', 50, 0.8], ['Pear', 'pc', 100, 0.6],
-  ['Persimmon', 'pc', 120, 1], ['Pomegranate (half)', 'pc', 115, 2], ['Mango (half)', 'pc', 100, 1.4], ['Fresh dates (3)', 'pc', 70, 0.6], ['Eshta', 'pc', 100, 2],
+  ['Pomegranate (half)', 'pc', 115, 2], ['Mango (half)', 'pc', 100, 1.4], ['Fresh dates (3)', 'pc', 70, 0.6], ['Eshta', 'pc', 100, 2],
 ];
 /* The forbidden corner: treats kept out of meal swaps. sugar: counts against the no-sugar habit. */
 const FORBIDDEN = [

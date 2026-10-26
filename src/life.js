@@ -420,7 +420,6 @@ function lifeReminders(R, repeat, push, at){
     push('pay-' + j.id + '-' + d, j.name + ' payday \u{1F4B8}', body, at(parseD(d), 10, 0));
   }));
   if (R.plans){
-    S.wedding.beauty.filter(b => !b.done && b.planned).forEach(b => { const w = at(parseD(b.planned), 20, 0); w.setDate(w.getDate() - 1); push('wb-' + b.id, 'Tomorrow: ' + b.e + ' ' + b.name, b.price ? 'Budget: ' + money(b.price) : 'Your wedding beauty session is tomorrow.', w); });
     S.wait.filter(w => !w.decided).forEach(w => { let r = new Date(w.added + 48 * 36e5); if (r.getHours() >= 23 || r.getHours() < 9){ if (r.getHours() >= 23) r.setDate(r.getDate() + 1); r.setHours(10, 0, 0, 0); } push('wait-' + w.id, 'Decision time ⏳', (w.name || 'Your wait-list item') + ': ' + money(w.total) + '. Still want it?', r); });
   }
 }

@@ -35,10 +35,11 @@ function periodCount(h, day){
 /* ---------- wedding prep: beauty plan, checklist, tagged mashawer and self-care ---------- */
 function prepItems(){
   const out = [];
+  weddingSessions().forEach(({k, s}) => out.push({key:'s:' + s.id, e:s.e, title:s.name, date:s.planned, done:!!s.done, kind:'Beauty · ' + MONTHS_L[+k.slice(5) - 1]}));
   S.wedding.beauty.forEach(b => out.push({key:'b:' + b.id, e:b.e, title:b.name, date:b.planned, done:!!b.done, kind:'Beauty'}));
   S.wedding.checklist.forEach(c => out.push({key:'c:' + c.id, e:c.e || '\u{1F48D}', title:c.title, date:c.date || '', done:!!c.done, kind:'To do'}));
   S.mashawer.filter(m => m.wedding).forEach(m => out.push({key:'m:' + m.id, e:'\u{1F4CD}', title:m.name, date:m.date, done:!!m.done, kind:'Meshwar'}));
-  Object.values(S.selfcare).forEach(l => l.filter(s => s.wedding).forEach(s => out.push({key:'s:' + s.id, e:s.e, title:s.name, date:s.planned, done:!!s.done, kind:'Self-care'})));
+  (S.wedding.shopping || []).forEach(x => out.push({key:'w:' + x.id, e:x.e, title:x.title, date:'', done:!!x.done, kind:'Shopping'}));
   return out;
 }
 function logPaid(item, cat){
@@ -50,7 +51,8 @@ function togglePrep(key){
   if (k === 'b'){ const b = S.wedding.beauty.find(x => x.id === id); b.done = b.done ? '' : t; logPaid(b, 'wedding'); }
   if (k === 'c'){ const c = S.wedding.checklist.find(x => x.id === id); c.done = !c.done; }
   if (k === 'm'){ const m = S.mashawer.find(x => x.id === id); m.done = !m.done; m.doneOn = m.done ? t : ''; }
-  if (k === 's') Object.values(S.selfcare).forEach(l => l.forEach(s => { if (s.id === id){ s.done = s.done ? '' : t; logPaid(s, 'selfcare'); } }));
+  if (k === 's') Object.values(S.selfcare).forEach(l => l.forEach(s => { if (s.id === id){ s.done = s.done ? '' : t; logPaid(s, s.wedding ? 'wedding' : 'selfcare'); scHabit(s); } }));
+  if (k === 'w'){ const x = S.wedding.shopping.find(y => y.id === id); x.done = !x.done; }
   save();
   const all = prepItems(); if (all.length && all.every(x => x.done)) celebrate({key:'prep-all', e:'\u{1F470}', title:'Wedding prep complete!', msg:'Everything on your list is done. Now enjoy every moment, bride.'});
 }
@@ -241,4 +243,107 @@ VIEWS['plans.mashawer'] = function(el){
   $$('[data-mdone]', el).forEach(b => b.onclick = ev => { const m = S.mashawer.find(x => x.id === b.dataset.mdone); m.done = !m.done; m.doneOn = m.done ? t : '';
     if (m.done){ hearts(ev.clientX, ev.clientY); const a = S.daylog[t] = S.daylog[t] || []; if (!a.includes('meshwar')) a.push('meshwar'); } save(); again(); });
   armDelete(el, 'data-mdel', id => { S.mashawer = S.mashawer.filter(m => m.id !== id); save(); again(); });
+};
+
+
+/* ============ WEDDING PLAN, MONTH BY MONTH (wedding 31 Dec 2026) ============
+   Beauty sessions live in Self-care, in the month they happen, tagged 💍. The wedding page groups them by month. */
+const WED_PLAN = [
+  // [key, name, emoji, price, date, note]
+  ['hl1','Hair laser · session 1','✨',5000,'2026-10-28'], ['ls1','Lashes · session 1','\u{1F441}\u{FE0F}','','2026-10-29'],
+  ['dy','Dr. Yasser Bleil','\u{1FA7A}','','2026-10-31'], ['pc1','Pico laser · session 1','\u{1F48E}',5000,'2026-11-01'], ['hd','Hair dye','\u{1F487}‍♀\u{FE0F}',10000,'2026-11-03'],
+  ['ht','Hair treatment','\u{1F486}‍♀\u{FE0F}',7500,'2026-11-07','5,000–10,000'], ['sv1','Spider veins laser · session 1','\u{1F9B5}',6000,'2026-11-10'],
+  ['bp','Butt peeling','\u{1F351}','','2026-11-14'], ['dp','Dermapen','\u{1FAA1}','','2026-11-17'], ['mb1','Moroccan bath · 1','\u{1F6C1}','','2026-11-20'],
+  ['fi','Filler: lips 0.5 ml, cheeks 1 ml','\u{1F48B}','','2026-11-24','Price per ml not known yet'], ['hl2','Hair laser · session 2','✨',5000,'2026-11-25'], ['ls2','Lashes · session 2','\u{1F441}\u{FE0F}','','2026-11-26'],
+  ['pc2','Pico laser · session 2','\u{1F48E}',5000,'2026-12-01'], ['bo','Botox: crow’s feet, nose','\u{1F4AB}','','2026-12-05','Price not known yet'], ['sb','Skin booster','\u{1F4A7}','','2026-12-08'],
+  ['sv2','Spider veins laser · session 2','\u{1F9B5}',6000,'2026-12-10'], ['hl3','Hair laser · session 3','✨',5000,'2026-12-20'],
+  ['ls3','Lashes · session 3','\u{1F441}\u{FE0F}','','2026-12-27'], ['mb2','Moroccan bath · 2','\u{1F6C1}','','2026-12-29'],
+];
+const WED_MATCH = {hl:/hair laser|laser hair|^laser\b/i, ls:/lash/i, pc:/pico/i, hd:/dye/i, ht:/treatment/i, sv:/spider/i, bp:/peel/i, dp:/dermapen|derma pen/i, mb:/moroccan|bath/i, fi:/filler/i, bo:/botox/i, sb:/booster/i};
+const WED_SHOP = [['\u{1FA72}','Panties'],['\u{1F459}','More lingerie (cosplay)'],['\u{1F9F4}','Perfumes'],['\u{1F9F4}','Body lotion'],['\u{1F4A6}','Body splash'],['\u{1F6C1}','Body care'],
+  ['\u{1F9E5}','Winter clothes'],['\u{1F457}','Summer clothes'],['\u{1F456}','Trousers'],['\u{1F45F}','Sneakers'],['\u{1F462}','Boots'],['\u{1F484}','Makeup'],['\u{1FA73}','Shorts'],['\u{1F460}','Heels and ballerinas'],['\u{2708}\u{FE0F}','Honeymoon clothes']];
+const HOME_HABITS = [
+  {id:'moist', name:'Moisturise my body', e:'\u{1F9F4}', freq:'daily', target:1, reward:''},
+  {id:'nails', name:'Nails at home', e:'\u{1F485}', freq:'weekly', target:1, reward:''},
+  {id:'pedi', name:'Pedicure in the shower', e:'\u{1F9B6}', freq:'weekly', target:1, reward:''},
+];
+function weddingSessions(){ const out = []; Object.keys(S.selfcare).sort().forEach(k => S.selfcare[k].forEach(s => { if (s.wedding) out.push({k, s}); })); return out; }
+function scHabit(s){
+  if (!s.done) return;
+  const id = /lash/i.test(s.name) ? 'm-lashes' : /moroccan|bath/i.test(s.name) ? 'm-bath' : (/laser/i.test(s.name) && !/pico|spider/i.test(s.name)) ? 'm-laser' : '';
+  if (id && S.habits.some(h => h.id === id)){ S.hlog[s.done] = S.hlog[s.done] || {}; S.hlog[s.done][id] = true; }
+}
+function weddingMigrate(){
+  if (S.seed6) return;
+  const t = todayStr(), W = S.profile.wedding = '2026-12-31';
+  const old = {}; (S.wedding.beauty || []).forEach(b => { old[b.id === 'sv' ? 'sv1' : b.id] = b; });
+  const months = [...new Set(WED_PLAN.map(p => p[4].slice(0, 7)))], claimed = new Set();
+  WED_PLAN.forEach(([key, name, e, price, date, note]) => {
+    const o = old[key], k = date.slice(0, 7), list = S.selfcare[k] = S.selfcare[k] || [], re = WED_MATCH[key.replace(/\d$/, '')];
+    let s = re && list.find(x => !claimed.has(x.id) && !x.key && re.test(x.name) && !(key.startsWith('hl') && /pico|spider/i.test(x.name)));
+    if (!s){ s = {id:uid(), name, e, price:'', planned:'', done:'', spendId:''}; list.push(s); }
+    claimed.add(s.id);
+    Object.assign(s, {key, name, e, wedding:true, note:note || ''});
+    if (o && o.done){ s.done = o.done; s.spendId = o.spendId || ''; }
+    s.price = s.price || (o && o.price) || price;
+    s.planned = s.done ? (s.planned || s.done) : (date < t ? t : date);
+  });
+  months.forEach(k => { S.selfcare[k] = S.selfcare[k].filter(x => {
+    if (claimed.has(x.id)) return true;
+    if (k > ym(new Date()) && !x.done && !x.price) return false;   // untouched placeholder sessions in coming months
+    x.wedding = false; return true; }); });
+  S.wedding.beauty = [];
+  const hd = S.wedding.checklist.find(c => /find a hairdresser/i.test(c.title)); if (hd) hd.title = 'Book the hairdresser';
+  if (!S.wedding.checklist.some(c => /turkey/i.test(c.title))) S.wedding.checklist.push({id:uid(), e:'\u{2708}\u{FE0F}', title:'Turkey travel papers', done:false});
+  S.wedding.shopping = S.wedding.shopping || [];
+  WED_SHOP.forEach(([e, title]) => { if (!S.wedding.shopping.some(x => x.title === title)) S.wedding.shopping.push({id:uid(), e, title, done:false}); });
+  [['Oriental Weavers (El Nassageon) for the carpets','\u{1F9F6}'],['Buy the chandelier','\u{1F4A1}']].forEach(([name]) => { if (!S.mashawer.some(m => m.name === name)) S.mashawer.push({id:uid(), name, date:'', time:'', note:'For the apartment', remind:true, wedding:true, done:false}); });
+  HOME_HABITS.forEach(h => { if (!S.habits.some(x => x.id === h.id)) S.habits.push(Object.assign({}, h)); });
+  S.seed6 = true;
+}
+
+VIEWS['plans.wedding'] = function(el){
+  const W = S.profile.wedding, wd = weddingDays(), t = todayStr();
+  const ses = weddingSessions(), byMonth = {}; ses.forEach(({k, s}) => (byMonth[k] = byMonth[k] || []).push(s));
+  const allPrep = prepItems(), prepDone = allPrep.filter(x => x.done).length;
+  const known = sum(ses, x => x.s.price), spent = sum(ses.filter(x => x.s.done), x => x.s.price), nDone = ses.filter(x => x.s.done).length;
+  const wj = jarByName('Wedding beauty'), sj = jarByName('Wedding shopping'), shop = S.wedding.shopping || [], wm = S.mashawer.filter(m => m.wedding);
+  const field = (s, f, label, type) => '<label class="field"><span>' + label + '</span><input class="in' + (type === 'number' ? ' num' : '') + '" type="' + type + '"' + (type === 'number' ? ' inputmode="decimal" min="0" placeholder="EGP"' : '') + ' data-wsf="' + f + '" data-id="' + s.id + '" value="' + esc(s[f] || '') + '"></label>';
+  el.innerHTML = '<div class="card wed" style="cursor:default">' + (W ? '<span class="wn num">' + Math.max(0, wd) + '</span><span style="min-width:0;text-align:left"><b style="display:block;font-size:17px">days to your wedding \u{1F48D}</b><span class="small" style="font-weight:700">' + nice(W) + '</span></span>' : '<span style="font-size:40px">\u{1F48D}</span><span style="min-width:0;text-align:left"><b style="display:block">Set your wedding date</b></span>') + '</div>' +
+    '<div class="card"><label class="field"><span>Wedding date</span><input class="in" id="wDate" type="date" value="' + esc(W) + '"></label><div class="statrow" style="color:var(--ink)"><span>All preparations</span><span class="num">' + prepDone + ' / ' + allPrep.length + '</span></div><div class="bar good"><i style="width:' + (allPrep.length ? prepDone / allPrep.length * 100 : 0) + '%"></i></div></div>' +
+    '<div class="money3"><div class="mbox"><b>' + nDone + '/' + ses.length + '</b><span>beauty sessions</span></div><div class="mbox"><b>' + fmt(known) + '</b><span>known prices</span></div><div class="mbox"><b>' + fmt(wj ? jarTotal(wj) : 0) + '</b><span>in beauty jar</span></div></div>' +
+    Object.keys(byMonth).sort().map(k => { const L = byMonth[k].sort((a, b) => (a.planned || '9') < (b.planned || '9') ? -1 : 1), d = L.filter(s => s.done).length;
+      return '<div class="card"><div class="card-head"><h2>' + MONTHS_L[+k.slice(5) - 1] + ' beauty</h2><span class="num muted">' + d + '/' + L.length + ' · ' + fmt(sum(L, s => s.price)) + ' EGP</span></div><div class="list">' +
+        L.map(s => '<div class="sc' + (s.done ? ' done' : '') + '"><span class="em">' + s.e + '</span><div style="min-width:0"><div class="nm">' + esc(s.name) + '</div>' + (s.note ? '<span class="small muted" style="font-weight:700">' + esc(s.note) + '</span>' : '') +
+          '<div class="fields">' + field(s, 'price', 'Price', 'number') + field(s, 'planned', 'Planned', 'date') + field(s, 'done', 'Done on', 'date') + '</div></div>' + delBtn('data-wsdel', s.id) + '</div>').join('') + '</div>' +
+        '<div class="row"><label class="field"><input class="in" data-wsin="' + k + '" placeholder="Add a session to ' + MONTHS_L[+k.slice(5) - 1] + '…" aria-label="New session"></label><button class="btn soft" data-wsadd="' + k + '">Add</button></div></div>'; }).join('') +
+    '<p class="note">\u{1F514} Reminder the evening before each session. These also show in Plans › Self-care, month by month. ' + money(spent) + ' spent so far.</p>' +
+    '<div class="card"><h2>Wedding preparations</h2><div class="row"><label class="field" style="flex:0 0 60px"><input class="in" id="wcE" value="\u{1F48D}" maxlength="4" style="text-align:center" aria-label="Emoji"></label><label class="field"><input class="in" id="wcIn" placeholder="Invitations, photographer, dress fitting…" aria-label="New item"></label><button class="btn" id="wcAdd">Add</button></div>' +
+      '<div class="list">' + S.wedding.checklist.map(x => '<div class="item' + (x.done ? ' done' : '') + '"><button class="tick' + (x.done ? ' on' : '') + '" data-wcd="' + x.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (x.e || '\u{1F48D}') + ' ' + esc(x.title) + '</span>' + delBtn('data-wcdel', x.id) + '</div>').join('') + '</div></div>' +
+    '<div class="card"><div class="card-head"><h2>Wedding shopping</h2><span class="num muted">' + shop.filter(x => x.done).length + '/' + shop.length + '</span></div><div class="row"><label class="field"><input class="in" id="wsIn" placeholder="Add something to buy…" aria-label="New item"></label><button class="btn" id="wsAdd">Add</button></div>' +
+      '<div class="list">' + shop.map(x => '<div class="item' + (x.done ? ' done' : '') + '"><button class="tick' + (x.done ? ' on' : '') + '" data-wsd="' + x.id + '" aria-label="Bought">' + CHECK + '</button><span class="t">' + x.e + ' ' + esc(x.title) + '</span>' + delBtn('data-wshdel', x.id) + '</div>').join('') + '</div>' +
+      (sj ? '<p class="small muted" style="margin:0">Wedding shopping jar: ' + money(jarTotal(sj)) + ' of ' + money(sj.target) + '. The 48-hour wait still applies to big buys.</p>' : '') + '</div>' +
+    '<div class="card"><div class="card-head"><h2>Mashawer \u{1F48D}</h2><button class="linkbtn" data-go="plans:mashawer">Add or set dates</button></div><div class="list">' + (wm.length ? wm.map(m => '<div class="item' + (m.done ? ' done' : '') + '"><button class="tick' + (m.done ? ' on' : '') + '" data-wmd="' + m.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + esc(m.name) + '<span class="s">' + (m.date ? nice(m.date) : 'No date yet') + '</span></span><span></span></div>').join('') : '<div class="empty">Tap \u{1F48D} on a meshwar to add it here.</div>') + '</div></div>';
+
+  const again = () => VIEWS['plans.wedding'](el), find = id => { for (const k in S.selfcare){ const s = S.selfcare[k].find(x => x.id === id); if (s) return [k, s]; } return []; };
+  $('#wDate', el).onchange = e => { S.profile.wedding = e.target.value; save(); toast(e.target.value ? 'Countdown started \u{1F48D}' : 'Date cleared'); again(); };
+  $$('[data-wsf]', el).forEach(i => i.onchange = () => {
+    const [k, s] = find(i.dataset.id), f = i.dataset.wsf, was = !!s.done; s[f] = f === 'price' ? (+i.value || '') : i.value;
+    if (f === 'planned' && s.planned && s.planned.slice(0, 7) !== k){ S.selfcare[k] = S.selfcare[k].filter(x => x !== s); (S.selfcare[s.planned.slice(0, 7)] = S.selfcare[s.planned.slice(0, 7)] || []).push(s); }
+    logPaid(s, 'wedding'); scHabit(s); save();
+    if (f === 'done' && s.done && !was){ if (weddingSessions().every(x => x.s.done)) celebrate({key:'wb-all', e:'\u{1F470}', title:'Beauty plan complete!', msg:'Every session done. You’re ready to glow on your day.'}); else toast(s.e + ' Done. Glowing! ♡'); }
+    again(); });
+  armDelete(el, 'data-wsdel', id => { const [k, s] = find(id); if (s.spendId) S.spend = S.spend.filter(x => x.id !== s.spendId); S.selfcare[k] = S.selfcare[k].filter(x => x !== s); save(); again(); });
+  $$('[data-wsadd]', el).forEach(b => b.onclick = () => { const k = b.dataset.wsadd, v = $('[data-wsin="' + k + '"]', el).value.trim(); if (!v) return toast('Name the session');
+    S.selfcare[k].push({id:uid(), name:v, e:'✨', price:'', planned:'', done:'', spendId:'', wedding:true}); save(); again(); });
+  const addC = () => { const v = $('#wcIn', el).value.trim(); if (!v) return; S.wedding.checklist.push({id:uid(), e:$('#wcE', el).value.trim() || '\u{1F48D}', title:v, done:false}); save(); again(); };
+  $('#wcAdd', el).onclick = addC; $('#wcIn', el).onkeydown = e => { if (e.key === 'Enter') addC(); };
+  $$('[data-wcd]', el).forEach(b => b.onclick = ev => { const x = S.wedding.checklist.find(y => y.id === b.dataset.wcd); x.done = !x.done; if (x.done) hearts(ev.clientX, ev.clientY); save(); again(); });
+  armDelete(el, 'data-wcdel', id => { S.wedding.checklist = S.wedding.checklist.filter(x => x.id !== id); save(); again(); });
+  const addS = () => { const v = $('#wsIn', el).value.trim(); if (!v) return; S.wedding.shopping.push({id:uid(), e:'\u{1F6CD}\u{FE0F}', title:v, done:false}); save(); again(); };
+  $('#wsAdd', el).onclick = addS; $('#wsIn', el).onkeydown = e => { if (e.key === 'Enter') addS(); };
+  $$('[data-wsd]', el).forEach(b => b.onclick = ev => { const x = shop.find(y => y.id === b.dataset.wsd); x.done = !x.done; if (x.done) hearts(ev.clientX, ev.clientY); save(); again(); });
+  armDelete(el, 'data-wshdel', id => { S.wedding.shopping = shop.filter(x => x.id !== id); save(); again(); });
+  $$('[data-wmd]', el).forEach(b => b.onclick = ev => { const m = S.mashawer.find(y => y.id === b.dataset.wmd); m.done = !m.done; m.doneOn = m.done ? t : ''; if (m.done) hearts(ev.clientX, ev.clientY); save(); again(); });
+  $$('[data-go]', el).forEach(b => b.onclick = () => { const p = b.dataset.go.split(':'); go(p[0], p[1]); });
 };
