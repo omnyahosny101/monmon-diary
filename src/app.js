@@ -195,6 +195,7 @@ function buildReminders(){
       mealsFor(n).forEach((m, i) => push('meal-' + n + '-' + i, slots[i][0] + ' time, Monmon ♡', m.name + ' · ' + m.kcal + ' kcal', at(d, slots[i][1], slots[i][2])));
     }
   }
+  lifeReminders(R, repeat, push, at);
   once.sort((a, b) => a.at < b.at ? -1 : 1);
   return {repeat, once};
 }
@@ -209,10 +210,10 @@ function mealsFor(n){ return PLAN[n - 1].meals.map((m, i) => { const sw = S.swap
 const TABS = [
   {id:'today', name:'Today', icon:'<path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/><circle cx="12" cy="12" r="4"/>', subs:null},
   {id:'food', name:'Food', icon:'<circle cx="12" cy="13" r="7"/><circle cx="12" cy="13" r="3.5"/><path d="M3 3v6M21 3c-1.5 1-2 3-2 5h2V3zM21 8v13"/>', subs:[['meals','Meals'],['dishes','My dishes'],['forbidden','Forbidden'],['month','Month'],['groc','Groceries'],['tips','Tips']]},
-  {id:'money', name:'Money', icon:'<rect x="2.5" y="6" width="19" height="13" rx="3"/><path d="M2.5 10h19M16 15h2"/>', subs:[['overview','Overview'],['spend','Spending'],['savings','Savings'],['sadaqa','Sadaqa'],['receipts','Receipts'],['salary','Salary'],['pets','Pets']]},
-  {id:'plans', name:'Plans', icon:'<path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>', subs:[['tasks','Tasks'],['mashawer','Mashawer'],['exp','Experiences'],['selfcare','Self-care'],['shop','Shopping'],['vision','Vision board']]},
+  {id:'money', name:'Money', icon:'<rect x="2.5" y="6" width="19" height="13" rx="3"/><path d="M2.5 10h19M16 15h2"/>', subs:[['overview','Overview'],['spend','Spending'],['savings','Savings'],['sadaqa','Sadaqa'],['shein','Shein'],['receipts','Receipts'],['salary','Salary'],['worth','Net worth'],['pets','Pets']]},
+  {id:'plans', name:'Plans', icon:'<path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>', subs:[['tasks','Tasks'],['wedding','Wedding'],['mashawer','Mashawer'],['exp','Experiences'],['selfcare','Self-care'],['shop','Shopping'],['vision','Vision board']]},
   {id:'grow', name:'Grow', icon:'<path d="M12 21v-9M12 12c0-4 3-7 8-7 0 5-3 7-8 7zM12 14c0-3-2.5-5.5-7-5.5 0 4 2.5 5.5 7 5.5z"/>', subs:[['skills','Skills'],['hobbies','Hobbies']]},
-  {id:'me', name:'Me', icon:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>', subs:[['days','My days'],['diary','Diary'],['habits','Habits'],['settings','Settings']]},
+  {id:'me', name:'Me', icon:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>', subs:[['days','My days'],['diary','Diary'],['habits','Habits'],['body','Body'],['settings','Settings']]},
 ];
 let nav = {tab:'today', sub:{food:'meals', money:'overview', plans:'tasks', grow:'skills', me:'days'}};
 let ui = {foodDay:null, moneyMonth:ym(new Date()), scMonth:ym(new Date()), diaryMonth:ym(new Date()), dayView:todayStr(), vEmo:EMO[0], dishType:'Lunch', build:[], gEmo:null, hEmo:null};
@@ -307,6 +308,7 @@ VIEWS.today = function(el){
   const wz = WISDOM[(doy + (S.wisdomShift || 0)) % WISDOM.length];
   el.innerHTML =
   '<div class="card wisdom"><span class="src">\u{1F4DA} ' + esc(wz.src) + '</span><p class="idea">' + esc(wz.idea) + '</p><p class="todo"><b>Try this today</b>' + esc(wz.advice) + '</p><button class="linkbtn" id="wzNext" style="align-self:flex-start;background:var(--surface);color:var(--berry)">Another one</button></div>' +
+  lifeTodayTop() +
   (urg.length ? '<div class="urgent"><h2>Do these first</h2>' + urg.slice(0, 4).map(x => '<button class="ur" data-udone="' + x.id + '"><span class="tick">' + CHECK + '</span><span><span class="pill" style="background:#fff;color:' + (x.prio === 'urgent' ? 'var(--danger)' : '#a86d00') + '">' + (x.prio === 'urgent' ? '\u{1F6A8} URGENT' : '⚠\u{FE0F} SOON') + '</span>' + esc(x.title) + (x.due ? '<span style="display:block;font-size:12px;opacity:.92">' + (x.due < day ? 'Overdue · ' : '') + nice(x.due) + (x.time ? ' · by ' + x.time : '') + '</span>' : '') + '</span></button>').join('') + '</div>' : '') +
 
   '<div class="card tint"><div class="greet">Your day so far</div>' +
@@ -343,6 +345,7 @@ VIEWS.today = function(el){
     '<div class="row"><label class="field"><span>Note</span><input class="in" id="qNote" placeholder="What was it?"></label><button class="btn" id="qAdd">Add</button></div>' +
     '<div class="list">' + (todaySpend.length ? todaySpend.map(spendRow).join('') : '<div class="empty">Nothing spent yet today.</div>') + '</div></div>' +
 
+  lifeTodayMid() +
   '<div class="card"><div class="card-head"><h2>Coming up</h2><button class="linkbtn" data-go="plans">Plans</button></div><div class="list">' +
     (coming.length ? coming.map(c => '<div class="item"><span style="font-size:20px">' + c.e + '</span><span class="t">' + esc(c.title) + '<span class="s">' + c.when + '</span></span><span></span></div>').join('') : '<div class="empty">Nothing planned yet.</div>') + '</div></div>' +
 
@@ -372,6 +375,7 @@ VIEWS.today = function(el){
   $$('[data-go]', el).forEach(b => b.onclick = () => { const p = b.dataset.go.split(':'); go(p[0], p[1]); });
   $$('[data-udone]', el).forEach(b => b.onclick = ev => { const x = S.tasks.find(y => y.id === b.dataset.udone); x.done = true; x.doneOn = day; save(); hearts(ev.clientX, ev.clientY); toast('Done! One less thing ♡'); again(); });
   $('#wzNext', el).onclick = () => { S.wisdomShift = (S.wisdomShift || 0) + 1; save(); again(); };
+  bindLifeToday(el, again);
   $('#insNext', el).onclick = () => { S.insightShift = (S.insightShift || 0) + 1; save(); again(); setTimeout(() => { const i = $('.insight'); if (i) i.scrollIntoView({block:'center'}); }, 0); };
   const nm = $('[data-nextmeal]', el); if (nm) nm.onclick = ev => { toggleMeal(nm.dataset.nextmeal, ev); again(); };
 };
@@ -405,6 +409,7 @@ function upcoming(){
   S.mashawer.filter(m => !m.done && m.date >= t).forEach(m => out.push({d:m.date + (m.time || ''), e:'\u{1F4CD}', title:m.name, when:nice(m.date) + (m.time ? ' · ' + m.time : '')}));
   S.exp.filter(x => !x.done && x.date && x.date >= t).forEach(x => out.push({d:x.date, e:'✨', title:x.title, when:nice(x.date) + (x.with && x.with.length ? ' · with ' + x.with.join(', ') : '')}));
   Object.values(S.selfcare).forEach(l => l.filter(s => !s.done && s.planned && s.planned >= t).forEach(s => out.push({d:s.planned, e:s.e, title:s.name, when:nice(s.planned) + (s.price ? ' · ' + money(s.price) : '')})));
+  if (S.wedding && S.wedding.beauty) S.wedding.beauty.filter(b => !b.done && b.planned && b.planned >= t).forEach(b => out.push({d:b.planned, e:b.e, title:b.name, when:nice(b.planned) + (b.price ? ' · ' + money(b.price) : '')}));
   S.tasks.filter(x => !x.done && x.due && x.due >= t && x.prio !== 'urgent').forEach(x => out.push({d:x.due, e:x.kind === 'work' ? '\u{1F4BC}' : '✅', title:x.title, when:'Due ' + nice(x.due)}));
   return out.sort((a, b) => a.d < b.d ? -1 : 1);
 }
@@ -522,7 +527,7 @@ VIEWS['food.groc'] = function(el){
     total++; const k = cat + '|' + name, isOn = !!S.groc[k]; if (isOn) on++;
     return '<button class="item' + (isOn ? ' done' : '') + '" data-g="' + esc(k) + '"><span class="tick' + (isOn ? ' on' : '') + '">' + CHECK + '</span><span class="t">' + esc(name) + (use ? '<span class="s">' + esc(use) + '</span>' : '') + '</span><span class="amt muted" style="font-size:13px">' + esc(qty) + '</span></button>';
   }).join('') + '</div>').join('');
-  el.innerHTML = '<div class="card"><div class="card-head"><span class="small muted" style="font-weight:800">' + on + ' of ' + total + ' in the basket</span><button class="linkbtn" id="gReset">Clear ticks</button></div><div class="bar good"><i style="width:' + (total ? on / total * 100 : 0) + '%"></i></div></div><div class="card">' + html + '</div><p class="note">Beans, foul, tuna and sardines are canned. Buy fish, shrimp and fruit in two trips.</p>';
+  el.innerHTML = '<div class="card"><div class="card-head"><span class="small muted" style="font-weight:800">' + on + ' of ' + total + ' in the basket</span><button class="linkbtn" id="gReset">Clear ticks</button></div><div class="bar good"><i style="width:' + (total ? on / total * 100 : 0) + '%"></i></div></div><div class="card">' + html + '</div><p class="note">Beans, foul, tuna and sardines are canned. Buy fish, shrimp and fruit in two trips. On Talabat Mart, chicken orders over 350 EGP get 150 EGP off.</p>';
   const again = () => VIEWS['food.groc'](el);
   $$('[data-g]', el).forEach(b => b.onclick = () => { const k = b.dataset.g; if (S.groc[k]) delete S.groc[k]; else S.groc[k] = true; save(); if (S.groc[k] && Object.keys(S.groc).length === total) celebrate({key:'groc-' + ym(new Date()), e:'\u{1F6D2}', title:'Groceries done!', msg:'Your whole month is in the basket. Future-you is eating well.'}); again(); });
   $('#gReset', el).onclick = () => { S.groc = {}; save(); again(); };
@@ -541,7 +546,7 @@ function spendRow(s){
   const c = catOf(s.cat);
   return '<div class="item"><span style="font-size:20px">' + c.e + '</span><span class="t">' + (s.store ? '<span class="pill">' + esc(s.store) + '</span>' : '') + esc(s.note || c.name) + '<span class="s">' + nice(s.date) + ' · ' + esc(c.name) + '</span></span><span style="display:flex;align-items:center;gap:4px"><span class="amt">' + fmt(s.amount) + '</span>' + delBtn('data-sdel', s.id) + '</span></div>';
 }
-function bindSpendDeletes(el, again){ armDelete(el, 'data-sdel', id => { S.spend = S.spend.filter(s => s.id !== id); S.sadaqa = S.sadaqa.filter(x => x.spendId !== id); save(); again(); }); }
+function bindSpendDeletes(el, again){ armDelete(el, 'data-sdel', id => { S.spend = S.spend.filter(s => s.id !== id); S.sadaqa = S.sadaqa.filter(x => x.spendId !== id); if (S.valu) S.valu.paid = S.valu.paid.filter(x => x.spendId !== id); save(); again(); }); }
 VIEWS['money.overview'] = function(el){
   const k = ui.moneyMonth, list = S.spend.filter(s => inMonth(s, k));
   const spent = sum(list, s => s.amount), sal = +S.salary[k] || 0;
@@ -887,8 +892,3 @@ VIEWS['me.settings'] = function(el){
   $('#bkRestore', el).onclick = () => { try { const d = JSON.parse($('#bkText', el).value); if (!d || typeof d !== 'object') throw 0; S = merge(DEF(), d); save(); toast('Restored ♡'); render(); } catch(e){ toast('That backup text isn’t valid'); } };
 };
 
-/* ============ boot ============ */
-render();
-syncNative();
-document.addEventListener('visibilitychange', () => { if (!document.hidden){ if (nav.tab === 'today') render(); syncNative(); } });
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

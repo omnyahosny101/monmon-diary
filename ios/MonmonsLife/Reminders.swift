@@ -36,6 +36,8 @@ enum Reminders {
                 comps.hour = hour
                 comps.minute = minute
                 if let day = item["day"] as? Int { comps.day = day }
+                // 1 = Sunday … 7 = Saturday (work hours Sun–Thu, Friday check-in)
+                if let weekday = item["weekday"] as? Int { comps.weekday = weekday }
                 let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: true)
                 center.add(UNNotificationRequest(identifier: id, content: content(item), trigger: trigger))
                 budget -= 1
