@@ -169,6 +169,10 @@ textarea.in{resize:vertical;min-height:64px;font-weight:600;line-height:1.4}
 .urgent h2{color:#fff}.urgent h2::before{background:#fff}
 .urgent .ur{display:flex;align-items:center;gap:10px;font-weight:800;text-align:left}
 .urgent .ur .tick{border-color:rgba(255,255,255,.7)}
+.urgent .card-head h2{margin:0}
+.flag{flex:0 0 auto;width:32px;height:32px;border-radius:999px;border:1.5px dashed var(--line);background:var(--bg);font-size:14px;line-height:1;filter:grayscale(1);opacity:.5;transition:all .2s}
+.flag.on{filter:none;opacity:1;border-style:solid;border-color:var(--danger);background:#ffe3e8;transform:scale(1.05)}
+.urgent .flag.on{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.75)}
 @keyframes pulse{0%,100%{box-shadow:0 14px 28px -14px var(--danger)}50%{box-shadow:0 14px 34px -8px var(--danger)}}
 
 /* mood */

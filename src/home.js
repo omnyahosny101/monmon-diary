@@ -103,7 +103,7 @@ function mediaSheet(kind, day, done){
 function tasksHTML(){
   const t = todayStr(), order = {urgent:0, high:1};
   const sort = (a, b) => ((order[a.prio] ?? 2) - (order[b.prio] ?? 2)) || ((a.due || '9') < (b.due || '9') ? -1 : 1);
-  const row = x => '<div class="item"><button class="tick" data-htdone="' + x.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (x.job ? '<span class="pill">' + esc(jobName(x.job)) + '</span>' : '') + (x.prio && x.prio !== 'normal' ? '<span class="pill ' + PRIO[x.prio].c + '">' + PRIO[x.prio].l + '</span>' : '') + esc(x.title) + (x.due ? '<span class="s" style="' + (x.due < t ? 'color:var(--danger);font-weight:900' : '') + '">' + (x.due < t ? 'Overdue · ' : 'Due ') + nice(x.due) + (x.time ? ' · by ' + x.time : '') + '</span>' : '') + '</span><span></span></div>';
+  const row = x => '<div class="item"><button class="tick" data-htdone="' + x.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (x.job ? '<span class="pill">' + esc(jobName(x.job)) + '</span>' : '') + (x.prio && x.prio !== 'normal' ? '<span class="pill ' + PRIO[x.prio].c + '">' + PRIO[x.prio].l + '</span>' : '') + esc(x.title) + (x.due ? '<span class="s" style="' + (x.due < t ? 'color:var(--danger);font-weight:900' : '') + '">' + (x.due < t ? 'Overdue · ' : 'Due ') + nice(x.due) + (x.time ? ' · by ' + x.time : '') + '</span>' : '') + '</span>' + flagBtn('t:' + x.id, x.prio === 'urgent') + '</div>';
   const w = S.tasks.filter(x => !x.done && x.kind === 'work').sort(sort), p = S.tasks.filter(x => !x.done && x.kind !== 'work').sort(sort);
   return '<div class="card"><div class="card-head"><h2>Tasks</h2><button class="linkbtn" data-go="plans:tasks">All tasks</button></div>' +
     '<div class="row"><label class="field" style="flex:2 1 150px"><input class="in" id="htIn" placeholder="Add a task…" aria-label="New task"></label><label class="field" style="flex:1 1 100px"><select class="in" id="htFor" aria-label="For"><option value="personal">Personal</option>' + S.jobs.map(j => '<option value="' + j.id + '">' + esc(j.name) + '</option>').join('') + '</select></label><button class="btn" id="htAdd">Add</button></div>' +
@@ -115,21 +115,62 @@ function mashawerHTML(){
   return '<div class="card"><div class="card-head"><h2>Mashawer</h2><button class="linkbtn" data-go="plans:mashawer">All</button></div>' +
     '<div class="row"><label class="field" style="flex:2 1 140px"><input class="in" id="hmIn" placeholder="Where to?" aria-label="Where"></label><label class="field" style="flex:1 1 120px"><input class="in" id="hmDate" type="date" value="' + t + '" aria-label="Day"></label></div>' +
     '<div class="row"><button class="chip" id="hmWed" aria-pressed="false">\u{1F48D} Wedding prep</button><span style="flex:1"></span><button class="btn" id="hmAdd">Add</button></div>' +
-    '<div class="list">' + (up.length ? up.slice(0, 5).map(m => '<div class="item"><button class="tick" data-hmdone="' + m.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (m.wedding ? '<span class="pill wedpill">\u{1F48D} Wedding prep</span>' : '') + esc(m.name) + '<span class="s">' + (m.date ? (m.date < t ? 'Missed · ' : '') + nice(m.date) : 'No date') + (m.time ? ' · ' + m.time : '') + '</span></span><span></span></div>').join('') : '<div class="empty">No mashawer planned.</div>') + '</div></div>';
+    '<div class="list">' + (up.length ? up.slice(0, 5).map(m => '<div class="item"><button class="tick" data-hmdone="' + m.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (m.wedding ? '<span class="pill wedpill">\u{1F48D} Wedding prep</span>' : '') + esc(m.name) + '<span class="s">' + (m.date ? (m.date < t ? 'Missed · ' : '') + nice(m.date) : 'No date') + (m.time ? ' · ' + m.time : '') + '</span></span>' + flagBtn('m:' + m.id, m.flag) + '</div>').join('') : '<div class="empty">No mashawer planned.</div>') + '</div></div>';
+}
+
+/* ---------- 🚨 emergency flags: tasks, mashawer, wedding prep, shopping, beauty ---------- */
+function flagBtn(key, on){ return '<button class="flag' + (on ? ' on' : '') + '" data-flag="' + key + '" aria-pressed="' + !!on + '" aria-label="' + (on ? 'Remove emergency flag' : 'Flag as emergency') + '">\u{1F6A8}</button>'; }
+function findFlag(key){
+  const [k, id] = key.split(':');
+  if (k === 't') return S.tasks.find(x => x.id === id);
+  if (k === 'm') return S.mashawer.find(x => x.id === id);
+  if (k === 'c') return S.wedding.checklist.find(x => x.id === id);
+  if (k === 'w') return (S.wedding.shopping || []).find(x => x.id === id);
+  if (k === 's') for (const m in S.selfcare){ const x = S.selfcare[m].find(y => y.id === id); if (x) return x; }
+}
+function toggleFlag(key){
+  const x = findFlag(key); if (!x) return;
+  let on; if (key[0] === 't'){ x.prio = x.prio === 'urgent' ? 'normal' : 'urgent'; on = x.prio === 'urgent'; } else on = x.flag = !x.flag;
+  save(); toast(on ? '\u{1F6A8} Emergency. It’s at the top of Today now.' : 'Flag removed');
+}
+function bindFlags(el, again){ $$('[data-flag]', el).forEach(b => b.onclick = ev => { ev.stopPropagation(); toggleFlag(b.dataset.flag); again(); }); }
+function emergencies(){
+  const out = [];
+  urgentTasks().forEach(x => out.push({key:'t:' + x.id, e:x.kind === 'work' ? '\u{1F4BC}' : '✅', title:x.title, date:x.due, time:x.time, kind:x.prio === 'urgent' ? (x.job ? jobName(x.job) : 'Task') : '⚠\u{FE0F} Due soon', flag:x.prio === 'urgent', wed:/wedding|زفاف|فرح/i.test(x.title)}));
+  S.mashawer.filter(m => m.flag && !m.done).forEach(m => out.push({key:'m:' + m.id, e:'\u{1F4CD}', title:m.name, date:m.date, time:m.time, kind:'Meshwar', flag:true, wed:!!m.wedding}));
+  S.wedding.checklist.filter(c => c.flag && !c.done).forEach(c => out.push({key:'c:' + c.id, e:c.e || '\u{1F48D}', title:c.title, date:c.date || '', kind:'Wedding prep', flag:true, wed:true}));
+  (S.wedding.shopping || []).filter(x => x.flag && !x.done).forEach(x => out.push({key:'w:' + x.id, e:x.e, title:x.title, date:'', kind:'To buy', flag:true, wed:true}));
+  Object.values(S.selfcare).forEach(l => l.filter(x => x.flag && !x.done).forEach(x => out.push({key:'s:' + x.id, e:x.e, title:x.name, date:x.planned, kind:'Beauty', flag:true, wed:!!x.wedding})));
+  return out.sort((a, b) => ((a.date || '9') < (b.date || '9') ? -1 : (a.date || '9') > (b.date || '9') ? 1 : 0) || (b.wed - a.wed));
+}
+function emergencyHTML(){
+  const L = emergencies(), t = todayStr(); if (!L.length) return '';
+  return '<div class="urgent"><div class="card-head"><h2>Emergency</h2><span class="num" style="font-weight:600">' + L.length + '</span></div>' + L.slice(0, 8).map(x =>
+    '<div class="ur"><button class="tick" data-emdone="' + x.key + '" aria-label="Done">' + CHECK + '</button><span style="flex:1;min-width:0"><span class="pill" style="background:#fff;color:var(--danger)">' + (x.wed ? '\u{1F48D} ' : '') + esc(x.kind) + '</span>' + x.e + ' ' + esc(x.title) +
+    (x.date ? '<span style="display:block;font-size:12px;opacity:.92">' + (x.date < t ? 'Overdue · ' : x.date === t ? 'Today · ' : '') + nice(x.date) + (x.time ? ' · ' + x.time : '') + '</span>' : '') + '</span>' + (x.flag ? flagBtn(x.key, true) : '') + '</div>').join('') +
+    (L.length > 8 ? '<span class="small" style="font-weight:800">+ ' + (L.length - 8) + ' more flagged</span>' : '') + '</div>';
+}
+function emergencyReminders(push, at){
+  const t = todayStr(), tm = addDays(t, 1);
+  S.mashawer.filter(m => m.flag && !m.done && m.date >= t).forEach(m => push('em-m-' + m.id, '\u{1F6A8} Today: ' + m.name, m.time ? 'At ' + m.time + '. Flagged as an emergency.' : 'Flagged as an emergency.', at(parseD(m.date), 9, 0)));
+  Object.values(S.selfcare).forEach(l => l.filter(x => x.flag && !x.done && x.planned >= t).forEach(x => push('em-s-' + x.id, '\u{1F6A8} Today: ' + x.e + ' ' + x.name, 'Flagged as an emergency.', at(parseD(x.planned), 9, 0))));
+  S.mashawer.filter(m => m.flag && !m.done && !m.date).forEach(m => push('em-m-' + m.id, '\u{1F6A8} Still open: ' + m.name, 'Pick a day for it today.', at(parseD(tm), 10, 0)));
+  S.wedding.checklist.filter(c => c.flag && !c.done).forEach(c => push('em-c-' + c.id, '\u{1F6A8} Wedding: ' + c.title, 'Flagged as an emergency. Can you do it today?', at(parseD(tm), 10, 0)));
+  (S.wedding.shopping || []).filter(x => x.flag && !x.done).forEach(x => push('em-w-' + x.id, '\u{1F6A8} To buy: ' + x.title, 'Flagged as an emergency for the wedding.', at(parseD(tm), 10, 5)));
 }
 
 /* ---------- beauty and pampering, shopping list ---------- */
 function beautyHTML(){
   const t = todayStr(), now = new Date(), next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const sec = k => { const L = (S.selfcare[k] || []).slice().sort((a, b) => (a.planned || '9') < (b.planned || '9') ? -1 : 1); if (!L.length) return '';
-    return '<h3>' + MONTHS_L[+k.slice(5) - 1] + ' · ' + L.filter(s => s.done).length + '/' + L.length + ' done</h3><div class="list">' + L.map(s => '<button class="item' + (s.done ? ' done' : '') + '" data-bt="' + s.id + '"><span class="tick' + (s.done ? ' on' : '') + '">' + CHECK + '</span><span class="t">' + s.e + ' ' + esc(s.name) + (s.wedding ? ' \u{1F48D}' : '') +
-      '<span class="s">' + (s.done ? 'Done ' + nice(s.done) : s.planned ? (s.planned < t ? 'Was due ' : '') + nice(s.planned) : 'No date yet') + (s.price ? ' · ' + money(s.price) : '') + '</span></span><span></span></button>').join('') + '</div>'; };
+    return '<h3>' + MONTHS_L[+k.slice(5) - 1] + ' · ' + L.filter(s => s.done).length + '/' + L.length + ' done</h3><div class="list">' + L.map(s => '<div class="item' + (s.done ? ' done' : '') + '"><button class="tick' + (s.done ? ' on' : '') + '" data-bt="' + s.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + s.e + ' ' + esc(s.name) + (s.wedding ? ' \u{1F48D}' : '') +
+      '<span class="s">' + (s.done ? 'Done ' + nice(s.done) : s.planned ? (s.planned < t ? 'Was due ' : '') + nice(s.planned) : 'No date yet') + (s.price ? ' · ' + money(s.price) : '') + '</span></span>' + flagBtn('s:' + s.id, s.flag) + '</div>').join('') + '</div>'; };
   const body = sec(ym(now)) + sec(ym(next));
   return '<div class="card"><div class="card-head"><h2>Beauty and pampering</h2><button class="linkbtn" data-go="plans:wedding">All months</button></div>' + (body || '<div class="empty">No sessions planned. Plan them in Plans › Self-care.</div>') + '</div>';
 }
 function shopHTML(){
   const L = S.wedding.shopping || [], open = L.filter(x => !x.done), got = L.filter(x => x.done);
-  const row = x => '<button class="item' + (x.done ? ' done' : '') + '" data-hs="' + x.id + '"><span class="tick' + (x.done ? ' on' : '') + '">' + CHECK + '</span><span class="t">' + x.e + ' ' + esc(x.title) + '</span><span></span></button>';
+  const row = x => '<div class="item' + (x.done ? ' done' : '') + '"><button class="tick' + (x.done ? ' on' : '') + '" data-hs="' + x.id + '" aria-label="Bought">' + CHECK + '</button><span class="t">' + x.e + ' ' + esc(x.title) + '</span>' + flagBtn('w:' + x.id, x.flag) + '</div>';
   return '<div class="card"><div class="card-head"><h2>Shopping list</h2><span class="num muted">' + got.length + '/' + L.length + ' bought</span></div>' +
     '<div class="row"><label class="field"><input class="in" id="hsIn" placeholder="Add something to buy…" aria-label="New item"></label><button class="btn" id="hsAdd">Add</button></div>' +
     '<div class="list">' + (open.length ? open.map(row).join('') : '<div class="empty">Everything is bought \u{1F389}</div>') + got.map(row).join('') + '</div>' +
@@ -148,8 +189,8 @@ VIEWS.today = function(el){
   S.exp.filter(x => !x.done && x.date && x.date >= day).forEach(x => coming.push({d:x.date, e:'✨', title:x.title, when:nice(x.date) + (x.with && x.with.length ? ' · with ' + x.with.join(', ') : '')}));
   coming.sort((a, b) => a.d < b.d ? -1 : 1);
   el.innerHTML =
+    emergencyHTML() +
     weddingTrackerHTML() +
-    (urg.length ? '<div class="urgent"><h2>Do these first</h2>' + urg.slice(0, 4).map(x => '<button class="ur" data-udone="' + x.id + '"><span class="tick">' + CHECK + '</span><span><span class="pill" style="background:#fff;color:' + (x.prio === 'urgent' ? 'var(--danger)' : '#a86d00') + '">' + (x.prio === 'urgent' ? '\u{1F6A8} URGENT' : '⚠\u{FE0F} SOON') + '</span>' + esc(x.title) + (x.due ? '<span style="display:block;font-size:12px;opacity:.92">' + (x.due < day ? 'Overdue · ' : '') + nice(x.due) + (x.time ? ' · by ' + x.time : '') + '</span>' : '') + '</span></button>').join('') + '</div>' : '') +
     '<div class="card wisdom"><span class="src">\u{1F4DA} ' + esc(wz.src) + '</span><p class="idea">' + esc(wz.idea) + '</p><p class="todo"><b>Try this today</b>' + esc(wz.advice) + '</p><button class="linkbtn" id="wzNext" style="align-self:flex-start;background:var(--surface);color:var(--berry)">Another one</button></div>' +
     mashawerHTML() +
     tasksHTML() +
@@ -176,8 +217,12 @@ VIEWS.today = function(el){
     '<div class="card insight"><span class="tag">Did you know · ' + ins[0] + '</span><p>' + esc(ins[1]) + '</p><button class="linkbtn" id="insNext" style="align-self:flex-start;background:var(--surface);color:var(--lilac)">Another one</button></div>';
 
   const again = () => VIEWS.today(el);
-  $$('[data-bt]', el).forEach(b => b.onclick = ev => { const was = b.classList.contains('done'); togglePrep('s:' + b.dataset.bt); if (!was){ hearts(ev.clientX, ev.clientY); toast('Logged. Glowing! ♡'); } again(); });
-  $$('[data-hs]', el).forEach(b => b.onclick = ev => { const was = b.classList.contains('done'); togglePrep('w:' + b.dataset.hs); if (!was) hearts(ev.clientX, ev.clientY); again(); });
+  bindFlags(el, again);
+  $$('[data-emdone]', el).forEach(b => b.onclick = ev => { const key = b.dataset.emdone;
+    if (key[0] === 't'){ const x = findFlag(key); x.done = true; x.doneOn = day; save(); } else togglePrep(key);
+    hearts(ev.clientX, ev.clientY); toast('Handled! Breathe out ♡'); again(); });
+  $$('[data-bt]', el).forEach(b => b.onclick = ev => { const was = b.classList.contains('on'); togglePrep('s:' + b.dataset.bt); if (!was){ hearts(ev.clientX, ev.clientY); toast('Logged. Glowing! ♡'); } again(); });
+  $$('[data-hs]', el).forEach(b => b.onclick = ev => { const was = b.classList.contains('on'); togglePrep('w:' + b.dataset.hs); if (!was) hearts(ev.clientX, ev.clientY); again(); });
   const addHS = () => { const v = $('#hsIn', el).value.trim(); if (!v) return toast('What do you need to buy?'); S.wedding.shopping.push({id:uid(), e:'\u{1F6CD}\u{FE0F}', title:v, done:false}); save(); again(); };
   $('#hsAdd', el).onclick = addHS; $('#hsIn', el).onkeydown = e => { if (e.key === 'Enter') addHS(); };
   const hw = $('#hwDate', el); if (hw) hw.onchange = e => { S.profile.wedding = e.target.value; save(); toast('Countdown started \u{1F48D}'); again(); };
@@ -215,20 +260,23 @@ VIEWS['plans.mashawer'] = function(el){
   const t = todayStr();
   const up = S.mashawer.filter(m => !m.done).sort((a, b) => ((a.date || '9') + (a.time || '')) < ((b.date || '9') + (b.time || '')) ? -1 : 1);
   const done = S.mashawer.filter(m => m.done).sort((a, b) => a.date < b.date ? 1 : -1).slice(0, 15);
-  const row = m => '<div class="item' + (m.done ? ' done' : '') + '"><button class="tick' + (m.done ? ' on' : '') + '" data-mdone="' + m.id + '" aria-label="Mark done">' + CHECK + '</button><span class="t">' + (m.wedding ? '<span class="pill wedpill">\u{1F48D} Wedding prep</span>' : '') + esc(m.name) + '<span class="s">' + (m.date ? nice(m.date) : 'No date') + (m.time ? ' · ' + m.time : '') + (m.date && m.date < t && !m.done ? ' · missed' : '') + (m.remind !== false && !m.done ? ' · \u{1F514} day before' : '') + '</span>' + (m.note ? '<span class="s" style="color:var(--ink);font-weight:600">' + esc(m.note) + '</span>' : '') + '</span><span style="display:flex;gap:2px"><button class="tagw' + (m.wedding ? ' on' : '') + '" data-mw="' + m.id + '" aria-label="Wedding prep tag">\u{1F48D}</button>' + delBtn('data-mdel', m.id) + '</span></div>';
+  const row = m => '<div class="item' + (m.done ? ' done' : '') + '"><button class="tick' + (m.done ? ' on' : '') + '" data-mdone="' + m.id + '" aria-label="Mark done">' + CHECK + '</button><span class="t">' + (m.wedding ? '<span class="pill wedpill">\u{1F48D} Wedding prep</span>' : '') + esc(m.name) + '<span class="s">' + (m.date ? nice(m.date) : 'No date') + (m.time ? ' · ' + m.time : '') + (m.date && m.date < t && !m.done ? ' · missed' : '') + (m.remind !== false && !m.done ? ' · \u{1F514} day before' : '') + '</span>' + (m.note ? '<span class="s" style="color:var(--ink);font-weight:600">' + esc(m.note) + '</span>' : '') + '</span><span style="display:flex;gap:4px;align-items:center">' + (m.done ? '' : flagBtn('m:' + m.id, m.flag)) + '<button class="tagw' + (m.wedding ? ' on' : '') + '" data-mw="' + m.id + '" aria-label="Wedding prep tag">\u{1F48D}</button>' + delBtn('data-mdel', m.id) + '</span></div>';
   el.innerHTML = '<div class="card"><h2>New meshwar</h2><label class="field"><span>Where</span><input class="in" id="pName" placeholder="Bank, tailor, bridal shop, clinic…"></label>' +
     '<div class="row"><label class="field"><span>Day</span><input class="in" id="pDate" type="date" value="' + t + '"></label><label class="field"><span>Time</span><input class="in" id="pTime" type="time" value="12:00"></label></div>' +
     '<label class="field"><span>Note</span><input class="in" id="pNote" placeholder="What to bring or do there"></label>' +
     '<button class="toggle" id="pWed"><span class="sw" role="switch" aria-checked="false"></span><span>\u{1F48D} Wedding preparation</span></button>' +
+    '<button class="toggle" id="pEm"><span class="sw" role="switch" aria-checked="false"></span><span>\u{1F6A8} Emergency</span></button>' +
     '<button class="toggle" id="pRem"><span class="sw" role="switch" aria-checked="true"></span><span>Remind me a day before</span></button><button class="btn full" id="pAdd">Add meshwar</button></div>' +
     '<div class="card"><h2>Coming up</h2><div class="list">' + (up.length ? up.map(row).join('') : '<div class="empty">No mashawer planned.</div>') + '</div><p class="small muted" style="margin:0">Tap \u{1F48D} on any meshwar to add it to your wedding preparations.</p></div>' +
     (done.length ? '<div class="card"><h2>Done</h2><div class="list">' + done.map(row).join('') + '</div></div>' : '');
   const again = () => VIEWS['plans.mashawer'](el);
-  let rem = true, wed = false;
+  let rem = true, wed = false, em = false;
+  $('#pEm', el).onclick = () => { em = !em; $('#pEm .sw', el).setAttribute('aria-checked', em); };
+  bindFlags(el, again);
   $('#pRem', el).onclick = () => { rem = !rem; $('#pRem .sw', el).setAttribute('aria-checked', rem); };
   $('#pWed', el).onclick = () => { wed = !wed; $('#pWed .sw', el).setAttribute('aria-checked', wed); };
   $('#pAdd', el).onclick = () => { const name = $('#pName', el).value.trim(); if (!name) return toast('Where are you going?');
-    S.mashawer.push({id:uid(), name, date:$('#pDate', el).value, time:$('#pTime', el).value, note:$('#pNote', el).value.trim(), remind:rem, wedding:wed, done:false}); save(); toast(rem ? 'Added. I’ll remind you a day before.' : 'Meshwar added'); again(); };
+    S.mashawer.push({id:uid(), name, date:$('#pDate', el).value, time:$('#pTime', el).value, note:$('#pNote', el).value.trim(), remind:rem, wedding:wed, flag:em, done:false}); save(); toast(rem ? 'Added. I’ll remind you a day before.' : 'Meshwar added'); again(); };
   $$('[data-mw]', el).forEach(b => b.onclick = () => { const m = S.mashawer.find(x => x.id === b.dataset.mw); m.wedding = !m.wedding; save(); toast(m.wedding ? 'Added to wedding prep \u{1F48D}' : 'Removed from wedding prep'); again(); });
   $$('[data-mdone]', el).forEach(b => b.onclick = ev => { const m = S.mashawer.find(x => x.id === b.dataset.mdone); m.done = !m.done; m.doneOn = m.done ? t : '';
     if (m.done){ hearts(ev.clientX, ev.clientY); const a = S.daylog[t] = S.daylog[t] || []; if (!a.includes('meshwar')) a.push('meshwar'); } save(); again(); });
@@ -305,17 +353,18 @@ VIEWS['plans.wedding'] = function(el){
     Object.keys(byMonth).sort().map(k => { const L = byMonth[k].sort((a, b) => (a.planned || '9') < (b.planned || '9') ? -1 : 1), d = L.filter(s => s.done).length;
       return '<div class="card"><div class="card-head"><h2>' + MONTHS_L[+k.slice(5) - 1] + ' beauty</h2><span class="num muted">' + d + '/' + L.length + ' · ' + fmt(sum(L, s => s.price)) + ' EGP</span></div><div class="list">' +
         L.map(s => '<div class="sc' + (s.done ? ' done' : '') + '"><span class="em">' + s.e + '</span><div style="min-width:0"><div class="nm">' + esc(s.name) + '</div>' + (s.note ? '<span class="small muted" style="font-weight:700">' + esc(s.note) + '</span>' : '') +
-          '<div class="fields">' + field(s, 'price', 'Price', 'number') + field(s, 'planned', 'Planned', 'date') + field(s, 'done', 'Done on', 'date') + '</div></div>' + delBtn('data-wsdel', s.id) + '</div>').join('') + '</div>' +
+          '<div class="fields">' + field(s, 'price', 'Price', 'number') + field(s, 'planned', 'Planned', 'date') + field(s, 'done', 'Done on', 'date') + '</div></div><span style="display:flex;flex-direction:column;gap:6px;align-items:center">' + delBtn('data-wsdel', s.id) + (s.done ? '' : flagBtn('s:' + s.id, s.flag)) + '</span></div>').join('') + '</div>' +
         '<div class="row"><label class="field"><input class="in" data-wsin="' + k + '" placeholder="Add a session to ' + MONTHS_L[+k.slice(5) - 1] + '…" aria-label="New session"></label><button class="btn soft" data-wsadd="' + k + '">Add</button></div></div>'; }).join('') +
     '<p class="note">\u{1F514} Reminder the evening before each session. These also show in Plans › Self-care, month by month. ' + money(spent) + ' spent so far.</p>' +
     '<div class="card"><h2>Wedding preparations</h2><div class="row"><label class="field" style="flex:0 0 60px"><input class="in" id="wcE" value="\u{1F48D}" maxlength="4" style="text-align:center" aria-label="Emoji"></label><label class="field"><input class="in" id="wcIn" placeholder="Invitations, photographer, dress fitting…" aria-label="New item"></label><button class="btn" id="wcAdd">Add</button></div>' +
-      '<div class="list">' + S.wedding.checklist.map(x => '<div class="item' + (x.done ? ' done' : '') + '"><button class="tick' + (x.done ? ' on' : '') + '" data-wcd="' + x.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (x.e || '\u{1F48D}') + ' ' + esc(x.title) + '</span>' + delBtn('data-wcdel', x.id) + '</div>').join('') + '</div></div>' +
+      '<div class="list">' + S.wedding.checklist.map(x => '<div class="item' + (x.done ? ' done' : '') + '"><button class="tick' + (x.done ? ' on' : '') + '" data-wcd="' + x.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (x.e || '\u{1F48D}') + ' ' + esc(x.title) + '</span><span style="display:flex;gap:4px;align-items:center">' + (x.done ? '' : flagBtn('c:' + x.id, x.flag)) + delBtn('data-wcdel', x.id) + '</span></div>').join('') + '</div></div>' +
     '<div class="card"><div class="card-head"><h2>Wedding shopping</h2><span class="num muted">' + shop.filter(x => x.done).length + '/' + shop.length + '</span></div><div class="row"><label class="field"><input class="in" id="wsIn" placeholder="Add something to buy…" aria-label="New item"></label><button class="btn" id="wsAdd">Add</button></div>' +
-      '<div class="list">' + shop.map(x => '<div class="item' + (x.done ? ' done' : '') + '"><button class="tick' + (x.done ? ' on' : '') + '" data-wsd="' + x.id + '" aria-label="Bought">' + CHECK + '</button><span class="t">' + x.e + ' ' + esc(x.title) + '</span>' + delBtn('data-wshdel', x.id) + '</div>').join('') + '</div>' +
+      '<div class="list">' + shop.map(x => '<div class="item' + (x.done ? ' done' : '') + '"><button class="tick' + (x.done ? ' on' : '') + '" data-wsd="' + x.id + '" aria-label="Bought">' + CHECK + '</button><span class="t">' + x.e + ' ' + esc(x.title) + '</span><span style="display:flex;gap:4px;align-items:center">' + (x.done ? '' : flagBtn('w:' + x.id, x.flag)) + delBtn('data-wshdel', x.id) + '</span></div>').join('') + '</div>' +
       (sj ? '<p class="small muted" style="margin:0">Wedding shopping jar: ' + money(jarTotal(sj)) + ' of ' + money(sj.target) + '. The 48-hour wait still applies to big buys.</p>' : '') + '</div>' +
-    '<div class="card"><div class="card-head"><h2>Mashawer \u{1F48D}</h2><button class="linkbtn" data-go="plans:mashawer">Add or set dates</button></div><div class="list">' + (wm.length ? wm.map(m => '<div class="item' + (m.done ? ' done' : '') + '"><button class="tick' + (m.done ? ' on' : '') + '" data-wmd="' + m.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + esc(m.name) + '<span class="s">' + (m.date ? nice(m.date) : 'No date yet') + '</span></span><span></span></div>').join('') : '<div class="empty">Tap \u{1F48D} on a meshwar to add it here.</div>') + '</div></div>';
+    '<div class="card"><div class="card-head"><h2>Mashawer \u{1F48D}</h2><button class="linkbtn" data-go="plans:mashawer">Add or set dates</button></div><div class="list">' + (wm.length ? wm.map(m => '<div class="item' + (m.done ? ' done' : '') + '"><button class="tick' + (m.done ? ' on' : '') + '" data-wmd="' + m.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + esc(m.name) + '<span class="s">' + (m.date ? nice(m.date) : 'No date yet') + '</span></span>' + (m.done ? '<span></span>' : flagBtn('m:' + m.id, m.flag)) + '</div>').join('') : '<div class="empty">Tap \u{1F48D} on a meshwar to add it here.</div>') + '</div></div>';
 
-  const again = () => VIEWS['plans.wedding'](el), find = id => { for (const k in S.selfcare){ const s = S.selfcare[k].find(x => x.id === id); if (s) return [k, s]; } return []; };
+  const again = () => VIEWS['plans.wedding'](el); bindFlags(el, again);
+  const find = id => { for (const k in S.selfcare){ const s = S.selfcare[k].find(x => x.id === id); if (s) return [k, s]; } return []; };
   $('#wDate', el).onchange = e => { S.profile.wedding = e.target.value; save(); toast(e.target.value ? 'Countdown started \u{1F48D}' : 'Date cleared'); again(); };
   $$('[data-wsf]', el).forEach(i => i.onchange = () => {
     const [k, s] = find(i.dataset.id), f = i.dataset.wsf, was = !!s.done; s[f] = f === 'price' ? (+i.value || '') : i.value;

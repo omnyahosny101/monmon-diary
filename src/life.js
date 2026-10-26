@@ -275,13 +275,13 @@ VIEWS['plans.tasks'] = function(el){
       '<label class="field"><span>Priority</span><select class="in" data-tprio="' + kind + '"><option value="normal">Normal</option><option value="high">⚠\u{FE0F} Important</option><option value="urgent">\u{1F6A8} Urgent</option></select></label></div>' +
       '<div class="row"><label class="field"><span>Due</span><input class="in" type="date" data-tdue="' + kind + '"></label><label class="field" style="flex:1 1 90px"><span>By</span><input class="in" type="time" data-ttime="' + kind + '"></label></div>' +
       '<button class="btn full" data-tadd="' + kind + '">Add task</button>' +
-      '<div class="list">' + (items.length ? items.map(x => '<div class="item' + (x.done ? ' done' : '') + '"><button class="tick' + (x.done ? ' on' : '') + '" data-tdone="' + x.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (x.job ? '<span class="pill">' + esc(jobName(x.job)) + '</span>' : '') + (x.prio && x.prio !== 'normal' && !x.done ? '<span class="pill ' + PRIO[x.prio].c + '">' + PRIO[x.prio].l + '</span>' : '') + esc(x.title) + (x.due ? '<span class="s" style="' + (!x.done && x.due < t ? 'color:var(--danger);font-weight:900' : '') + '">' + (!x.done && x.due < t ? 'Overdue · ' : 'Due ') + nice(x.due) + (x.time ? ' · by ' + x.time : '') + '</span>' : '') + '</span>' + delBtn('data-tdel', x.id) + '</div>').join('') : '<div class="empty">Nothing here yet.</div>') + '</div></div>';
+      '<div class="list">' + (items.length ? items.map(x => '<div class="item' + (x.done ? ' done' : '') + '"><button class="tick' + (x.done ? ' on' : '') + '" data-tdone="' + x.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (x.job ? '<span class="pill">' + esc(jobName(x.job)) + '</span>' : '') + (x.prio && x.prio !== 'normal' && !x.done ? '<span class="pill ' + PRIO[x.prio].c + '">' + PRIO[x.prio].l + '</span>' : '') + esc(x.title) + (x.due ? '<span class="s" style="' + (!x.done && x.due < t ? 'color:var(--danger);font-weight:900' : '') + '">' + (!x.done && x.due < t ? 'Overdue · ' : 'Due ') + nice(x.due) + (x.time ? ' · by ' + x.time : '') + '</span>' : '') + '</span><span style="display:flex;gap:4px;align-items:center">' + (x.done ? '' : flagBtn('t:' + x.id, x.prio === 'urgent')) + delBtn('data-tdel', x.id) + '</span></div>').join('') : '<div class="empty">Nothing here yet.</div>') + '</div></div>';
   };
   el.innerHTML = '<div class="card tint"><div class="card-head"><h2>Work hours</h2><span class="num" style="font-weight:600">' + esc(P.workStart) + '–' + esc(P.workEnd) + '</span></div><span class="small muted" style="font-weight:700">Clear edges help you focus: a start reminder with your top task, and a log-off reminder. Sunday to Thursday. Change them in Me › Settings.</span></div>' +
     block('work', 'Work tasks \u{1F4BC}', 'Lenme launch post, BIB lead form…') + block('personal', 'My to-dos ✅', 'Call the clinic, pay a bill…') +
-    '<p class="note">\u{1F6A8} Urgent tasks sit at the top of Today and remind you the evening before, at 9:00 on the day and 1 hour before the deadline.</p>' +
+    '<p class="note">\u{1F6A8} Tap the siren on any task to make it an emergency. Emergencies sit at the top of Today and remind you the evening before, at 9:00 on the day and 1 hour before the deadline.</p>' +
     (S.tasks.some(x => x.done) ? '<button class="btn soft full" id="tClear">Clear finished tasks</button>' : '');
-  const again = () => VIEWS['plans.tasks'](el);
+  const again = () => VIEWS['plans.tasks'](el); bindFlags(el, again);
   $$('[data-tadd]', el).forEach(b => b.onclick = () => { const k = b.dataset.tadd, v = $('[data-tin="' + k + '"]', el).value.trim(); if (!v) return toast('Write the task');
     S.tasks.push({id:uid(), title:v, kind:k, job:k === 'work' ? $('[data-tjob]', el).value : '', prio:$('[data-tprio="' + k + '"]', el).value, due:$('[data-tdue="' + k + '"]', el).value, time:$('[data-ttime="' + k + '"]', el).value, done:false}); save(); again(); });
   $$('[data-tin]', el).forEach(i => i.onkeydown = e => { if (e.key === 'Enter') $('[data-tadd="' + i.dataset.tin + '"]', el).click(); });
@@ -402,6 +402,7 @@ VIEWS['me.settings'] = function(el){
 
 /* ---------- reminders added to the iPhone schedule ---------- */
 function lifeReminders(R, repeat, push, at){
+  if (R.plans !== false) emergencyReminders(push, at);
   const P = S.profile, hm = s => s.split(':').map(Number);
   if (R.wake !== false && P.wake){ const [h, m] = hm(P.wake); repeat.push({id:'wake', title:'Good morning, Monmon ☀\u{FE0F}', body:'Same time every day. Curtains open, a glass of water, then your day.', hour:h, minute:m});
     const b = ((h * 60 + m - 510) % 1440 + 1440) % 1440; repeat.push({id:'bed', title:'Wind down \u{1F319}', body:'Phone away soon. Wake-up is at ' + P.wake + '.', hour:Math.floor(b / 60), minute:b % 60}); }
