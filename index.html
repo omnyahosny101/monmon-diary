@@ -1842,7 +1842,7 @@ function lifeReminders(R, repeat, push, at){
   }
 }
 /* ============ HOME (Today) ============
-   Wedding tracker on top, an overview of every section, habits split daily/weekly/monthly (3 per row),
+   Wedding tracker on top, then mashawer, tasks, day log, spending, habits split daily/weekly/monthly (3 per row),
    tasks and mashawer on the home page; reading and podcasts open as pop-ups from their habits. */
 
 const PREP_DEFAULTS = [
@@ -1910,38 +1910,6 @@ function weddingTrackerHTML(){
     '<button class="linkbtn" data-go="plans:wedding" style="align-self:flex-start">Open wedding preparations ›</button></div>';
 }
 
-/* ---------- overview of every section ---------- */
-function overviewHTML(){
-  const day = todayStr(), k = ym(new Date()), n = planDayNum(new Date()), inPlan = n >= 1 && n <= 30;
-  const eaten = inPlan ? mealsDone(n) : 0, daily = S.habits.filter(h => h.freq === 'daily'), dDone = daily.filter(h => habitDone(h.id, day)).length;
-  const B = S.settings.budgets || {}, bt = sum(Object.keys(B), c => B[c]), ms = sum(S.spend.filter(s => inMonth(s, k)), s => s.amount);
-  const openT = S.tasks.filter(x => !x.done), urg = openT.filter(x => x.prio === 'urgent').length;
-  const upM = S.mashawer.filter(m => !m.done && m.date >= day).sort((a, b) => a.date < b.date ? -1 : 1);
-  const sc = (S.selfcare[k] || []), scNext = sc.filter(s => !s.done && s.planned >= day).sort((a, b) => a.planned < b.planned ? -1 : 1)[0];
-  const mood = S.diary[day] && S.diary[day].mood, ws = weekStart(new Date());
-  const gym = S.habits.find(h => h.id === 'gym'), gymN = gym ? weekCount('gym', day) : S.workouts.filter(w => parseD(w.date) >= ws).length;
-  const pages = sum(Object.keys(S.media).filter(d => d.slice(0, 7) === k), d => S.media[d].pages);
-  const tiles = [
-    ['\u{1F37D}\u{FE0F}', inPlan ? eaten + '/4' : 'Day ' + Math.max(1, n), inPlan ? 'meals today' : 'meal plan soon', 'food:meals'],
-    ['✅', dDone + '/' + daily.length, 'daily habits', 'me:habits'],
-    ['\u{1F4B8}', fmt(spentOn(day)), 'EGP spent today', 'money:spend'],
-    ['\u{1F4CA}', bt ? Math.round(ms / bt * 100) + '%' : fmt(ms), bt ? 'of budget used' : 'EGP this month', 'money:overview'],
-    ['\u{1FAD9}', fmt(sum(S.jars, jarTotal)), 'EGP in jars', 'money:savings'],
-    ['\u{1F932}', String(S.sadaqa.filter(s => inMonth(s, k)).length), 'sadaqa this month', 'money:sadaqa'],
-    ['\u{1F4BC}', String(openT.length), urg ? urg + ' urgent' : 'open tasks', 'plans:tasks', urg ? 'var(--danger)' : ''],
-    ['\u{1F4CD}', String(upM.length), upM[0] ? 'next ' + nice(upM[0].date).slice(4) : 'mashawer', 'plans:mashawer'],
-    ['\u{1F338}', scNext ? nice(scNext.planned).slice(4) : sc.filter(s => s.done).length + '/' + sc.length, scNext ? scNext.name : 'self-care', 'plans:selfcare'],
-    ['\u{1F4AA}', gymN + '/' + (gym ? gym.target : 5), 'gym this week', 'me:body'],
-    ['\u{1F4D6}', fmt(pages), 'pages this month', 'me:habits'],
-    ['\u{1F4D4}', mood ? MOODS[mood - 1].e : '–', 'mood today', 'me:diary'],
-    ['✨', String(S.exp.filter(x => x.done && x.doneOn && x.doneOn.slice(0, 7) === k).length), 'experiences', 'plans:exp'],
-    ['\u{1F331}', String(sum(S.skills, s => s.sessions)), 'learning sessions', 'grow:skills'],
-    ['\u{1F3AF}', S.vision.filter(v => v.done).length + '/' + S.vision.length, 'wishes come true', 'plans:vision'],
-  ];
-  return '<div class="card"><div class="card-head"><h2>Everything at a glance</h2></div><div class="ov">' +
-    tiles.map(x => '<button class="ovt" data-go="' + x[3] + '"><span class="oe">' + x[0] + '</span><b' + (x[4] ? ' style="color:' + x[4] + '"' : '') + '>' + esc(x[1]) + '</b><span>' + esc(x[2]) + '</span></button>').join('') + '</div></div>';
-}
-
 /* ---------- habits ---------- */
 function habitsHTML(day){
   const group = (freq, title) => {
@@ -1993,6 +1961,24 @@ function mashawerHTML(){
     '<div class="list">' + (up.length ? up.slice(0, 5).map(m => '<div class="item"><button class="tick" data-hmdone="' + m.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (m.wedding ? '<span class="pill wedpill">\u{1F48D} Wedding prep</span>' : '') + esc(m.name) + '<span class="s">' + (m.date ? (m.date < t ? 'Missed · ' : '') + nice(m.date) : 'No date') + (m.time ? ' · ' + m.time : '') + '</span></span><span></span></div>').join('') : '<div class="empty">No mashawer planned.</div>') + '</div></div>';
 }
 
+/* ---------- beauty and pampering, shopping list ---------- */
+function beautyHTML(){
+  const t = todayStr(), now = new Date(), next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const sec = k => { const L = (S.selfcare[k] || []).slice().sort((a, b) => (a.planned || '9') < (b.planned || '9') ? -1 : 1); if (!L.length) return '';
+    return '<h3>' + MONTHS_L[+k.slice(5) - 1] + ' · ' + L.filter(s => s.done).length + '/' + L.length + ' done</h3><div class="list">' + L.map(s => '<button class="item' + (s.done ? ' done' : '') + '" data-bt="' + s.id + '"><span class="tick' + (s.done ? ' on' : '') + '">' + CHECK + '</span><span class="t">' + s.e + ' ' + esc(s.name) + (s.wedding ? ' \u{1F48D}' : '') +
+      '<span class="s">' + (s.done ? 'Done ' + nice(s.done) : s.planned ? (s.planned < t ? 'Was due ' : '') + nice(s.planned) : 'No date yet') + (s.price ? ' · ' + money(s.price) : '') + '</span></span><span></span></button>').join('') + '</div>'; };
+  const body = sec(ym(now)) + sec(ym(next));
+  return '<div class="card"><div class="card-head"><h2>Beauty and pampering</h2><button class="linkbtn" data-go="plans:wedding">All months</button></div>' + (body || '<div class="empty">No sessions planned. Plan them in Plans › Self-care.</div>') + '</div>';
+}
+function shopHTML(){
+  const L = S.wedding.shopping || [], open = L.filter(x => !x.done), got = L.filter(x => x.done);
+  const row = x => '<button class="item' + (x.done ? ' done' : '') + '" data-hs="' + x.id + '"><span class="tick' + (x.done ? ' on' : '') + '">' + CHECK + '</span><span class="t">' + x.e + ' ' + esc(x.title) + '</span><span></span></button>';
+  return '<div class="card"><div class="card-head"><h2>Shopping list</h2><span class="num muted">' + got.length + '/' + L.length + ' bought</span></div>' +
+    '<div class="row"><label class="field"><input class="in" id="hsIn" placeholder="Add something to buy…" aria-label="New item"></label><button class="btn" id="hsAdd">Add</button></div>' +
+    '<div class="list">' + (open.length ? open.map(row).join('') : '<div class="empty">Everything is bought \u{1F389}</div>') + got.map(row).join('') + '</div>' +
+    '<p class="small muted" style="margin:0">Big buys still get the 48-hour wait. Ticked items stay at the bottom.</p></div>';
+}
+
 /* ---------- the home view ---------- */
 VIEWS.today = function(el){
   const day = todayStr(), doy = dayOfYear(new Date());
@@ -2003,18 +1989,20 @@ VIEWS.today = function(el){
   const todaySpend = S.spend.filter(s => s.date === day);
   const coming = [];
   S.exp.filter(x => !x.done && x.date && x.date >= day).forEach(x => coming.push({d:x.date, e:'✨', title:x.title, when:nice(x.date) + (x.with && x.with.length ? ' · with ' + x.with.join(', ') : '')}));
-  Object.values(S.selfcare).forEach(l => l.filter(s => !s.done && s.planned && s.planned >= day).forEach(s => coming.push({d:s.planned, e:s.e, title:s.name, when:nice(s.planned) + (s.wedding ? ' · \u{1F48D}' : '') + (s.price ? ' · ' + money(s.price) : '')})));
   coming.sort((a, b) => a.d < b.d ? -1 : 1);
   el.innerHTML =
     weddingTrackerHTML() +
     (urg.length ? '<div class="urgent"><h2>Do these first</h2>' + urg.slice(0, 4).map(x => '<button class="ur" data-udone="' + x.id + '"><span class="tick">' + CHECK + '</span><span><span class="pill" style="background:#fff;color:' + (x.prio === 'urgent' ? 'var(--danger)' : '#a86d00') + '">' + (x.prio === 'urgent' ? '\u{1F6A8} URGENT' : '⚠\u{FE0F} SOON') + '</span>' + esc(x.title) + (x.due ? '<span style="display:block;font-size:12px;opacity:.92">' + (x.due < day ? 'Overdue · ' : '') + nice(x.due) + (x.time ? ' · by ' + x.time : '') + '</span>' : '') + '</span></button>').join('') + '</div>' : '') +
     '<div class="card wisdom"><span class="src">\u{1F4DA} ' + esc(wz.src) + '</span><p class="idea">' + esc(wz.idea) + '</p><p class="todo"><b>Try this today</b>' + esc(wz.advice) + '</p><button class="linkbtn" id="wzNext" style="align-self:flex-start;background:var(--surface);color:var(--berry)">Another one</button></div>' +
-    overviewHTML() +
-    lifeTodayTop() +
-    habitsHTML(day) +
-    tasksHTML() +
     mashawerHTML() +
+    tasksHTML() +
     '<div class="card"><h2>What did I do today?</h2><div class="chips">' + DAYLOG.map(x => '<button class="chip' + (logs.includes(x.id) ? ' on' : '') + '" data-l="' + x.id + '">' + x.e + ' ' + x.name + '</button>').join('') + '</div></div>' +
+    '<div class="card"><div class="card-head"><h2>Spent today</h2><span class="amt">' + money(spentOn(day)) + '</span></div>' +
+      '<div class="row"><label class="field" style="flex:1 1 90px"><span>Amount</span><input class="in num" id="qAmt" type="number" inputmode="decimal" min="0" placeholder="0"></label>' +
+      '<label class="field" style="flex:2 1 150px"><span>Category</span><select class="in" id="qCat">' + CATS.map(c => '<option value="' + c.id + '">' + c.e + ' ' + c.name + '</option>').join('') + '</select></label></div>' +
+      '<div class="row"><label class="field"><span>Note</span><input class="in" id="qNote" placeholder="What was it?"></label><button class="btn" id="qAdd">Add</button></div>' +
+      '<div class="list">' + (todaySpend.length ? todaySpend.map(spendRow).join('') : '<div class="empty">Nothing spent yet today.</div>') + '</div></div>' +
+    habitsHTML(day) +
     '<div class="card"><div class="card-head"><h2>Dear diary</h2><span class="small muted">' + nice(day) + '</span></div>' +
       '<div class="moods">' + MOODS.map((m, i) => '<button class="mood' + (diary.mood === i + 1 ? ' on' : '') + '" data-mood="' + (i + 1) + '" aria-label="' + m.t + '">' + m.e + '<span>' + m.t + '</span></button>').join('') + '</div>' +
       '<h3>Today’s 3 questions</h3>' + qs.map(q => '<label class="field"><span class="qlab">' + esc(QUESTIONS[q]) + '</span><textarea class="in" data-q="' + q + '" placeholder="My answer…" style="min-height:50px">' + esc(qa[q] || '') + '</textarea></label>').join('') +
@@ -2022,17 +2010,19 @@ VIEWS.today = function(el){
       '<label class="field"><span>How I felt</span><textarea class="in" id="dFeel" placeholder="My feelings today…">' + esc(diary.feelings || '') + '</textarea></label>' +
       '<label class="field"><span>Quick notes and drafts</span><textarea class="in" id="dNote" placeholder="Anything to remember about today…">' + esc(S.notes[day] || '') + '</textarea></label>' +
       '<button class="linkbtn" data-go="me:days" style="align-self:flex-start">See my whole day ›</button></div>' +
-    '<div class="card"><div class="card-head"><h2>Spent today</h2><span class="amt">' + money(spentOn(day)) + '</span></div>' +
-      '<div class="row"><label class="field" style="flex:1 1 90px"><span>Amount</span><input class="in num" id="qAmt" type="number" inputmode="decimal" min="0" placeholder="0"></label>' +
-      '<label class="field" style="flex:2 1 150px"><span>Category</span><select class="in" id="qCat">' + CATS.map(c => '<option value="' + c.id + '">' + c.e + ' ' + c.name + '</option>').join('') + '</select></label></div>' +
-      '<div class="row"><label class="field"><span>Note</span><input class="in" id="qNote" placeholder="What was it?"></label><button class="btn" id="qAdd">Add</button></div>' +
-      '<div class="list">' + (todaySpend.length ? todaySpend.map(spendRow).join('') : '<div class="empty">Nothing spent yet today.</div>') + '</div></div>' +
+    beautyHTML() +
+    shopHTML() +
+    lifeTodayTop() +
     lifeTodayMid() +
-    (coming.length ? '<div class="card"><div class="card-head"><h2>Coming up</h2><button class="linkbtn" data-go="plans:selfcare">Self-care</button></div><div class="list">' + coming.slice(0, 4).map(c => '<div class="item"><span style="font-size:20px">' + c.e + '</span><span class="t">' + esc(c.title) + '<span class="s">' + c.when + '</span></span><span></span></div>').join('') + '</div></div>' : '') +
+    (coming.length ? '<div class="card"><div class="card-head"><h2>Coming up</h2><button class="linkbtn" data-go="plans:exp">Experiences</button></div><div class="list">' + coming.slice(0, 4).map(c => '<div class="item"><span style="font-size:20px">' + c.e + '</span><span class="t">' + esc(c.title) + '<span class="s">' + c.when + '</span></span><span></span></div>').join('') + '</div></div>' : '') +
     (inPlan ? '<div class="card"><div class="card-head"><h2>Next meal</h2><button class="linkbtn" data-go="food">Food</button></div>' + nextMealHTML(n) + '</div>' : '') +
     '<div class="card insight"><span class="tag">Did you know · ' + ins[0] + '</span><p>' + esc(ins[1]) + '</p><button class="linkbtn" id="insNext" style="align-self:flex-start;background:var(--surface);color:var(--lilac)">Another one</button></div>';
 
   const again = () => VIEWS.today(el);
+  $$('[data-bt]', el).forEach(b => b.onclick = ev => { const was = b.classList.contains('done'); togglePrep('s:' + b.dataset.bt); if (!was){ hearts(ev.clientX, ev.clientY); toast('Logged. Glowing! ♡'); } again(); });
+  $$('[data-hs]', el).forEach(b => b.onclick = ev => { const was = b.classList.contains('done'); togglePrep('w:' + b.dataset.hs); if (!was) hearts(ev.clientX, ev.clientY); again(); });
+  const addHS = () => { const v = $('#hsIn', el).value.trim(); if (!v) return toast('What do you need to buy?'); S.wedding.shopping.push({id:uid(), e:'\u{1F6CD}\u{FE0F}', title:v, done:false}); save(); again(); };
+  $('#hsAdd', el).onclick = addHS; $('#hsIn', el).onkeydown = e => { if (e.key === 'Enter') addHS(); };
   const hw = $('#hwDate', el); if (hw) hw.onchange = e => { S.profile.wedding = e.target.value; save(); toast('Countdown started \u{1F48D}'); again(); };
   $$('[data-prep]', el).forEach(b => b.onclick = ev => { togglePrep(b.dataset.prep); hearts(ev.clientX, ev.clientY); toast('Done! One step closer \u{1F48D}'); again(); });
   $$('[data-h]', el).forEach(b => b.onclick = ev => { const id = b.dataset.h;
