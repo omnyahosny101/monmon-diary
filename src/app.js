@@ -29,7 +29,6 @@ const DEFAULT_HABITS = [
   {id:'listen', name:'Podcast or episode', e:'\u{1F3A7}', freq:'daily', target:1, reward:''},
   {id:'drybrush', name:'Dry brushing', e:'\u{1FAA5}', freq:'weekly', target:2, reward:''},
   {id:'hair', name:'Wash hair', e:'\u{1F9F4}', freq:'weekly', target:1, reward:''},
-  {id:'donate', name:'Sadaqa', e:'\u{1F49D}', freq:'weekly', target:1, reward:''},
 ];
 const DAYLOG = [
   {id:'worked', name:'Worked', e:'\u{1F4BC}'}, {id:'wfh', name:'Worked from home', e:'\u{1F3E0}'},
@@ -82,7 +81,8 @@ let S = DEF();
   const pick = (nat && (!local || (nat.savedAt || 0) >= (local.savedAt || 0))) ? nat : local;
   if (pick && typeof pick === 'object') S = merge(DEF(), pick);
   if (!Array.isArray(S.habits) || !S.habits.length) S.habits = JSON.parse(JSON.stringify(DEFAULT_HABITS));
-  S.habits.forEach(h => { if (h.id === 'donate' && h.name === 'Donation or sadaqa') h.name = 'Sadaqa'; if (!(h.target > 0)) h.target = 1; if (h.reward == null) h.reward = ''; });
+  if (!S.noDonateHabit){ S.habits = S.habits.filter(h => h.id !== 'donate'); S.noDonateHabit = true; }
+  S.habits.forEach(h => { if (!(h.target > 0)) h.target = 1; if (h.reward == null) h.reward = ''; });
 })();
 function merge(base, src){
   for (const k in src){
@@ -393,7 +393,7 @@ function addSadaqa(amt, note, date, ev){
   S.sadaqa.push({id:uid(), date, amount:amt, note, spendId});
   S.spend.push({id:spendId, date, amount:amt, cat:'donations', note:note || 'Sadaqa'});
   save();
-  setHabit('donate', date, true, ev);
+  if (ev) hearts(ev.clientX, ev.clientY);
   const c = S.sadaqa.length, tot = sum(S.sadaqa, s => s.amount);
   if ([1, 5, 10, 25, 50, 75, 100, 150, 200, 300, 500].includes(c)) celebrate({key:'sad-' + c, e:'\u{1F932}', title:c === 1 ? 'Your first sadaqa here!' : c + ' times of sadaqa!', msg:'May it come back to you multiplied. ' + money(tot) + ' given so far.'});
   else toast('Sadaqa logged ♡ ' + c + ' times so far');
@@ -628,7 +628,7 @@ VIEWS['money.sadaqa'] = function(el){
   el.innerHTML = '<div class="card tint" style="text-align:center;align-items:center"><div style="font-size:44px">\u{1F932}</div><div class="greet">' + S.sadaqa.length + ' times of sadaqa</div><span class="muted" style="font-weight:800">' + money(tot) + ' given in total</span></div>' +
     '<div class="money3"><div class="mbox"><b>' + month.length + '</b><span>times this month</span></div><div class="mbox"><b>' + fmt(sum(month, s => s.amount)) + '</b><span>EGP this month</span></div><div class="mbox"><b>' + (S.sadaqa.length ? fmt(tot / S.sadaqa.length) : 0) + '</b><span>average EGP</span></div></div>' +
     '<div class="card"><h2>Log sadaqa</h2><div class="row"><label class="field"><span>Amount (EGP)</span><input class="in num" id="sdA" type="number" inputmode="decimal" min="0" placeholder="0"></label><label class="field"><span>Date</span><input class="in" id="sdD" type="date" value="' + todayStr() + '"></label></div>' +
-      '<div class="row"><label class="field"><span>For</span><input class="in" id="sdN" placeholder="Street animals, a family, the mosque…"></label><button class="btn" id="sdAdd">Give</button></div><p class="small muted" style="margin:0">It’s also added to Spending under Sadaqa & donations and ticks your weekly sadaqa habit.</p></div>' +
+      '<div class="row"><label class="field"><span>For</span><input class="in" id="sdN" placeholder="Street animals, a family, the mosque…"></label><button class="btn" id="sdAdd">Give</button></div><p class="small muted" style="margin:0">It’s also added to Spending under Sadaqa & donations.</p></div>' +
     '<div class="card"><div class="list">' + (list.length ? list.map(s => '<div class="item"><span style="font-size:20px">\u{1F49D}</span><span class="t">' + esc(s.note || 'Sadaqa') + '<span class="s">' + nice(s.date) + '</span></span><span style="display:flex;align-items:center;gap:4px"><span class="amt">' + fmt(s.amount) + '</span>' + delBtn('data-sddel', s.id) + '</span></div>').join('') : '<div class="empty">Your first sadaqa will show here.</div>') + '</div></div>';
   const again = () => VIEWS['money.sadaqa'](el);
   $('#sdAdd', el).onclick = ev => { if (addSadaqa(+$('#sdA', el).value, $('#sdN', el).value.trim(), $('#sdD', el).value || todayStr(), ev)) again(); };
