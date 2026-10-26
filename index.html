@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Pink Plate</title>
+<title>Monmon's Life</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Pink Plate">
+<meta name="apple-mobile-web-app-title" content="Monmon's Life">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#fff2f6">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -54,7 +54,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lilac);outline-
 .app{position:relative;z-index:1;max-width:520px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 120px;display:flex;flex-direction:column;gap:16px}
 .top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
 .eyebrow{margin:0;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-h1{margin:2px 0 0;font-family:var(--f-display);font-weight:400;font-size:34px;line-height:1;color:var(--rose);letter-spacing:.01em}
+h1{margin:2px 0 0;font-family:var(--f-display);font-weight:400;font-size:clamp(25px,7.6vw,34px);line-height:1;color:var(--rose);letter-spacing:.01em}
 h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:22px;color:var(--ink);text-wrap:balance}
 .chip-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow);font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap}
 .chip-btn svg{width:14px;height:14px}
@@ -210,7 +210,7 @@ h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:22px;color:va
   <header class="top">
     <div>
       <p class="eyebrow" id="dateLabel">Your plan</p>
-      <h1>Pink Plate</h1>
+      <h1>Monmon's Life</h1>
     </div>
     <button class="chip-btn" id="settingsBtn" aria-label="Change plan start date">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="4"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
@@ -314,7 +314,7 @@ const fmt = n => n.toLocaleString('en-US');
 
 let S = {start:'2026-11-01', checks:{}, water:{}, gym:{}, groc:{}};
 let sel = 1;
-const LS = 'pinkplate-v1';
+const LS = 'monmon-v1';
 try { const c = JSON.parse(localStorage.getItem(LS) || 'null'); if (c && typeof c === 'object') S = Object.assign(S, c); } catch(e){}
 
 function parseD(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
