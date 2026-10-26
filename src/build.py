@@ -9,7 +9,7 @@ parts = {
     '__DISHES__': json.dumps(json.loads((src / 'dishes.json').read_text()), ensure_ascii=False),
     '__CONTENT__': (src / 'content.js').read_text() + (src / 'wisdom.js').read_text() + (src / 'facts.js').read_text(),
     '__NUTRITION__': (src / 'nutrition.js').read_text(),
-    '__APP_JS__': (src / 'app.js').read_text() + (src / 'life.js').read_text() + (src / 'boot.js').read_text(),
+    '__APP_JS__': (src / 'app.js').read_text() + (src / 'life.js').read_text() + (src / 'home.js').read_text() + (src / 'boot.js').read_text(),
 }
 for k, v in parts.items():
     assert page.count(k) == 1, k

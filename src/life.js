@@ -59,7 +59,7 @@ function lifeMigrate(){
     const like = {'Emergency fund':/emergency/i, 'Car down payment':/\bcar\b/i, 'Wedding shopping':/^wedding shopping$/i, 'Wedding beauty':/^wedding beauty$/i};
     SEED_JARS.forEach(([n, e, t]) => { if (!S.jars.some(j => like[n].test(j.name))) S.jars.push({id:uid(), name:n, e, target:t, deposits:[]}); });
     const add = [{id:'wake', name:'Wake up on time', e:'⏰', freq:'daily', target:1, reward:''}, {id:'noshop', name:'No shopping after 11 PM', e:'\u{1F319}', freq:'daily', target:1, reward:''},
-      {id:'gym', name:'Gym', e:'\u{1F3CB}\u{FE0F}', freq:'weekly', target:3, reward:''}, {id:'treadmill', name:'Treadmill', e:'\u{1F3C3}‍♀\u{FE0F}', freq:'weekly', target:3, reward:''}];
+      {id:'gym', name:'Gym', e:'\u{1F3CB}\u{FE0F}', freq:'weekly', target:5, reward:''}];
     add.forEach(h => { if (!S.habits.some(x => x.id === h.id)) S.habits.push(h); });
     S.habits.forEach(h => {
       if (h.reward === 'A new lip gloss after 30 days') h.reward = 'After 30 days: an outing you love, like ice skating, a museum or a concert';
@@ -113,18 +113,12 @@ function paydaySheet(amount, label, after){
 function lifeTodayTop(){
   const t = todayStr(), out = [];
   if (S.profile.birthday && S.profile.birthday.slice(5) === t.slice(5)) out.push('<div class="card tint" style="text-align:center;align-items:center"><div style="font-size:46px">\u{1F382}</div><div class="greet">Happy birthday, Monmon!</div><span class="small muted" style="font-weight:800">' + (new Date().getFullYear() - +S.profile.birthday.slice(0, 4)) + ' looks beautiful on you. Plan something new and fun today.</span></div>');
-  if (isNight()) out.push('<div class="card night"><h2 class="plain">\u{1F319} Shop-free hours</h2><p style="margin:0;font-weight:700">It’s late. Your rule: no shopping between 11 PM and 9 AM. If you want something, put it on the wait list and decide in the morning.</p><button class="linkbtn" data-go="money:shein" style="align-self:flex-start;background:rgba(255,255,255,.18);color:#fff">Open my wait list</button></div>');
   const pw = paydayWindow();
   if (pw) out.push('<div class="card" style="background:linear-gradient(140deg,var(--mint-soft),var(--gold-soft));border-color:transparent"><h2 class="plain">\u{1F4B8} Payday window' + (pw.name ? ': ' + esc(pw.name) : '') + '</h2><p style="margin:0;font-weight:700">Last month, 63% of your spending happened within two days of a salary. Move your savings first, then wait 48 hours before anything big.</p><button class="btn" data-go="money:salary" style="align-self:flex-start;background:var(--mint)">Log salary and save</button></div>');
   if (new Date().getDay() === 5){
     const f = S.friday[t] || {}, n = FRIDAY_STEPS.filter((_, i) => f[i]).length;
     out.push('<div class="card" style="background:linear-gradient(140deg,var(--surface) 30%,var(--mint-soft))"><div class="card-head"><h2>Friday money check-in</h2><span class="num muted">' + n + '/' + FRIDAY_STEPS.length + '</span></div><span class="small muted" style="font-weight:700">10 minutes. ' + fridayStreak() + ' Fridays done in a row.</span>' +
       '<div class="list">' + FRIDAY_STEPS.map((s, i) => '<button class="item" data-fri="' + i + '"><span class="tick' + (f[i] ? ' on' : '') + '">' + CHECK + '</span><span class="t">' + s + '</span><span></span></button>').join('') + '</div></div>');
-  }
-  const wd = weddingDays();
-  if (wd != null && wd >= 0){
-    const next = S.wedding.beauty.filter(b => !b.done && b.planned && b.planned >= t).sort((a, b) => a.planned < b.planned ? -1 : 1)[0];
-    out.push('<button class="card wed" data-go="plans:wedding"><span class="wn num">' + wd + '</span><span style="min-width:0;text-align:left"><b style="display:block;font-size:16px">' + (wd === 0 ? 'Your wedding day! \u{1F48D}' : 'days to your wedding \u{1F48D}') + '</b>' + (next ? '<span class="small" style="font-weight:700">Next: ' + next.e + ' ' + esc(next.name) + ' · ' + nice(next.planned) + '</span>' : '<span class="small" style="font-weight:700">Open your wedding plan</span>') + '</span></button>');
   }
   return out.join('');
 }
@@ -300,7 +294,7 @@ VIEWS['plans.tasks'] = function(el){
 function autoPlanBeauty(){
   const W = S.profile.wedding; if (!W) return 0;
   const t = todayStr(), cap = (d, max) => (d > max ? max : d), before = n => addDays(W, -n);
-  const plan = {hl1:addDays(t, 3), hl2:addDays(t, 31), hl3:addDays(t, 59), pc1:addDays(t, 5), pc2:addDays(t, 33), sv:addDays(t, 10), fi:before(25), bo:before(25), ht:before(14), hd:before(5)};
+  const plan = {hl1:addDays(t, 3), hl2:addDays(t, 31), hl3:addDays(t, 59), pc1:addDays(t, 5), pc2:addDays(t, 33), sv:addDays(t, 10), sb:before(21), fi:before(25), bo:before(25), ht:before(14), hd:before(5)};
   const max = {hl1:before(10), hl2:before(10), hl3:before(10), pc1:before(14), pc2:before(14), sv:before(21)};
   let n = 0;
   S.wedding.beauty.forEach(b => { if (!b.planned && !b.done && plan[b.id]){ let d = plan[b.id]; if (max[b.id]) d = cap(d, max[b.id]); if (d < t) d = t; b.planned = d; n++; } });
@@ -310,8 +304,9 @@ VIEWS['plans.wedding'] = function(el){
   const W = S.profile.wedding, wd = weddingDays(), B = S.wedding.beauty, t = todayStr();
   const known = sum(B, b => b.price), done = sum(B.filter(b => b.done), b => b.price), nDone = B.filter(b => b.done).length;
   const wj = jarByName('Wedding beauty'), sj = jarByName('Wedding shopping');
+  const allPrep = prepItems(), prepDone = allPrep.filter(x => x.done).length, tagged = allPrep.filter(x => x.key[0] === 'm' || x.key[0] === 's');
   el.innerHTML = '<div class="card wed" style="cursor:default">' + (W ? '<span class="wn num">' + Math.max(0, wd) + '</span><span style="min-width:0;text-align:left"><b style="display:block;font-size:17px">days to your wedding \u{1F48D}</b><span class="small" style="font-weight:700">' + nice(W) + '</span></span>' : '<span style="font-size:40px">\u{1F48D}</span><span style="min-width:0;text-align:left"><b style="display:block">Set your wedding date</b><span class="small" style="font-weight:700">It starts the countdown and plans your beauty sessions around it.</span></span>') + '</div>' +
-    '<div class="card"><label class="field"><span>Wedding date</span><input class="in" id="wDate" type="date" value="' + esc(W) + '"></label></div>' +
+    '<div class="card"><label class="field"><span>Wedding date</span><input class="in" id="wDate" type="date" value="' + esc(W) + '"></label><div class="statrow" style="color:var(--ink)"><span>All preparations</span><span class="num">' + prepDone + ' / ' + allPrep.length + '</span></div><div class="bar good"><i style="width:' + (allPrep.length ? prepDone / allPrep.length * 100 : 0) + '%"></i></div></div>' +
     '<div class="money3"><div class="mbox"><b>' + nDone + '/' + B.length + '</b><span>sessions done</span></div><div class="mbox"><b>' + fmt(known) + '</b><span>known prices</span></div><div class="mbox"><b>' + fmt(wj ? jarTotal(wj) : 0) + '</b><span>in beauty jar</span></div></div>' +
     '<div class="card"><div class="card-head"><h2>Beauty plan</h2>' + (W ? '<button class="linkbtn" id="wAuto">Suggest dates</button>' : '') + '</div>' +
       '<p class="small muted" style="margin:0;font-weight:700">Multi-session lasers first, about 4 weeks apart. Filler and Botox 3–4 weeks before the wedding. Confirm spacing with your clinic.</p>' +
@@ -320,9 +315,11 @@ VIEWS['plans.wedding'] = function(el){
         '<label class="field"><span>Planned</span><input class="in" type="date" data-wf="planned" data-id="' + b.id + '" value="' + esc(b.planned) + '"></label>' +
         '<label class="field"><span>Done on</span><input class="in" type="date" data-wf="done" data-id="' + b.id + '" value="' + esc(b.done) + '"></label></div></div>' + delBtn('data-wbdel', b.id) + '</div>').join('') + '</div>' +
       '<p class="small muted" style="margin:0">\u{1F514} Reminder the evening before each planned session. Lashes stay monthly in Self-care. ' + money(done) + ' spent so far.</p></div>' +
-    '<div class="card"><h2>Checklist</h2><div class="row"><label class="field"><input class="in" id="wcIn" placeholder="Dress fitting, invitations, makeup trial…" aria-label="New item"></label><button class="btn" id="wcAdd">Add</button></div>' +
-      '<div class="list">' + S.wedding.checklist.map(x => '<div class="item' + (x.done ? ' done' : '') + '"><button class="tick' + (x.done ? ' on' : '') + '" data-wcd="' + x.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + esc(x.title) + '</span>' + delBtn('data-wcdel', x.id) + '</div>').join('') + '</div>' +
-      (sj ? '<p class="small muted" style="margin:0">Wedding shopping jar: ' + money(jarTotal(sj)) + ' of ' + money(sj.target) + '.</p>' : '') + '</div>';
+    '<div class="card"><h2>Wedding preparations</h2><div class="row"><label class="field" style="flex:0 0 60px"><input class="in" id="wcE" value="\u{1F48D}" maxlength="4" style="text-align:center" aria-label="Emoji"></label><label class="field"><input class="in" id="wcIn" placeholder="Invitations, photographer, dress fitting…" aria-label="New item"></label><button class="btn" id="wcAdd">Add</button></div>' +
+      '<div class="list">' + S.wedding.checklist.map(x => '<div class="item' + (x.done ? ' done' : '') + '"><button class="tick' + (x.done ? ' on' : '') + '" data-wcd="' + x.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (x.e || '\u{1F48D}') + ' ' + esc(x.title) + '</span>' + delBtn('data-wcdel', x.id) + '</div>').join('') + '</div>' +
+      (sj ? '<p class="small muted" style="margin:0">Wedding shopping jar: ' + money(jarTotal(sj)) + ' of ' + money(sj.target) + '.</p>' : '') + '</div>' +
+    (tagged.length ? '<div class="card"><div class="card-head"><h2>Tagged \u{1F48D}</h2><span class="small muted">from mashawer and self-care</span></div><div class="list">' + tagged.map(x => '<button class="item' + (x.done ? ' done' : '') + '" data-wtag="' + x.key + '"><span class="tick' + (x.done ? ' on' : '') + '">' + CHECK + '</span><span class="t">' + x.e + ' ' + esc(x.title) + '<span class="s">' + x.kind + (x.date ? ' · ' + nice(x.date) : '') + '</span></span><span></span></button>').join('') + '</div></div>'
+      : '<p class="note">Tap \u{1F48D} on a meshwar or a self-care session (laser, pampering) and it shows up here too.</p>');
   const again = () => VIEWS['plans.wedding'](el);
   $('#wDate', el).onchange = e => { S.profile.wedding = e.target.value; save(); toast(e.target.value ? 'Countdown started \u{1F48D}' : 'Date cleared'); again(); };
   const au = $('#wAuto', el); if (au) au.onclick = () => { const n = autoPlanBeauty(); save(); toast(n ? n + ' sessions planned. Adjust any date.' : 'All sessions already have dates'); again(); };
@@ -334,13 +331,14 @@ VIEWS['plans.wedding'] = function(el){
     if (f === 'done' && b.done && !was){ if (B.every(x => x.done)) celebrate({key:'wb-all', e:'\u{1F470}', title:'Beauty plan complete!', msg:'Every session done. You’re ready to glow on your day.'}); else toast(b.e + ' Done. Glowing! ♡'); }
     again(); });
   armDelete(el, 'data-wbdel', id => { const b = B.find(x => x.id === id); if (b && b.spendId) S.spend = S.spend.filter(x => x.id !== b.spendId); S.wedding.beauty = B.filter(x => x.id !== id); save(); again(); });
-  const addC = () => { const v = $('#wcIn', el).value.trim(); if (!v) return; S.wedding.checklist.push({id:uid(), title:v, done:false}); save(); again(); };
+  const addC = () => { const v = $('#wcIn', el).value.trim(); if (!v) return; S.wedding.checklist.push({id:uid(), e:$('#wcE', el).value.trim() || '\u{1F48D}', title:v, done:false}); save(); again(); };
   $('#wcAdd', el).onclick = addC; $('#wcIn', el).onkeydown = e => { if (e.key === 'Enter') addC(); };
   $$('[data-wcd]', el).forEach(b => b.onclick = ev => { const x = S.wedding.checklist.find(y => y.id === b.dataset.wcd); x.done = !x.done; if (x.done) hearts(ev.clientX, ev.clientY); save(); again(); });
+  $$('[data-wtag]', el).forEach(b => b.onclick = ev => { togglePrep(b.dataset.wtag); hearts(ev.clientX, ev.clientY); again(); });
   armDelete(el, 'data-wcdel', id => { S.wedding.checklist = S.wedding.checklist.filter(x => x.id !== id); save(); again(); });
 };
 
-/* ---------- ME: body (InBody, treadmill, gym days) ---------- */
+/* ---------- ME: body (InBody, gym days) ---------- */
 VIEWS['me.body'] = function(el){
   const scans = S.inbody.slice().sort((a, b) => a.date < b.date ? 1 : -1), last = scans[0], prev = scans[1];
   const d = (k, better) => { if (!prev || last[k] == null || prev[k] == null) return ''; const v = +(last[k] - prev[k]).toFixed(1); if (!v) return ''; const good = better === 'up' ? v > 0 : v < 0; return ' <span class="delta ' + (good ? 'up' : 'down') + '">' + (v > 0 ? '+' : '') + v + '</span>'; };
@@ -349,17 +347,13 @@ VIEWS['me.body'] = function(el){
   const lastRun = runs[0];
   const day = (title, list, type) => '<div class="card"><div class="card-head"><h2>' + title + '</h2><button class="btn" data-wo="' + type + '" style="padding:8px 12px">Done today</button></div><div class="list">' + list.map(x => '<div class="item"><span>\u{1F4AA}</span><span class="t">' + x[0] + '</span><span class="amt muted" style="font-size:12.5px">' + x[1] + '</span></div>').join('') + '</div></div>';
   el.innerHTML = '<div class="money3"><div class="mbox"><b>' + last.weight + '</b><span>kg on ' + nice(last.date).slice(4) + d('weight', 'down') + '</span></div><div class="mbox"><b>' + last.smm + '</b><span>kg muscle' + d('smm', 'up') + '</span></div><div class="mbox"><b>' + last.pbf + '%</b><span>body fat' + d('pbf', 'down') + '</span></div></div>' +
-    '<div class="card tint"><h2>Where you are</h2><p style="margin:0;font-weight:700">' + (last.fat != null ? 'Fat mass ' + last.fat + ' kg; the healthy range on your scan is 11.1–17.8 kg. ' : '') + (last.visc != null ? 'Visceral fat ' + last.visc + ' (healthy is 1–9). ' : '') + 'Your best result yet: fat down, muscle up. Keep strength training 3 times a week to protect it.</p></div>' +
+    '<div class="card tint"><h2>Where you are</h2><p style="margin:0;font-weight:700">' + (last.fat != null ? 'Fat mass ' + last.fat + ' kg; the healthy range on your scan is 11.1–17.8 kg. ' : '') + (last.visc != null ? 'Visceral fat ' + last.visc + ' (healthy is 1–9). ' : '') + 'Your best result yet: fat down, muscle up. Keep training 5 days a week to protect it.</p></div>' +
     '<div class="card"><h2>InBody history</h2><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Date</th><th class="r">Weight</th><th class="r">Muscle</th><th class="r">Fat %</th><th class="r">Visceral</th></tr></thead><tbody>' +
       scans.map(s => '<tr><td>' + nice(s.date).slice(4) + ' ' + s.date.slice(2, 4) + '</td><td class="r num">' + s.weight + '</td><td class="r num">' + s.smm + '</td><td class="r num">' + s.pbf + '</td><td class="r num">' + (s.visc != null ? s.visc : '–') + '</td></tr>').join('') + '</tbody></table></div>' +
       '<h3 style="margin-top:4px">Add a scan</h3><div class="row"><label class="field"><span>Date</span><input class="in" id="ibD" type="date" value="' + todayStr() + '"></label><label class="field"><span>Weight</span><input class="in num" id="ibW" type="number" step="0.1" inputmode="decimal"></label></div>' +
       '<div class="row"><label class="field"><span>Muscle (SMM)</span><input class="in num" id="ibM" type="number" step="0.1" inputmode="decimal"></label><label class="field"><span>Body fat %</span><input class="in num" id="ibP" type="number" step="0.1" inputmode="decimal"></label></div>' +
       '<div class="row"><label class="field"><span>Fat mass kg</span><input class="in num" id="ibF" type="number" step="0.1" inputmode="decimal"></label><label class="field"><span>Visceral</span><input class="in num" id="ibV" type="number" inputmode="numeric"></label><button class="btn" id="ibAdd">Save</button></div></div>' +
-    '<div class="card"><div class="card-head"><h2>Treadmill</h2><span class="num muted">' + runsWeek + '/3 this week</span></div>' +
-      '<p class="small muted" style="margin:0;font-weight:700">Started at 5 min at 6.2 mph. Best so far: ' + bestMin + ' min · ' + bestSp + ' mph. Next goal: ' + ((lastRun ? +lastRun.min : 5) + 1) + ' min, then speed.</p>' +
-      '<div class="row"><label class="field"><span>Minutes</span><input class="in num" id="rM" type="number" inputmode="decimal" value="' + (lastRun ? lastRun.min : 5) + '"></label><label class="field"><span>Speed (mph)</span><input class="in num" id="rS" type="number" step="0.1" inputmode="decimal" value="' + (lastRun ? lastRun.speed : 6.2) + '"></label><button class="btn" id="rAdd">Log run</button></div>' +
-      (runs.length ? '<div class="list">' + runs.slice(0, 6).map(r => '<div class="item"><span>\u{1F3C3}‍♀\u{FE0F}</span><span class="t">' + r.min + ' min at ' + r.speed + ' mph<span class="s">' + nice(r.date) + '</span></span>' + delBtn('data-rdel', r.id) + '</div>').join('') + '</div>' : '') + '</div>' +
-    '<p class="note">Gym this week: ' + thisWeek + ' of 3 sessions.</p>' +
+    '<p class="note">Gym this week: ' + thisWeek + ' of 5 sessions.</p>' +
     day('Glute day', GLUTE_DAY, 'glute') + day('Quad day', QUAD_DAY, 'quad');
   const again = () => VIEWS['me.body'](el);
   $('#ibAdd', el).onclick = () => { const w = +$('#ibW', el).value, m = +$('#ibM', el).value, p = +$('#ibP', el).value; if (!(w > 0 && m > 0 && p > 0)) return toast('Add weight, muscle and body fat %');
@@ -367,11 +361,6 @@ VIEWS['me.body'] = function(el){
     const prevS = S.inbody.slice().sort((a, b) => a.date < b.date ? 1 : -1)[0]; S.inbody.push(s); save();
     if (prevS && (p < prevS.pbf || m > prevS.smm)) celebrate({key:'ib-' + s.date, e:'\u{1F4AA}', title:'Your body is changing!', msg:(p < prevS.pbf ? 'Body fat down ' + (prevS.pbf - p).toFixed(1) + ' points. ' : '') + (m > prevS.smm ? 'Muscle up ' + (m - prevS.smm).toFixed(1) + ' kg.' : '')}); else toast('Scan saved');
     again(); };
-  $('#rAdd', el).onclick = ev => { const mn = +$('#rM', el).value, sp = +$('#rS', el).value; if (!(mn > 0)) return toast('Enter minutes');
-    const best = Math.max(0, ...S.runs.map(r => +r.min || 0)); S.runs.push({id:uid(), date:todayStr(), min:mn, speed:sp}); save(); setHabit('treadmill', todayStr(), true, ev);
-    if (mn > Math.max(best, 5)) celebrate({key:'run-' + mn, e:'\u{1F3C3}‍♀\u{FE0F}', title:'New record: ' + mn + ' minutes!', msg:'Your stamina is building. Next time, one more minute.'}); else toast('Run logged ♡');
-    again(); };
-  armDelete(el, 'data-rdel', id => { S.runs = S.runs.filter(r => r.id !== id); save(); again(); });
   $$('[data-wo]', el).forEach(b => b.onclick = ev => { S.workouts.push({id:uid(), date:todayStr(), type:b.dataset.wo}); save(); setHabit('gym', todayStr(), true, ev); const a = S.daylog[todayStr()] = S.daylog[todayStr()] || []; if (!a.includes('gym')) a.push('gym'); save(); toast((b.dataset.wo === 'glute' ? 'Glute' : 'Quad') + ' day done! \u{1F4AA}'); again(); });
 };
 

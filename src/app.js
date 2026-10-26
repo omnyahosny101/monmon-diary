@@ -262,8 +262,9 @@ function setHabit(id, day, on, ev){
   if (h.freq === 'daily'){
     const st = streakOf(id);
     if (MILESTONES.includes(st)) celebrate({key:'st-' + id + '-' + st + '-' + day, e:'\u{1F525}', title:st + ' days of ' + h.name + '!', msg:'Look at you, Monmon. ' + st + ' days in a row. Keep the flame going.', reward:h.reward});
-  } else if (weekCount(id, day) === h.target){
-    toast(h.e + ' ' + h.name + ': weekly goal done!');
+  } else if (periodCount(h, day) === h.target){
+    const per = h.freq === 'monthly' ? 'month' : 'week';
+    celebrate({key:'goal-' + id + '-' + (per === 'month' ? day.slice(0, 7) : ymd(weekStart(parseD(day)))), e:h.e, title:h.name + ': ' + per + 'ly goal done!', msg:h.target + ' of ' + h.target + ' this ' + per + '. That’s the commitment, Monmon.', reward:h.reward});
   }
   const daily = S.habits.filter(x => x.freq === 'daily');
   if (daily.length && daily.every(x => habitDone(x.id, day))) celebrate({key:'all-' + day, e:'\u{1F451}', title:'All daily habits done!', msg:'Every single one, today. You’re glowing, queen.'});
@@ -721,7 +722,7 @@ function setupSelfcare(k){
   const startDay = (ym(today) === k) ? Math.max(today.getDate() + 1, 2) : 2;
   const last = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
   const step = Math.max(1, Math.floor((last - startDay + 1) / SELFCARE.length));
-  return SELFCARE.map((s, i) => ({id:uid(), name:s.name, e:s.e, price:'', planned:ymd(new Date(first.getFullYear(), first.getMonth(), startDay + i * step)), done:'', spendId:''}));
+  return SELFCARE.map((s, i) => ({id:uid(), name:s.name, e:s.e, price:'', planned:ymd(new Date(first.getFullYear(), first.getMonth(), startDay + i * step)), done:'', spendId:'', wedding:k <= (S.profile && S.profile.wedding ? S.profile.wedding.slice(0, 7) : '2026-12')}));
 }
 VIEWS['plans.selfcare'] = function(el){
   const k = ui.scMonth, list = S.selfcare[k];
@@ -729,7 +730,7 @@ VIEWS['plans.selfcare'] = function(el){
   el.innerHTML = monthNav('scMonth') +
     (!list ? '<div class="card tint"><div class="greet">Your self-care month \u{1F338}</div><p class="small muted" style="margin:0;font-weight:700">Set up ' + monthLabel(k) + ' with your 8 sessions, each on its own day. Change any date or price after.</p><button class="btn full" id="scSetup">Set up ' + MONTHS_L[parseD(k + '-01').getMonth()] + '</button></div>' :
     '<div class="money3"><div class="mbox"><b>' + dn + '/' + list.length + '</b><span>sessions done</span></div><div class="mbox"><b>' + fmt(total) + '</b><span>planned EGP</span></div><div class="mbox"><b>' + fmt(paid) + '</b><span>spent EGP</span></div></div>' +
-    '<div class="card"><div class="list">' + list.map(s => '<div class="sc' + (s.done ? ' done' : '') + '"><span class="em">' + s.e + '</span><div style="min-width:0"><div class="nm">' + esc(s.name) + '</div>' +
+    '<div class="card"><div class="list">' + list.map(s => '<div class="sc' + (s.done ? ' done' : '') + '"><span class="em">' + s.e + '</span><div style="min-width:0"><div class="nm" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' + esc(s.name) + '<button class="tagw' + (s.wedding ? ' on' : '') + '" data-scw="' + s.id + '" aria-pressed="' + !!s.wedding + '">\u{1F48D} ' + (s.wedding ? 'Wedding prep' : 'Tag wedding') + '</button></div>' +
       '<div class="fields"><label class="field"><span>Price</span><input class="in num" type="number" inputmode="decimal" min="0" data-scf="price" data-id="' + s.id + '" value="' + esc(s.price) + '" placeholder="EGP"></label>' +
       '<label class="field"><span>Planned</span><input class="in" type="date" data-scf="planned" data-id="' + s.id + '" value="' + esc(s.planned) + '"></label>' +
       '<label class="field"><span>Done on</span><input class="in" type="date" data-scf="done" data-id="' + s.id + '" value="' + esc(s.done) + '"></label></div></div>' + delBtn('data-scdel', s.id) + '</div>').join('') + '</div>' +
@@ -745,6 +746,7 @@ VIEWS['plans.selfcare'] = function(el){
     save();
     if (f === 'done' && s.done && !wasDone){ if (list.every(x => x.done)) celebrate({key:'sc-all-' + k, e:'\u{1F451}', title:'Self-care month complete!', msg:'All ' + list.length + ' sessions done. You invested in you.'}); else toast(s.e + ' Logged. Glowing! ♡'); }
     again(); });
+  $$('[data-scw]', el).forEach(b => b.onclick = () => { const s = list.find(x => x.id === b.dataset.scw); s.wedding = !s.wedding; save(); toast(s.wedding ? 'Added to wedding prep \u{1F48D}' : 'Removed from wedding prep'); again(); });
   armDelete(el, 'data-scdel', id => { const s = list.find(x => x.id === id); if (s && s.spendId) S.spend = S.spend.filter(x => x.id !== s.spendId); S.selfcare[k] = list.filter(x => x.id !== id); save(); again(); });
   $('#scAdd', el).onclick = () => { const n = $('#scN', el).value.trim(); if (!n) return toast('Name the service'); list.push({id:uid(), name:n, e:$('#scE', el).value.trim() || '\u{1F33F}', price:'', planned:'', done:'', spendId:''}); save(); again(); };
 };
@@ -850,18 +852,18 @@ VIEWS['me.habits'] = function(el){
   const pages = sum(dom, d => S.media[d] && S.media[d].pages), eps = dom.filter(d => S.media[d] && S.media[d].episode).length;
   el.innerHTML = '<div class="money3"><div class="mbox"><b style="color:var(--warn)">\u{1F525}' + streakOf('nosugar') + '</b><span>no-sugar streak</span></div><div class="mbox"><b>' + fmt(pages) + '</b><span>pages this month</span></div><div class="mbox"><b>' + eps + '</b><span>episodes this month</span></div></div>' +
     '<div class="card"><div class="card-head"><h2>This month</h2><span class="small muted">' + days + ' days so far</span></div>' +
-      S.habits.map(h => { const c = cnt(h.id), goal = h.freq === 'daily' ? days : Math.ceil(days / 7) * h.target, st = h.freq === 'daily' ? streakOf(h.id) : 0; return '<div class="catrow"><div class="statrow"><span>' + h.e + ' ' + esc(h.name) + (st > 1 ? ' · \u{1F525}' + st : '') + '</span><span class="num">' + c + ' / ' + goal + '</span></div><div class="bar good"><i style="width:' + Math.min(100, goal ? c / goal * 100 : 0) + '%"></i></div></div>'; }).join('') + '</div>' +
+      S.habits.map(h => { const c = cnt(h.id), goal = h.freq === 'daily' ? days : h.freq === 'monthly' ? h.target : Math.ceil(days / 7) * h.target, st = h.freq === 'daily' ? streakOf(h.id) : 0; return '<div class="catrow"><div class="statrow"><span>' + h.e + ' ' + esc(h.name) + (st > 1 ? ' · \u{1F525}' + st : '') + '</span><span class="num">' + c + ' / ' + goal + '</span></div><div class="bar good"><i style="width:' + Math.min(100, goal ? c / goal * 100 : 0) + '%"></i></div></div>'; }).join('') + '</div>' +
     '<div class="card"><h2>Customize my habits</h2><p class="small muted" style="margin:0;font-weight:700">Set a reward for each one; it pops up when you hit a streak milestone (3, 7, 14, 21, 30 days and more).</p>' +
       '<div class="list">' + S.habits.map(h => '<div class="grow"><div class="gh"><input class="in" data-he="' + h.id + '" value="' + esc(h.e) + '" maxlength="4" style="text-align:center;padding:8px;font-size:20px" aria-label="Emoji"><input class="in" data-hn="' + h.id + '" value="' + esc(h.name) + '" aria-label="Habit name">' + delBtn('data-hdel', h.id) + '</div>' +
-        '<div class="row"><label class="field"><span>How often</span><select class="in" data-hf="' + h.id + '"><option value="daily"' + (h.freq === 'daily' ? ' selected' : '') + '>Every day</option><option value="weekly"' + (h.freq === 'weekly' ? ' selected' : '') + '>Times a week</option></select></label>' +
-        (h.freq === 'weekly' ? '<label class="field" style="flex:0 0 90px"><span>Per week</span><input class="in num" type="number" min="1" max="7" data-ht="' + h.id + '" value="' + h.target + '"></label>' : '') + '</div>' +
+        '<div class="row"><label class="field"><span>How often</span><select class="in" data-hf="' + h.id + '"><option value="daily"' + (h.freq === 'daily' ? ' selected' : '') + '>Every day</option><option value="weekly"' + (h.freq === 'weekly' ? ' selected' : '') + '>Times a week</option><option value="monthly"' + (h.freq === 'monthly' ? ' selected' : '') + '>Times a month</option></select></label>' +
+        (h.freq !== 'daily' ? '<label class="field" style="flex:0 0 90px"><span>' + (h.freq === 'monthly' ? 'Per month' : 'Per week') + '</span><input class="in num" type="number" min="1" max="' + (h.freq === 'monthly' ? 31 : 7) + '" data-ht="' + h.id + '" value="' + h.target + '"></label>' : '') + '</div>' +
         '<label class="field"><span>My reward</span><input class="in" data-hr="' + h.id + '" value="' + esc(h.reward || '') + '" placeholder="A face mask, a new nail colour…"></label></div>').join('') + '</div>' +
       '<h3 style="margin-top:6px">Add a habit</h3>' + emoPicker(ui.hEmo || '\u{1F338}', 'data-hpick') + '<div class="row"><label class="field"><span>Name</span><input class="in" id="hN" placeholder="Skincare, stretch, pray on time…"></label><button class="btn" id="hAdd">Add</button></div></div>';
   const again = () => VIEWS['me.habits'](el), find = id => S.habits.find(h => h.id === id);
   $$('[data-he]', el).forEach(i => i.onchange = () => { find(i.dataset.he).e = i.value.trim() || '⭐'; save(); });
   $$('[data-hn]', el).forEach(i => i.onchange = () => { if (i.value.trim()) find(i.dataset.hn).name = i.value.trim(); save(); });
   $$('[data-hf]', el).forEach(i => i.onchange = () => { const h = find(i.dataset.hf); h.freq = i.value; if (!(h.target > 0)) h.target = 1; save(); again(); });
-  $$('[data-ht]', el).forEach(i => i.onchange = () => { find(i.dataset.ht).target = Math.min(7, Math.max(1, +i.value || 1)); save(); });
+  $$('[data-ht]', el).forEach(i => i.onchange = () => { { const h = find(i.dataset.ht); h.target = Math.min(h.freq === 'monthly' ? 31 : 7, Math.max(1, +i.value || 1)); }; save(); });
   $$('[data-hr]', el).forEach(i => i.onchange = () => { find(i.dataset.hr).reward = i.value.trim(); save(); toast('Reward saved \u{1F381}'); });
   bindEmo(el, 'data-hpick', e => { ui.hEmo = e; });
   $('#hAdd', el).onclick = () => { const n = $('#hN', el).value.trim(); if (!n) return toast('Name your habit'); S.habits.push({id:uid(), name:n, e:ui.hEmo || '\u{1F338}', freq:'daily', target:1, reward:''}); save(); toast('Habit added ♡'); again(); };
