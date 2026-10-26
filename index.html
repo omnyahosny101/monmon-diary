@@ -291,6 +291,7 @@ h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:22px;color:va
   <div class="sheet-in" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
     <h2 id="sheetTitle">When does Day 1 start?</h2>
     <label for="startInput">Plan start date<input type="date" id="startInput"></label>
+    <button class="toggle" id="remBtn" hidden><span class="sw" id="remSw" role="switch" aria-checked="true"></span><span>Meal and water reminders</span></button>
     <button class="primary" id="saveStart">Save start date</button>
     <button class="ghost" id="closeSheet">Cancel</button>
   </div>
@@ -325,8 +326,10 @@ function clampDay(n){ return Math.min(30, Math.max(1, n)); }
 /* ---------- persistence: private db doc when available, browser cache always ---------- */
 let docRef = null, saving = false, pending = false, timer = null;
 function cache(){ try { localStorage.setItem(LS, JSON.stringify(S)); } catch(e){} }
+function nativeHandler(){ try { return window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.app; } catch(e){ return null; } }
+function nativeSync(){ const n = nativeHandler(); if (!n) return; try { n.postMessage({start: S.start, reminders: S.reminders !== false}); } catch(e){} }
 function save(){
-  cache();
+  cache(); nativeSync();
   if (!docRef) return;
   clearTimeout(timer);
   timer = setTimeout(flush, 700);
@@ -555,8 +558,15 @@ document.getElementById('saveStart').onclick = () => {
   sheet.hidden = true;
 };
 
+if (nativeHandler()){
+  const rb = document.getElementById('remBtn'), rs = document.getElementById('remSw');
+  rb.hidden = false; rs.setAttribute('aria-checked', S.reminders !== false);
+  rb.onclick = () => { S.reminders = (S.reminders === false); rs.setAttribute('aria-checked', S.reminders !== false); save(); };
+  setSync('Saved on this iPhone');
+}
 sel = clampDay(todayIdx());
 renderAll();
+nativeSync();
 </script>
 
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>

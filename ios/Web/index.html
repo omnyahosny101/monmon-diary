@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Monmon's Life</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Monmon's Life">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#fff2f6">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shrikhand&family=Nunito:wght@400;600;700;800&family=Fredoka:wght@500;600&display=swap">
+<style>
+/* Layout: one phone column — day strip, calorie ring hero, water hearts, meal cards; tab bar pinned to the bottom */
+:root{
+  --bg:#fff2f6; --bg2:#ffe3ec; --surface:#ffffff; --ink:#4b1f33; --muted:#9a6a7e;
+  --rose:#ff5c8f; --rose-soft:#ffd3e1; --peach:#ffb48f; --mint:#4fc79a; --lilac:#b9a3ff; --line:#f6d2de;
+  --shadow:0 10px 30px -14px rgba(196,62,110,.35);
+  --f-display:"Shrikhand","Georgia",serif;
+  --f-body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"Fredoka","Nunito",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#24121b; --bg2:#33182a; --surface:#331c28; --ink:#ffe6ef; --muted:#d3a3b8;
+  --rose:#ff7aa5; --rose-soft:#5a2440; --peach:#ffad86; --mint:#5fd8aa; --lilac:#c4b2ff; --line:#4c2a3b;
+  --shadow:0 10px 30px -14px rgba(0,0,0,.6); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#24121b; --bg2:#33182a; --surface:#331c28; --ink:#ffe6ef; --muted:#d3a3b8;
+  --rose:#ff7aa5; --rose-soft:#5a2440; --peach:#ffad86; --mint:#5fd8aa; --lilac:#c4b2ff; --line:#4c2a3b;
+  --shadow:0 10px 30px -14px rgba(0,0,0,.6); color-scheme:dark}
+
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--lilac);outline-offset:2px;border-radius:12px}
+
+.deco{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.blob{position:absolute;border-radius:50%;filter:blur(40px);opacity:.55;animation:drift 18s ease-in-out infinite alternate}
+.blob.a{width:260px;height:260px;background:var(--rose-soft);top:-60px;right:-80px}
+.blob.b{width:220px;height:220px;background:color-mix(in srgb,var(--peach) 45%,transparent);bottom:120px;left:-90px;animation-delay:-6s}
+.blob.c{width:160px;height:160px;background:color-mix(in srgb,var(--lilac) 40%,transparent);top:40%;right:-60px;animation-delay:-11s}
+.spark{position:absolute;color:var(--rose);opacity:.5;animation:twinkle 3.2s ease-in-out infinite}
+@keyframes drift{to{transform:translate(30px,40px) scale(1.1)}}
+@keyframes twinkle{0%,100%{transform:scale(.6) rotate(0);opacity:.2}50%{transform:scale(1) rotate(25deg);opacity:.7}}
+
+.app{position:relative;z-index:1;max-width:520px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 120px;display:flex;flex-direction:column;gap:16px}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.eyebrow{margin:0;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{margin:2px 0 0;font-family:var(--f-display);font-weight:400;font-size:clamp(25px,7.6vw,34px);line-height:1;color:var(--rose);letter-spacing:.01em}
+h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:22px;color:var(--ink);text-wrap:balance}
+.chip-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow);font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap}
+.chip-btn svg{width:14px;height:14px}
+
+.card{background:var(--surface);border-radius:26px;box-shadow:var(--shadow);padding:18px}
+.view{display:flex;flex-direction:column;gap:16px}
+
+/* day strip */
+.strip{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 8px;margin:0 -2px;scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.dpill{flex:0 0 52px;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 9px;border-radius:18px;background:var(--surface);box-shadow:0 4px 12px -8px rgba(196,62,110,.4);font-family:var(--f-num);transition:transform .25s}
+.dpill .dn{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.dpill .dd{font-size:19px;font-weight:600}
+.dpill .dot{width:6px;height:6px;border-radius:50%;background:var(--line)}
+.dpill.done .dot{background:var(--mint)}
+.dpill.part .dot{background:var(--peach)}
+.dpill.today{outline:2px dashed var(--rose);outline-offset:-4px}
+.dpill.sel{background:var(--rose);color:#fff;transform:translateY(-3px)}
+.dpill.sel .dn{color:#ffe1ea}
+
+/* hero */
+.hero{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center;background:linear-gradient(140deg,var(--surface) 30%,var(--bg2))}
+.ring{position:relative;width:132px;height:132px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .track{fill:none;stroke:var(--rose-soft);stroke-width:12}
+.ring .fill{fill:none;stroke:url(#grad);stroke-width:12;stroke-linecap:round;transition:stroke-dashoffset 1s cubic-bezier(.3,1.4,.5,1)}
+.ring .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.ring .big{font-family:var(--f-num);font-size:28px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.ring .small{font-size:11px;color:var(--muted);font-weight:700}
+.stats{display:flex;flex-direction:column;gap:10px;min-width:0}
+.daytitle{font-family:var(--f-display);font-size:24px;line-height:1;color:var(--ink)}
+.sub{font-size:13px;color:var(--muted);font-weight:600}
+.bar{height:10px;border-radius:999px;background:var(--rose-soft);overflow:hidden}
+.bar>i{display:block;height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,var(--lilac),var(--rose));transition:width .9s cubic-bezier(.3,1.3,.5,1)}
+.statrow{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.toggle{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;padding:6px 0 0}
+.sw{width:46px;height:28px;border-radius:999px;background:var(--line);position:relative;transition:background .25s;flex:0 0 auto}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.18);transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
+.sw[aria-checked="true"]{background:var(--rose)}
+.sw[aria-checked="true"]::after{transform:translateX(18px)}
+
+/* water */
+.water-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.water-head span{font-family:var(--f-num);font-weight:600;color:var(--muted);font-size:14px}
+.cups{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+.cup{aspect-ratio:3/4;max-width:100%;border-radius:10px 10px 14px 14px;border:2px solid var(--rose-soft);position:relative;overflow:hidden;transition:transform .2s}
+.cup::after{content:"";position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(180deg,#9fd8ff,#79b8ff);transition:height .45s cubic-bezier(.3,1.4,.5,1)}
+.cup.on::after{height:78%}
+.cup.on{border-color:#9fd0ff}
+.cup:active{transform:scale(.9)}
+
+/* meals */
+.meals{display:flex;flex-direction:column;gap:12px}
+.meal{display:grid;grid-template-columns:48px 1fr auto;gap:12px;align-items:center;text-align:left;width:100%;background:var(--surface);border-radius:22px;padding:14px;box-shadow:var(--shadow);position:relative;transition:transform .2s, background .3s;animation:pop .5s cubic-bezier(.3,1.5,.5,1) both}
+.meal:active{transform:scale(.98)}
+.meal .ic{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:var(--bg2);color:var(--rose)}
+.meal .ic svg{width:26px;height:26px}
+.meal .txt{min-width:0}
+.meal .lbl{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;gap:8px;align-items:center}
+.meal .nm{font-weight:700;font-size:15px;line-height:1.3;margin-top:2px}
+.meal .mac{font-family:var(--f-num);font-size:12px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+.check{width:30px;height:30px;border-radius:50%;border:2.5px solid var(--rose-soft);display:grid;place-items:center;transition:all .3s cubic-bezier(.3,1.6,.5,1)}
+.check svg{width:16px;height:16px;stroke:#fff;stroke-width:3.5;fill:none;stroke-dasharray:24;stroke-dashoffset:24;transition:stroke-dashoffset .35s .1s}
+.meal.eaten{background:color-mix(in srgb,var(--mint) 12%,var(--surface))}
+.meal.eaten .check{background:var(--mint);border-color:var(--mint);transform:scale(1.08)}
+.meal.eaten .check svg{stroke-dashoffset:0}
+.meal.eaten .nm{text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--mint) 70%,transparent);text-decoration-thickness:2px}
+.meal.gym .ic{background:color-mix(in srgb,var(--lilac) 25%,var(--surface));color:var(--lilac)}
+@keyframes pop{from{opacity:.0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+.note{font-size:12.5px;color:var(--muted);text-align:center;margin:0}
+.banner{background:var(--rose-soft);border-radius:18px;padding:10px 14px;font-size:13px;font-weight:700;text-align:center}
+
+/* hearts burst */
+.heart{position:fixed;pointer-events:none;z-index:50;color:var(--rose);font-size:16px;animation:burst 900ms ease-out forwards}
+@keyframes burst{0%{transform:translate(0,0) scale(.4);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1.1) rotate(var(--r));opacity:0}}
+
+/* month */
+.sumgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.sum{background:var(--surface);border-radius:20px;padding:14px;box-shadow:var(--shadow)}
+.sum b{display:block;font-family:var(--f-num);font-size:24px;font-weight:600;color:var(--rose);font-variant-numeric:tabular-nums}
+.sum span{font-size:12px;font-weight:700;color:var(--muted)}
+.cal{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.cday{aspect-ratio:1;max-width:100%;border-radius:18px;background:var(--surface);box-shadow:0 4px 12px -8px rgba(196,62,110,.4);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;position:relative;font-family:var(--f-num)}
+.cday .n{font-size:17px;font-weight:600}
+.cday .k{font-size:9.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.cday svg{position:absolute;inset:3px;width:calc(100% - 6px);height:calc(100% - 6px);transform:rotate(-90deg)}
+.cday circle{fill:none;stroke-width:3}
+.cday .t{stroke:var(--rose-soft)}
+.cday .p{stroke:var(--mint);stroke-linecap:round}
+.cday.today{outline:2px dashed var(--rose);outline-offset:-3px}
+.mtable{width:100%;border-collapse:collapse;font-size:13px}
+.mtable th,.mtable td{text-align:left;padding:8px 4px;border-bottom:1px solid var(--line)}
+.mtable td.num,.mtable th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--f-num)}
+.mtable th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+
+/* groceries */
+.gprog{display:flex;align-items:center;gap:12px}
+.gprog .bar{flex:1}
+.gcat{display:flex;flex-direction:column;gap:2px}
+.gcat h3{margin:4px 0 6px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--rose)}
+.gitem{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;padding:9px 2px;border-bottom:1px dashed var(--line);text-align:left;width:100%}
+.gitem:last-child{border-bottom:0}
+.gbox{width:22px;height:22px;border-radius:8px;border:2px solid var(--rose-soft);display:grid;place-items:center;transition:all .25s cubic-bezier(.3,1.6,.5,1)}
+.gbox svg{width:12px;height:12px;stroke:#fff;stroke-width:4;fill:none;opacity:0}
+.gitem.on .gbox{background:var(--rose);border-color:var(--rose);transform:rotate(-8deg)}
+.gitem.on .gbox svg{opacity:1}
+.gitem .gn{font-weight:700;min-width:0}
+.gitem .gu{display:block;font-size:11.5px;font-weight:600;color:var(--muted)}
+.gitem .gq{font-family:var(--f-num);font-size:13px;color:var(--muted);text-align:right}
+.gitem.on .gn{text-decoration:line-through;color:var(--muted)}
+.linkbtn{font-size:12px;font-weight:800;color:var(--rose);padding:6px 10px;border-radius:999px;background:var(--bg2)}
+
+/* tips */
+.tips{display:flex;flex-direction:column;gap:12px}
+.tip h3{margin:0 0 6px;font-size:15px}
+.tip ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+
+/* tab bar */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));padding-top:8px;pointer-events:none}
+.tabs-in{pointer-events:auto;max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:24px;box-shadow:0 12px 30px -10px rgba(196,62,110,.45);padding:6px}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0;border-radius:18px;font-size:11px;font-weight:800;color:var(--muted);transition:all .25s}
+.tab svg{width:22px;height:22px}
+.tab[aria-selected="true"]{background:var(--rose);color:#fff}
+
+/* settings sheet */
+.sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;background:rgba(60,20,40,.35)}
+.sheet-in{width:100%;max-width:520px;background:var(--surface);border-radius:28px 28px 0 0;padding:20px max(20px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px;animation:up .35s cubic-bezier(.3,1.3,.5,1)}
+@keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+.sheet label{font-weight:700;font-size:13px;color:var(--muted)}
+.sheet input[type=date]{width:100%;box-sizing:border-box;margin-top:6px;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-weight:700}
+.primary{background:var(--rose);color:#fff;font-weight:800;padding:13px;border-radius:16px}
+.ghost{color:var(--muted);font-weight:700;padding:8px}
+.sync{font-size:11.5px;color:var(--muted);text-align:center}
+
+[hidden]{display:none!important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+@media (max-width:360px){.hero{grid-template-columns:1fr;justify-items:center;text-align:center}.statrow{gap:8px}}
+</style>
+
+<div class="deco" aria-hidden="true">
+  <div class="blob a"></div><div class="blob b"></div><div class="blob c"></div>
+  <span class="spark" style="top:12%;left:8%">&#10022;</span>
+  <span class="spark" style="top:30%;right:10%;animation-delay:-1s">&#10022;</span>
+  <span class="spark" style="top:62%;left:12%;animation-delay:-2s">&#10022;</span>
+  <span class="spark" style="top:82%;right:18%;animation-delay:-.5s">&#10022;</span>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs><linearGradient id="grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b9a3ff"/><stop offset=".55" stop-color="#ff5c8f"/><stop offset="1" stop-color="#ffb48f"/></linearGradient></defs>
+</svg>
+
+<main class="app">
+  <header class="top">
+    <div>
+      <p class="eyebrow" id="dateLabel">Your plan</p>
+      <h1>Monmon's Life</h1>
+    </div>
+    <button class="chip-btn" id="settingsBtn" aria-label="Change plan start date">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="4"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+      <span id="startLabel">Starts 1 Nov</span>
+    </button>
+  </header>
+
+  <section class="view" id="view-today" aria-label="Today">
+    <div class="strip" id="strip" role="listbox" aria-label="Plan days"></div>
+    <div id="banner"></div>
+    <div class="card hero">
+      <div class="ring">
+        <svg viewBox="0 0 140 140"><circle class="track" cx="70" cy="70" r="58"/><circle class="fill" id="ringFill" cx="70" cy="70" r="58" stroke-dasharray="364.4" stroke-dashoffset="364.4"/></svg>
+        <div class="mid"><span class="big" id="kEaten">0</span><span class="small" id="kOf">of 1,700 kcal</span></div>
+      </div>
+      <div class="stats">
+        <div>
+          <div class="daytitle" id="dayTitle">Day 1</div>
+          <div class="sub" id="daySub">4 meals planned</div>
+        </div>
+        <div>
+          <div class="statrow"><span>Protein</span><span id="pText">0 / 120 g</span></div>
+          <div class="bar"><i id="pBar"></i></div>
+        </div>
+        <button class="toggle" id="gymBtn">
+          <span class="sw" id="gymSw" role="switch" aria-checked="false"></span>
+          <span>Gym day</span>
+        </button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="water-head"><h2>Water</h2><span id="waterText">0 / 8 glasses</span></div>
+      <div class="cups" id="cups"></div>
+    </div>
+    <div class="meals" id="meals"></div>
+    <p class="note">Tap a meal when you've eaten it. Tea with milk adds about 40 kcal a cup.</p>
+  </section>
+
+  <section class="view" id="view-month" aria-label="Month" hidden>
+    <h2>Your 30 days</h2>
+    <div class="sumgrid" id="sumgrid"></div>
+    <div class="card"><div class="cal" id="cal"></div></div>
+    <div class="card" style="overflow-x:auto">
+      <table class="mtable"><thead><tr><th>Meal</th><th class="num">Per month</th><th class="num">Avg kcal</th><th class="num">Protein</th></tr></thead><tbody id="mbody"></tbody></table>
+    </div>
+  </section>
+
+  <section class="view" id="view-groc" aria-label="Groceries" hidden>
+    <div class="top" style="align-items:center"><h2>Monthly groceries</h2><button class="linkbtn" id="gReset">Clear ticks</button></div>
+    <div class="card gprog"><span class="sub" id="gText">0 of 0 in the basket</span><div class="bar"><i id="gBar"></i></div></div>
+    <div class="card" style="display:flex;flex-direction:column;gap:14px" id="glist"></div>
+    <p class="note">Beans, foul, tuna and sardines are canned. Buy fish, shrimp and fruit in two trips so they stay fresh.</p>
+  </section>
+
+  <section class="view" id="view-tips" aria-label="Tips" hidden>
+    <h2>Little rules</h2>
+    <div class="tips">
+      <div class="card tip"><h3>Iron that actually absorbs</h3><ul><li>Eat the guava, orange, mandarin or pomegranate with lunch.</li><li>No tea or coffee for 1 hour around meals.</li><li>Take iron and vitamin D with lunch, 2 hours away from yogurt, milk and cheese.</li></ul></div>
+      <div class="card tip"><h3>No added sugar</h3><ul><li>Tea with milk, no sugar. No iced coffee, juices or desserts.</li><li>Fruit is your sweet treat.</li><li>Skip ketchup, BBQ, teriyaki, oyster and sweet chili sauce.</li><li>Use low-sodium soy sauce, 1 to 2 tbsp per meal.</li></ul></div>
+      <div class="card tip"><h3>Butter, measured</h3><ul><li>1 tsp on eggs and vegetables.</li><li>2 tsp in mash or a soup.</li><li>Omelets get a small handful (30 g) of mozzarella.</li></ul></div>
+      <div class="card tip"><h3>Gym days</h3><ul><li>Banana, apple or 3 fresh dates 60 to 90 minutes before.</li><li>Dinner after the gym is your recovery meal; keep the full protein.</li></ul></div>
+      <div class="card tip"><h3>Supplements</h3><ul><li>Check your Centrum label; most contain iron and vitamin D already. Show the doctor all three labels.</li><li>Stop Centrum 2 to 3 days before blood tests; its biotin can distort thyroid results.</li><li>10 to 20 minutes of midday sun, 3 to 4 times a week.</li></ul></div>
+    </div>
+  </section>
+  <p class="sync" id="syncNote"></p>
+</main>
+
+<nav class="tabs" aria-label="Sections">
+  <div class="tabs-in" role="tablist">
+    <button class="tab" role="tab" data-v="today" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><circle cx="12" cy="13" r="4"/><path d="M5 3v4M19 3v4"/></svg>Today</button>
+    <button class="tab" role="tab" data-v="month" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="4"/><path d="M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01"/></svg>Month</button>
+    <button class="tab" role="tab" data-v="groc" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.4 10.2a2 2 0 0 1-2 1.8H8.4a2 2 0 0 1-2-1.8z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>Groceries</button>
+    <button class="tab" role="tab" data-v="tips" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>Tips</button>
+  </div>
+</nav>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-in" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <h2 id="sheetTitle">When does Day 1 start?</h2>
+    <label for="startInput">Plan start date<input type="date" id="startInput"></label>
+    <button class="toggle" id="remBtn" hidden><span class="sw" id="remSw" role="switch" aria-checked="true"></span><span>Meal and water reminders</span></button>
+    <button class="primary" id="saveStart">Save start date</button>
+    <button class="ghost" id="closeSheet">Cancel</button>
+  </div>
+</div>
+
+<script>
+const PLAN = [{"day": 1, "meals": [{"type": "Breakfast", "name": "Mushroom & mozzarella omelet in butter, tannour bread", "kcal": 460, "protein": 28}, {"type": "Lunch", "name": "Tamry chicken quarter, air-fried sweet potato, salad, guava", "kcal": 560, "protein": 50}, {"type": "Snack", "name": "Greek yogurt + banana", "kcal": 250, "protein": 18}, {"type": "Dinner", "name": "Big tuna salad with corn & chickpeas", "kcal": 430, "protein": 35}], "kcal": 1700, "protein": 131}, {"day": 2, "meals": [{"type": "Breakfast", "name": "3 boiled eggs, tannour bread, cucumber & tomato", "kcal": 370, "protein": 22}, {"type": "Lunch", "name": "Tamry curry chicken, basmati rice, orange", "kcal": 610, "protein": 35}, {"type": "Snack", "name": "Tea with milk, no sugar + persimmon", "kcal": 160, "protein": 3}, {"type": "Dinner", "name": "Chicken salad with red beans & colored peppers", "kcal": 480, "protein": 45}], "kcal": 1620, "protein": 105}, {"day": 3, "meals": [{"type": "Breakfast", "name": "Cottage cheese, tannour bread, apple on the side", "kcal": 380, "protein": 20}, {"type": "Lunch", "name": "Grilled bolti, basmati rice, salad, mandarin", "kcal": 540, "protein": 41}, {"type": "Snack", "name": "2 boiled eggs", "kcal": 155, "protein": 13}, {"type": "Dinner", "name": "Sardines with lemon over a green salad", "kcal": 370, "protein": 25}], "kcal": 1445, "protein": 99}, {"day": 4, "meals": [{"type": "Breakfast", "name": "Foul with tomato & onion, tannour bread", "kcal": 400, "protein": 18}, {"type": "Lunch", "name": "Soy sauce chicken noodle stir-fry with peppers, carrots & broccoli, half a pomegranate", "kcal": 715, "protein": 52}, {"type": "Snack", "name": "Pear", "kcal": 100, "protein": 1}, {"type": "Dinner", "name": "Mushroom cream soup (butter) + grilled chicken fillet", "kcal": 540, "protein": 50}], "kcal": 1755, "protein": 121}, {"day": 5, "meals": [{"type": "Breakfast", "name": "Spinach & mozzarella omelet in butter, tannour bread", "kcal": 450, "protein": 29}, {"type": "Lunch", "name": "Tamry wings & drumsticks, mashed potato with butter, guava", "kcal": 670, "protein": 38}, {"type": "Snack", "name": "Greek yogurt + half a pomegranate", "kcal": 260, "protein": 19}, {"type": "Dinner", "name": "Big tuna salad with corn & white beans", "kcal": 430, "protein": 35}], "kcal": 1810, "protein": 121}, {"day": 6, "meals": [{"type": "Breakfast", "name": "Greek yogurt with banana & cinnamon", "kcal": 250, "protein": 17}, {"type": "Lunch", "name": "Pink sauce ribbon pasta with chicken fillet, orange", "kcal": 660, "protein": 46}, {"type": "Snack", "name": "Cottage cheese; eshta an hour later", "kcal": 220, "protein": 20}, {"type": "Dinner", "name": "Chicken fillet with steamed broccoli & carrots, butter", "kcal": 460, "protein": 55}], "kcal": 1590, "protein": 138}, {"day": 7, "meals": [{"type": "Breakfast", "name": "Colored pepper & mozzarella omelet in butter, tannour bread", "kcal": 455, "protein": 28}, {"type": "Lunch", "name": "Tamry butter chicken, basmati rice, mandarin", "kcal": 640, "protein": 35}, {"type": "Snack", "name": "Apple", "kcal": 95, "protein": 0}, {"type": "Dinner", "name": "Chickpea & tuna salad with colored peppers", "kcal": 450, "protein": 36}], "kcal": 1640, "protein": 99}, {"day": 8, "meals": [{"type": "Breakfast", "name": "3 boiled eggs, tannour bread, cucumber & tomato", "kcal": 370, "protein": 22}, {"type": "Lunch", "name": "Grilled bouri, basmati rice, salad, orange", "kcal": 590, "protein": 41}, {"type": "Snack", "name": "Greek yogurt + apple", "kcal": 240, "protein": 17}, {"type": "Dinner", "name": "Chicken fillet salad with corn & chickpeas", "kcal": 480, "protein": 45}], "kcal": 1680, "protein": 125}, {"day": 9, "meals": [{"type": "Breakfast", "name": "Eggs in butter with tomato & colored peppers, tannour bread", "kcal": 420, "protein": 22}, {"type": "Lunch", "name": "Tamry chicken quarter, buttery boiled potatoes, salad, guava", "kcal": 580, "protein": 50}, {"type": "Snack", "name": "Half a mango", "kcal": 100, "protein": 1}, {"type": "Dinner", "name": "Chicken noodle soup with soy sauce, ginger, mushrooms & spinach", "kcal": 440, "protein": 42}], "kcal": 1540, "protein": 115}, {"day": 10, "meals": [{"type": "Breakfast", "name": "Greek yogurt with banana & cinnamon", "kcal": 250, "protein": 17}, {"type": "Lunch", "name": "Garlic butter shrimp, basmati rice, sautéed green beans & carrots, half a pomegranate", "kcal": 675, "protein": 47}, {"type": "Snack", "name": "Cottage cheese; pear an hour later", "kcal": 220, "protein": 19}, {"type": "Dinner", "name": "Big tuna salad with corn & white beans", "kcal": 430, "protein": 35}], "kcal": 1575, "protein": 118}, {"day": 11, "meals": [{"type": "Breakfast", "name": "Cottage cheese, tannour bread, banana on the side", "kcal": 400, "protein": 20}, {"type": "Lunch", "name": "Tamry curry chicken, basmati rice, mandarin", "kcal": 590, "protein": 35}, {"type": "Snack", "name": "Carrot & cucumber sticks + 2 boiled eggs", "kcal": 200, "protein": 14}, {"type": "Dinner", "name": "Tomato soup + grilled chicken fillet", "kcal": 450, "protein": 48}], "kcal": 1640, "protein": 117}, {"day": 12, "meals": [{"type": "Breakfast", "name": "Mushroom & mozzarella omelet in butter, tannour bread", "kcal": 460, "protein": 28}, {"type": "Lunch", "name": "Chicken fillet, quinoa, roasted broccoli & peppers, guava", "kcal": 690, "protein": 63}, {"type": "Snack", "name": "Tea with milk, no sugar + persimmon", "kcal": 160, "protein": 3}, {"type": "Dinner", "name": "Chicken & white bean salad", "kcal": 480, "protein": 45}], "kcal": 1790, "protein": 139}, {"day": 13, "meals": [{"type": "Breakfast", "name": "Foul with tomato & onion, 1 boiled egg, tannour bread", "kcal": 470, "protein": 24}, {"type": "Lunch", "name": "Mahshi warak enab (about 10 pieces) + grilled chicken fillet, orange", "kcal": 640, "protein": 51}, {"type": "Snack", "name": "Greek yogurt + half a pomegranate", "kcal": 260, "protein": 19}, {"type": "Dinner", "name": "Tuna & boiled egg salad", "kcal": 450, "protein": 40}], "kcal": 1820, "protein": 134}, {"day": 14, "meals": [{"type": "Breakfast", "name": "Spinach & mozzarella omelet in butter, tannour bread", "kcal": 450, "protein": 29}, {"type": "Lunch", "name": "Tamry wings & drumsticks, air-fried sweet potato, mandarin", "kcal": 550, "protein": 38}, {"type": "Snack", "name": "Eshta", "kcal": 100, "protein": 2}, {"type": "Dinner", "name": "Mushroom cream soup (butter) + grilled chicken fillet", "kcal": 540, "protein": 50}], "kcal": 1640, "protein": 119}, {"day": 15, "meals": [{"type": "Breakfast", "name": "Colored pepper & mozzarella omelet in butter, tannour bread", "kcal": 455, "protein": 28}, {"type": "Lunch", "name": "Mackerel singari, basmati rice, salad, guava", "kcal": 660, "protein": 41}, {"type": "Snack", "name": "Greek yogurt + banana", "kcal": 250, "protein": 18}, {"type": "Dinner", "name": "Chicken fillet salad with corn & chickpeas", "kcal": 480, "protein": 45}], "kcal": 1845, "protein": 132}, {"day": 16, "meals": [{"type": "Breakfast", "name": "Greek yogurt with apple & cinnamon", "kcal": 240, "protein": 17}, {"type": "Lunch", "name": "Tamry butter chicken, basmati rice, orange", "kcal": 660, "protein": 35}, {"type": "Snack", "name": "2 boiled eggs + a small bunch of grapes", "kcal": 215, "protein": 13}, {"type": "Dinner", "name": "Big tuna salad with corn & chickpeas", "kcal": 430, "protein": 35}], "kcal": 1545, "protein": 100}, {"day": 17, "meals": [{"type": "Breakfast", "name": "3 boiled eggs, tannour bread, cucumber & tomato", "kcal": 370, "protein": 22}, {"type": "Lunch", "name": "Soy sauce shrimp noodles with mushrooms & colored peppers, mandarin", "kcal": 590, "protein": 45}, {"type": "Snack", "name": "Tea with milk, no sugar + pear", "kcal": 140, "protein": 3}, {"type": "Dinner", "name": "Chicken fillet with steamed broccoli & zucchini, butter", "kcal": 450, "protein": 55}], "kcal": 1550, "protein": 125}, {"day": 18, "meals": [{"type": "Breakfast", "name": "Cottage cheese, tannour bread, apple on the side", "kcal": 380, "protein": 20}, {"type": "Lunch", "name": "Tamry chicken quarter, air-fried sweet potato, salad, half a pomegranate", "kcal": 605, "protein": 51}, {"type": "Snack", "name": "Persimmon", "kcal": 120, "protein": 1}, {"type": "Dinner", "name": "Sardines with lemon over a green salad", "kcal": 370, "protein": 25}], "kcal": 1475, "protein": 97}, {"day": 19, "meals": [{"type": "Breakfast", "name": "Mushroom & mozzarella omelet in butter, tannour bread", "kcal": 460, "protein": 28}, {"type": "Lunch", "name": "Chicken fillet, basmati rice, green beans, carrots & peppers sautéed in butter, guava", "kcal": 710, "protein": 63}, {"type": "Snack", "name": "Cottage cheese; half a mango an hour later", "kcal": 220, "protein": 19}, {"type": "Dinner", "name": "Vegetable cream soup (butter) + grilled chicken fillet", "kcal": 520, "protein": 50}], "kcal": 1910, "protein": 160}, {"day": 20, "meals": [{"type": "Breakfast", "name": "Foul with tomato & onion, tannour bread", "kcal": 400, "protein": 18}, {"type": "Lunch", "name": "Cannelloni with chicken or shrimp (monthly treat) + salad, orange", "kcal": 700, "protein": 39}, {"type": "Snack", "name": "Greek yogurt + half a pomegranate", "kcal": 260, "protein": 19}, {"type": "Dinner", "name": "Chickpea & tuna salad with colored peppers", "kcal": 450, "protein": 36}], "kcal": 1810, "protein": 112}, {"day": 21, "meals": [{"type": "Breakfast", "name": "Spinach & mozzarella omelet in butter, tannour bread", "kcal": 450, "protein": 29}, {"type": "Lunch", "name": "Tamry wings & drumsticks, mashed potato with butter, mandarin", "kcal": 650, "protein": 38}, {"type": "Snack", "name": "Carrot & cucumber sticks + 2 boiled eggs + eshta", "kcal": 300, "protein": 16}, {"type": "Dinner", "name": "Chicken salad with red beans & colored peppers", "kcal": 480, "protein": 45}], "kcal": 1880, "protein": 128}, {"day": 22, "meals": [{"type": "Breakfast", "name": "Eggs in butter with tomato & colored peppers, tannour bread", "kcal": 420, "protein": 22}, {"type": "Lunch", "name": "Grilled bolti, basmati rice, salad, orange", "kcal": 560, "protein": 41}, {"type": "Snack", "name": "Greek yogurt + pear", "kcal": 245, "protein": 18}, {"type": "Dinner", "name": "Soy-garlic chicken with green beans sautéed in butter", "kcal": 450, "protein": 55}], "kcal": 1675, "protein": 136}, {"day": 23, "meals": [{"type": "Breakfast", "name": "Greek yogurt with banana & cinnamon", "kcal": 250, "protein": 17}, {"type": "Lunch", "name": "Tamry curry chicken, basmati rice, guava", "kcal": 610, "protein": 35}, {"type": "Snack", "name": "Tea with milk, no sugar + persimmon", "kcal": 160, "protein": 3}, {"type": "Dinner", "name": "Tuna & boiled egg salad", "kcal": 450, "protein": 40}], "kcal": 1470, "protein": 95}, {"day": 24, "meals": [{"type": "Breakfast", "name": "3 boiled eggs, tannour bread, cucumber & tomato", "kcal": 370, "protein": 22}, {"type": "Lunch", "name": "Chicken fillet, quinoa, roasted broccoli & peppers, half a pomegranate", "kcal": 735, "protein": 64}, {"type": "Snack", "name": "Cottage cheese; apple an hour later", "kcal": 215, "protein": 18}, {"type": "Dinner", "name": "Mushroom cream soup (butter) + grilled chicken fillet", "kcal": 540, "protein": 50}], "kcal": 1860, "protein": 154}, {"day": 25, "meals": [{"type": "Breakfast", "name": "Cottage cheese, tannour bread, banana on the side", "kcal": 400, "protein": 20}, {"type": "Lunch", "name": "Tamry chicken quarter, buttery boiled potatoes, salad, mandarin", "kcal": 560, "protein": 50}, {"type": "Snack", "name": "2 boiled eggs + a small bunch of grapes", "kcal": 215, "protein": 13}, {"type": "Dinner", "name": "Tomato soup + grilled chicken fillet", "kcal": 450, "protein": 48}], "kcal": 1625, "protein": 131}, {"day": 26, "meals": [{"type": "Breakfast", "name": "Mushroom & mozzarella omelet in butter, tannour bread", "kcal": 460, "protein": 28}, {"type": "Lunch", "name": "Grilled bouri, basmati rice, salad, guava", "kcal": 590, "protein": 41}, {"type": "Snack", "name": "Half a mango", "kcal": 100, "protein": 1}, {"type": "Dinner", "name": "Shrimp salad with corn", "kcal": 400, "protein": 40}], "kcal": 1550, "protein": 110}, {"day": 27, "meals": [{"type": "Breakfast", "name": "Foul with tomato & onion, 1 boiled egg, tannour bread", "kcal": 470, "protein": 24}, {"type": "Lunch", "name": "Chicken fillet with peas & carrots, basmati rice, orange", "kcal": 650, "protein": 61}, {"type": "Snack", "name": "Greek yogurt + half a pomegranate", "kcal": 260, "protein": 19}, {"type": "Dinner", "name": "Sardines with lemon over a green salad", "kcal": 370, "protein": 25}], "kcal": 1750, "protein": 129}, {"day": 28, "meals": [{"type": "Breakfast", "name": "Spinach & mozzarella omelet in butter, tannour bread", "kcal": 450, "protein": 29}, {"type": "Lunch", "name": "Tamry wings & drumsticks, air-fried sweet potato, mandarin", "kcal": 550, "protein": 38}, {"type": "Snack", "name": "Carrot & cucumber sticks + 2 boiled eggs + eshta", "kcal": 300, "protein": 16}, {"type": "Dinner", "name": "Vegetable cream soup (butter) + grilled chicken fillet", "kcal": 520, "protein": 50}], "kcal": 1820, "protein": 133}, {"day": 29, "meals": [{"type": "Breakfast", "name": "Colored pepper & mozzarella omelet in butter, tannour bread", "kcal": 455, "protein": 28}, {"type": "Lunch", "name": "Pink sauce ribbon pasta with chicken fillet, guava", "kcal": 660, "protein": 46}, {"type": "Snack", "name": "Greek yogurt + banana", "kcal": 250, "protein": 18}, {"type": "Dinner", "name": "Chickpea & tuna salad with colored peppers", "kcal": 450, "protein": 36}], "kcal": 1815, "protein": 128}, {"day": 30, "meals": [{"type": "Breakfast", "name": "Greek yogurt with apple & cinnamon", "kcal": 240, "protein": 17}, {"type": "Lunch", "name": "Garlic butter shrimp, basmati rice, sautéed green beans & carrots, orange", "kcal": 630, "protein": 46}, {"type": "Snack", "name": "2 boiled eggs + persimmon", "kcal": 275, "protein": 14}, {"type": "Dinner", "name": "Chicken fillet with steamed broccoli & carrots, butter", "kcal": 460, "protein": 55}], "kcal": 1605, "protein": 132}];
+const GROC = [["Protein", [["Chicken fillet", "5 kg", "lunches, salads, soups, cannelloni filling"], ["Tamry whole chicken", "1 bird", "4 lunches"], ["Tamry wings & drumsticks", "1 box (1 kg)", "4 lunches"], ["Tamry curry chicken", "1 box (1 kg)", "3 lunches, freeze the rest"], ["Tamry butter chicken", "1 box (1 kg)", "2 lunches, freeze the rest"], ["Shrimp", "1 kg", "garlic butter shrimp, pink pasta, salad"], ["Bolti", "2 fish", "grilled"], ["Bouri", "2 fish", "grilled"], ["Mackerel", "1 fish", "singari"], ["Eggs", "75 (2½ trays)", "omelets, boiled, snacks"]]], ["Cans", [["Tuna", "9 cans", ""], ["Sardines", "3 cans", ""], ["Chickpeas", "3 cans", ""], ["Sweet corn", "2 cans", ""], ["Red beans", "1 can", ""], ["White beans", "1 can", ""], ["Foul", "2 cans", "4 breakfasts"]]], ["Dairy", [["Greek yogurt", "14 cups (170 g)", ""], ["Cottage cheese", "1.2 kg", "8 portions of 150 g"], ["Mozzarella", "350 g", "for omelets"], ["Butter", "250 g", "eggs, mash, veg, soups"], ["Cooking cream", "300 ml", "soups and pink sauce"], ["Milk", "4 L", "includes 1 tea with milk a day"]]], ["Bread & carbs", [["Tannour bread", "13 large loaves", "half a loaf per meal"], ["Basmati rice", "1.5 kg", ""], ["Quinoa", "250 g", ""], ["Ribbon pasta", "1 pack (400 g)", ""], ["Egg or rice noodles", "1 pack (250 g)", "3 soy sauce dishes"], ["Potatoes", "1.5 kg", "mash, boiled, soup"], ["Sweet potatoes", "4 medium", ""], ["Cannelloni", "1 pack", "once a month"], ["Mahshi warak enab", "about 10 pieces", "1 lunch"]]], ["Vegetables", [["Tomatoes", "6 kg", "salads, eggs, foul, tomato soup, sauce"], ["Cucumbers", "3.5 kg", ""], ["Lettuce", "8 heads", ""], ["Carrots", "1 kg", ""], ["Colored peppers", "1 kg", ""], ["Mushrooms", "1 kg (4 boxes)", ""], ["Broccoli", "2 heads", ""], ["Green beans", "500 g", ""], ["Zucchini", "500 g", ""], ["Spinach", "1 bunch", ""], ["Peas", "1 small frozen bag", ""], ["Onion", "1", "foul only"], ["Lemons", "10", ""]]], ["Fruit (November)", [["Bananas", "16", "8 for pre-gym"], ["Apples", "11", "4 for pre-gym"], ["Guava", "9", ""], ["Oranges", "9", ""], ["Mandarins", "8", ""], ["Persimmons", "5", ""], ["Pomegranates", "4", ""], ["Pears", "4", ""], ["Eshta", "4", ""], ["Mango", "2", ""], ["Grapes", "500 g", ""], ["Fresh dates", "250 g", "pre-gym"]]], ["Pantry", [["Olive oil", "500 ml", ""], ["Low-sodium soy sauce", "1 small bottle", "4 soy sauce dishes"], ["Fresh ginger", "1 small piece", "noodles and soup"], ["Garlic, cinnamon, cumin, spices", "as needed", ""]]]];
+
+const ICONS = {
+  Breakfast:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M5.2 18.8l1.4-1.4M17.4 6.6l1.4-1.4"/></svg>',
+  Lunch:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="7"/><circle cx="12" cy="13" r="3.5"/><path d="M3 3v6M3 6h0M21 3c-1.5 1-2 3-2 5h2V3zM21 8v13"/></svg>',
+  Snack:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="16.5" r="3.5"/><circle cx="16.5" cy="17.5" r="3.5"/><path d="M7.5 13c1-5 4-8 8-9.5M16.5 14c-.5-4-1-7-1-10.5M15.5 3.5c2 0 4 1 5 3"/></svg>',
+  Dinner:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>',
+  Gym:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>'
+};
+const CHECK = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const fmt = n => n.toLocaleString('en-US');
+
+let S = {start:'2026-11-01', checks:{}, water:{}, gym:{}, groc:{}};
+let sel = 1;
+const LS = 'monmon-v1';
+try { const c = JSON.parse(localStorage.getItem(LS) || 'null'); if (c && typeof c === 'object') S = Object.assign(S, c); } catch(e){}
+
+function parseD(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+function dateOf(day){ const d = parseD(S.start); d.setDate(d.getDate() + day - 1); return d; }
+function todayIdx(){ const t = new Date(); t.setHours(0,0,0,0); const diff = Math.round((t - parseD(S.start)) / 864e5); return diff + 1; }
+function clampDay(n){ return Math.min(30, Math.max(1, n)); }
+
+/* ---------- persistence: private db doc when available, browser cache always ---------- */
+let docRef = null, saving = false, pending = false, timer = null;
+function cache(){ try { localStorage.setItem(LS, JSON.stringify(S)); } catch(e){} }
+function nativeHandler(){ try { return window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.app; } catch(e){ return null; } }
+function nativeSync(){ const n = nativeHandler(); if (!n) return; try { n.postMessage({start: S.start, reminders: S.reminders !== false}); } catch(e){} }
+function save(){
+  cache(); nativeSync();
+  if (!docRef) return;
+  clearTimeout(timer);
+  timer = setTimeout(flush, 700);
+}
+async function flush(){
+  if (!docRef) return;
+  if (saving){ pending = true; return; }
+  saving = true;
+  try { await docRef.set(JSON.parse(JSON.stringify(S))); setSync('Saved to your account'); }
+  catch(e){ if (e && e.code === 'invalid_argument') { docRef = null; setSync('Saved on this phone only'); } }
+  saving = false;
+  if (pending){ pending = false; flush(); }
+}
+function setSync(t){ document.getElementById('syncNote').textContent = t; }
+(async () => {
+  setSync('Saved on this phone');
+  try {
+    if (!window.claude || !window.claude.use) return;
+    const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+    if (!db || !user) return;
+    const id = await user.id();
+    if (!id) return;
+    const ref = db.doc('data/users/' + id + '/state');
+    const snap = await ref.get();
+    if (snap.exists){
+      const d = snap.data() || {};
+      S = Object.assign({start:'2026-11-01', checks:{}, water:{}, gym:{}, groc:{}}, JSON.parse(JSON.stringify(d)));
+      cache();
+      sel = clampDay(todayIdx());
+      renderAll();
+      docRef = ref;
+    } else {
+      docRef = ref;
+      flush();
+    }
+    setSync('Synced to your account');
+  } catch(e){ /* stay on browser cache */ }
+})();
+
+/* ---------- rendering ---------- */
+function dayStatus(d){
+  let n = 0; for (let i = 0; i < 4; i++) if (S.checks[d + '-' + i]) n++;
+  return n;
+}
+function renderStrip(){
+  const strip = document.getElementById('strip');
+  const t = todayIdx();
+  strip.innerHTML = '';
+  for (let d = 1; d <= 30; d++){
+    const dt = dateOf(d), n = dayStatus(d);
+    const b = document.createElement('button');
+    b.className = 'dpill' + (d === sel ? ' sel' : '') + (d === t ? ' today' : '') + (n === 4 ? ' done' : n ? ' part' : '');
+    b.setAttribute('role','option'); b.setAttribute('aria-selected', d === sel);
+    b.setAttribute('aria-label', 'Day ' + d + ', ' + WD[dt.getDay()] + ' ' + dt.getDate() + ' ' + MONTHS[dt.getMonth()]);
+    b.innerHTML = '<span class="dn">' + WD[dt.getDay()] + '</span><span class="dd">' + dt.getDate() + '</span><span class="dot"></span>';
+    b.onclick = () => { sel = d; renderToday(true); };
+    strip.appendChild(b);
+  }
+  const cur = strip.children[sel - 1];
+  if (cur) strip.scrollTo({left: cur.offsetLeft - strip.clientWidth / 2 + 26, behavior: 'smooth'});
+}
+function renderToday(animate){
+  const day = PLAN[sel - 1];
+  const dt = dateOf(sel);
+  const gym = !!S.gym[sel];
+  const t = todayIdx();
+  document.getElementById('dateLabel').textContent = WD[dt.getDay()] + ', ' + dt.getDate() + ' ' + MONTHS[dt.getMonth()];
+  document.getElementById('dayTitle').textContent = 'Day ' + sel;
+  const bn = document.getElementById('banner');
+  if (t < 1 && sel === 1) bn.innerHTML = '<div class="banner">Your plan starts in ' + (1 - t) + ' day' + (1 - t === 1 ? '' : 's') + '. Here is a peek at Day 1.</div>';
+  else if (t > 30 && sel === 30) bn.innerHTML = '<div class="banner">You finished all 30 days. Set a new start date to go again.</div>';
+  else bn.innerHTML = '';
+
+  const meals = day.meals.slice();
+  if (gym) meals.push({type:'Pre-gym', name:'Banana, apple or 3 fresh dates, 60 to 90 minutes before training', kcal:100, protein:1});
+  let eatenK = 0, eatenP = 0, planK = 0, planP = 0;
+  const wrap = document.getElementById('meals');
+  wrap.innerHTML = '';
+  meals.forEach((m, i) => {
+    const key = sel + '-' + (m.type === 'Pre-gym' ? 'g' : i);
+    const on = !!S.checks[key];
+    planK += m.kcal; planP += m.protein;
+    if (on){ eatenK += m.kcal; eatenP += m.protein; }
+    const b = document.createElement('button');
+    b.className = 'meal' + (on ? ' eaten' : '') + (m.type === 'Pre-gym' ? ' gym' : '');
+    b.style.animationDelay = animate ? (i * 60) + 'ms' : '0ms';
+    if (!animate) b.style.animation = 'none';
+    b.setAttribute('aria-pressed', on);
+    b.innerHTML = '<span class="ic">' + (ICONS[m.type] || ICONS.Gym) + '</span>' +
+      '<span class="txt"><span class="lbl">' + m.type + '</span><div class="nm"></div>' +
+      '<div class="mac">' + fmt(m.kcal) + ' kcal · ' + m.protein + ' g protein</div></span>' +
+      '<span class="check">' + CHECK + '</span>';
+    b.querySelector('.nm').textContent = m.name;
+    b.onclick = (ev) => {
+      S.checks[key] = !S.checks[key];
+      if (!S.checks[key]) delete S.checks[key];
+      if (S.checks[key]) hearts(ev.clientX || window.innerWidth / 2, ev.clientY || window.innerHeight / 2);
+      save(); renderToday(false); renderStripDots();
+    };
+    wrap.appendChild(b);
+  });
+  document.getElementById('daySub').textContent = meals.length + ' meals · ' + fmt(planK) + ' kcal planned';
+  document.getElementById('kEaten').textContent = fmt(eatenK);
+  document.getElementById('kOf').textContent = 'of ' + fmt(planK) + ' kcal';
+  const C = 364.4;
+  document.getElementById('ringFill').setAttribute('stroke-dashoffset', (C - C * Math.min(1, eatenK / planK)).toFixed(1));
+  document.getElementById('pText').textContent = eatenP + ' / ' + planP + ' g';
+  document.getElementById('pBar').style.width = Math.min(100, eatenP / planP * 100) + '%';
+  const sw = document.getElementById('gymSw'); sw.setAttribute('aria-checked', gym);
+
+  const w = S.water[sel] || 0;
+  const cups = document.getElementById('cups'); cups.innerHTML = '';
+  for (let i = 1; i <= 8; i++){
+    const c = document.createElement('button');
+    c.className = 'cup' + (i <= w ? ' on' : '');
+    c.setAttribute('aria-label', 'Glass ' + i + (i <= w ? ', drunk' : ''));
+    c.onclick = () => { S.water[sel] = (w === i) ? i - 1 : i; save(); renderToday(false); };
+    cups.appendChild(c);
+  }
+  document.getElementById('waterText').textContent = w + ' / 8 glasses';
+  if (animate) renderStrip();
+}
+function renderStripDots(){
+  const strip = document.getElementById('strip');
+  for (let d = 1; d <= 30; d++){
+    const el = strip.children[d - 1]; if (!el) continue;
+    const n = dayStatus(d);
+    el.classList.toggle('done', n === 4); el.classList.toggle('part', n > 0 && n < 4);
+  }
+}
+function hearts(x, y){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const glyphs = ['♥','✦','♥','❀'];
+  for (let i = 0; i < 12; i++){
+    const h = document.createElement('span');
+    h.className = 'heart'; h.textContent = glyphs[i % glyphs.length];
+    const a = Math.random() * Math.PI * 2, r = 40 + Math.random() * 60;
+    h.style.left = x + 'px'; h.style.top = y + 'px';
+    h.style.setProperty('--dx', Math.cos(a) * r + 'px');
+    h.style.setProperty('--dy', Math.sin(a) * r - 30 + 'px');
+    h.style.setProperty('--r', (Math.random() * 120 - 60) + 'deg');
+    h.style.color = ['var(--rose)','var(--peach)','var(--lilac)','var(--mint)'][i % 4];
+    document.body.appendChild(h);
+    setTimeout(() => h.remove(), 950);
+  }
+}
+function renderMonth(){
+  const ks = PLAN.map(d => d.kcal), ps = PLAN.map(d => d.protein);
+  const avgK = Math.round(ks.reduce((a,b)=>a+b,0) / 30), avgP = Math.round(ps.reduce((a,b)=>a+b,0) / 30);
+  let eaten = 0; Object.keys(S.checks).forEach(k => { if (!k.endsWith('-g')) eaten++; });
+  const gymDays = Object.keys(S.gym).filter(k => S.gym[k]).length;
+  document.getElementById('sumgrid').innerHTML =
+    '<div class="sum"><b>120</b><span>planned meals</span></div>' +
+    '<div class="sum"><b>' + eaten + '</b><span>meals eaten so far</span></div>' +
+    '<div class="sum"><b>' + fmt(avgK) + '</b><span>avg kcal a day</span></div>' +
+    '<div class="sum"><b>' + avgP + ' g</b><span>avg protein a day</span></div>' +
+    '<div class="sum"><b>' + fmt(ks.reduce((a,b)=>a+b,0) + 1500) + '</b><span>kcal this month, with pre-gym fruit</span></div>' +
+    '<div class="sum"><b>' + gymDays + '</b><span>gym days ticked</span></div>';
+  const cal = document.getElementById('cal'); cal.innerHTML = '';
+  const t = todayIdx();
+  PLAN.forEach(d => {
+    const n = dayStatus(d.day), c = 2 * Math.PI * 22;
+    const b = document.createElement('button');
+    b.className = 'cday' + (d.day === t ? ' today' : '');
+    b.setAttribute('aria-label', 'Day ' + d.day + ', ' + d.kcal + ' kcal, ' + n + ' of 4 meals eaten');
+    b.innerHTML = '<svg viewBox="0 0 50 50"><circle class="t" cx="25" cy="25" r="22"/><circle class="p" cx="25" cy="25" r="22" stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + (c - c * n / 4).toFixed(1) + '"/></svg><span class="n">' + d.day + '</span><span class="k">' + fmt(d.kcal) + '</span>';
+    b.onclick = () => { sel = d.day; show('today'); };
+    cal.appendChild(b);
+  });
+  const names = ['Breakfast','Lunch','Snack','Dinner'];
+  let rows = '';
+  names.forEach((n, i) => {
+    const k = Math.round(PLAN.reduce((a,d)=>a+d.meals[i].kcal,0)/30), p = Math.round(PLAN.reduce((a,d)=>a+d.meals[i].protein,0)/30);
+    rows += '<tr><td>' + n + '</td><td class="num">30</td><td class="num">' + k + '</td><td class="num">' + p + ' g</td></tr>';
+  });
+  rows += '<tr><td>Pre-gym fruit</td><td class="num">14–16</td><td class="num">100</td><td class="num">1 g</td></tr>';
+  rows += '<tr><td><b>Daily average</b></td><td class="num"></td><td class="num"><b>' + fmt(avgK) + '</b></td><td class="num"><b>' + avgP + ' g</b></td></tr>';
+  document.getElementById('mbody').innerHTML = rows;
+}
+function renderGroc(){
+  const list = document.getElementById('glist'); list.innerHTML = '';
+  let total = 0, on = 0;
+  GROC.forEach(([cat, items]) => {
+    const sec = document.createElement('div'); sec.className = 'gcat';
+    sec.innerHTML = '<h3></h3>'; sec.querySelector('h3').textContent = cat;
+    items.forEach(([name, qty, use]) => {
+      total++; const k = cat + '|' + name; const isOn = !!S.groc[k]; if (isOn) on++;
+      const b = document.createElement('button');
+      b.className = 'gitem' + (isOn ? ' on' : ''); b.setAttribute('aria-pressed', isOn);
+      b.innerHTML = '<span class="gbox">' + CHECK + '</span><span class="gn"></span><span class="gq"></span>';
+      b.querySelector('.gn').textContent = name;
+      if (use){ const u = document.createElement('span'); u.className = 'gu'; u.textContent = use; b.querySelector('.gn').appendChild(u); }
+      b.querySelector('.gq').textContent = qty;
+      b.onclick = () => { if (S.groc[k]) delete S.groc[k]; else S.groc[k] = true; save(); renderGroc(); };
+      sec.appendChild(b);
+    });
+    list.appendChild(sec);
+  });
+  document.getElementById('gText').textContent = on + ' of ' + total + ' in the basket';
+  document.getElementById('gBar').style.width = (total ? on / total * 100 : 0) + '%';
+}
+function renderStartLabel(){
+  const d = parseD(S.start);
+  document.getElementById('startLabel').textContent = 'Starts ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+}
+function show(v){
+  ['today','month','groc','tips'].forEach(x => { document.getElementById('view-' + x).hidden = x !== v; });
+  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.v === v));
+  if (v === 'today') renderToday(true);
+  if (v === 'month') renderMonth();
+  if (v === 'groc') renderGroc();
+  window.scrollTo({top: 0});
+}
+function renderAll(){ renderStartLabel(); renderToday(true); renderMonth(); renderGroc(); }
+
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => show(t.dataset.v));
+document.getElementById('gymBtn').onclick = () => { if (S.gym[sel]) delete S.gym[sel]; else S.gym[sel] = true; save(); renderToday(false); };
+document.getElementById('gReset').onclick = () => { S.groc = {}; save(); renderGroc(); };
+const sheet = document.getElementById('sheet');
+document.getElementById('settingsBtn').onclick = () => { document.getElementById('startInput').value = S.start; sheet.hidden = false; };
+document.getElementById('closeSheet').onclick = () => { sheet.hidden = true; };
+sheet.onclick = (e) => { if (e.target === sheet) sheet.hidden = true; };
+document.getElementById('saveStart').onclick = () => {
+  const v = document.getElementById('startInput').value;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)){ S.start = v; sel = clampDay(todayIdx()); save(); renderAll(); }
+  sheet.hidden = true;
+};
+
+if (nativeHandler()){
+  const rb = document.getElementById('remBtn'), rs = document.getElementById('remSw');
+  rb.hidden = false; rs.setAttribute('aria-checked', S.reminders !== false);
+  rb.onclick = () => { S.reminders = (S.reminders === false); rs.setAttribute('aria-checked', S.reminders !== false); save(); };
+  setSync('Saved on this iPhone');
+}
+sel = clampDay(todayIdx());
+renderAll();
+nativeSync();
+</script>
+
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+name: Build iPhone app
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ios/**"
+      - "index.html"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy latest web app into the iPhone app
+        run: cp index.html ios/Web/index.html
+
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          cd ios && xcodegen generate
+
+      - name: Build for the iPhone simulator (checks the code compiles)
+        run: |
+          cd ios
+          xcodebuild -project MonmonsLife.xcodeproj -scheme MonmonsLife \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build | tail -40
+          exit ${PIPESTATUS[0]}
+
+      - name: Save the generated Xcode project to the repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add -A ios
+          if git diff --cached --quiet; then echo "No project changes"; exit 0; fi
+          git commit -m "Update generated Xcode project [skip ci]"
+          git push
