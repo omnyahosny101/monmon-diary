@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shrikhand&family=Nunito:wght@400;600;700;800;900&family=Fredoka:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shrikhand&family=Nunito:wght@400;600;700;800;900&family=Fredoka:wght@500;600&family=Lalezar&family=Cairo:wght@400;600;700;800;900&display=swap">
 <style>
 /* Layout: one phone column; six colour-coded sections (Today rose, Food coral, Money mint, Plans lilac, Grow sky, Me berry).
    Each section: segmented sub-menu, then stacked soft cards with a 1.5px tinted border. Tab bar pinned to the bottom. */
@@ -24,9 +24,9 @@
   --acc:var(--rose); --acc-soft:var(--rose-soft);
   --shadow:0 12px 28px -18px rgba(150,40,90,.45);
   --r:22px;
-  --f-display:"Shrikhand","Georgia",serif;
-  --f-body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --f-num:"Fredoka","Nunito",system-ui,sans-serif;
+  --f-display:"Shrikhand","Lalezar","Georgia",serif;
+  --f-body:"Nunito","Cairo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"Fredoka","Nunito","Cairo",system-ui,sans-serif;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
@@ -342,6 +342,16 @@ canvas.confetti{position:fixed;inset:0;width:100%;height:100%;z-index:1;pointer-
 .tab svg{width:21px;height:21px}
 .tab[aria-selected="true"]{background:var(--acc);color:#fff}
 
+/* right-to-left (Arabic) */
+[dir=rtl] .pill{margin-right:0;margin-left:4px}
+[dir=rtl] .habit .fire{margin-left:0;margin-right:auto}
+[dir=rtl] .habit.mini .fire{right:auto;left:6px}
+[dir=rtl] .monthnav button,[dir=rtl] .daynav button{transform:scaleX(-1)}
+[dir=rtl] .item,[dir=rtl] .sc,[dir=rtl] .habit,[dir=rtl] .ovt,[dir=rtl] .ur{text-align:right}
+[dir=rtl] h1{font-size:clamp(30px,9vw,40px);line-height:1.15}
+[dir=rtl] h2{font-size:22px;line-height:1.3}
+[dir=rtl] .eyebrow{letter-spacing:0}
+[dir=rtl] .seg button,[dir=rtl] .tab{letter-spacing:0}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 @media (max-width:370px){.hgrid{grid-template-columns:1fr}.hgrid.hg3,.ov{grid-template-columns:repeat(3,1fr)}.ringwrap{grid-template-columns:1fr;justify-items:center}.sc .fields{grid-template-columns:1fr 1fr}.tab{font-size:9px}}
 </style>

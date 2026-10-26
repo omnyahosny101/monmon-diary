@@ -348,7 +348,7 @@ VIEWS['plans.wedding'] = function(el){
   const known = sum(ses, x => x.s.price), spent = sum(ses.filter(x => x.s.done), x => x.s.price), nDone = ses.filter(x => x.s.done).length;
   const wj = jarByName('Wedding beauty'), sj = jarByName('Wedding shopping'), shop = S.wedding.shopping || [], wm = S.mashawer.filter(m => m.wedding);
   const field = (s, f, label, type) => '<label class="field"><span>' + label + '</span><input class="in' + (type === 'number' ? ' num' : '') + '" type="' + type + '"' + (type === 'number' ? ' inputmode="decimal" min="0" placeholder="EGP"' : '') + ' data-wsf="' + f + '" data-id="' + s.id + '" value="' + esc(s[f] || '') + '"></label>';
-  el.innerHTML = '<div class="card wed" style="cursor:default">' + (W ? '<span class="wn num">' + Math.max(0, wd) + '</span><span style="min-width:0;text-align:left"><b style="display:block;font-size:17px">days to your wedding \u{1F48D}</b><span class="small" style="font-weight:700">' + nice(W) + '</span></span>' : '<span style="font-size:40px">\u{1F48D}</span><span style="min-width:0;text-align:left"><b style="display:block">Set your wedding date</b></span>') + '</div>' +
+  el.innerHTML = '<div class="card wed" style="cursor:default">' + (W ? '<span class="wn num">' + Math.max(0, wd) + '</span><span style="min-width:0;text-align:start"><b style="display:block;font-size:17px">days to your wedding \u{1F48D}</b><span class="small" style="font-weight:700">' + nice(W) + '</span></span>' : '<span style="font-size:40px">\u{1F48D}</span><span style="min-width:0;text-align:start"><b style="display:block">Set your wedding date</b></span>') + '</div>' +
     '<div class="card"><label class="field"><span>Wedding date</span><input class="in" id="wDate" type="date" value="' + esc(W) + '"></label><div class="statrow" style="color:var(--ink)"><span>All preparations</span><span class="num">' + prepDone + ' / ' + allPrep.length + '</span></div><div class="bar good"><i style="width:' + (allPrep.length ? prepDone / allPrep.length * 100 : 0) + '%"></i></div></div>' +
     '<div class="money3"><div class="mbox"><b>' + nDone + '/' + ses.length + '</b><span>beauty sessions</span></div><div class="mbox"><b>' + fmt(known) + '</b><span>known prices</span></div><div class="mbox"><b>' + fmt(wj ? jarTotal(wj) : 0) + '</b><span>in beauty jar</span></div></div>' +
     Object.keys(byMonth).sort().map(k => { const L = byMonth[k].sort((a, b) => (a.planned || '9') < (b.planned || '9') ? -1 : 1), d = L.filter(s => s.done).length;
@@ -411,7 +411,7 @@ const EXERCISES = [
   ['Back extension','\u{1F4AA}','s'], ['Lat pulldown','\u{1F4AA}','s'], ['Seated row','\u{1F4AA}','s'], ['Shoulder press','\u{1F4AA}','s'], ['Plank','\u{1F9D8}‍♀\u{FE0F}','t'],
 ];
 const WK_FIELDS = {s:[['sets','Sets'],['reps','Reps'],['kg','Kg']], c:[['min','Minutes'],['speed','Speed'],['inc','Incline']], t:[['sets','Sets'],['sec','Seconds']]};
-const wkType = n => { const x = EXERCISES.find(e => e[0].toLowerCase() === n.toLowerCase()); return x ? x[2] : /lunge|squat|press|curl|raise|thrust|deadlift|extension|kickback|pulldown|fly|dip|bridge/i.test(n) ? 's' : /run|walk|treadmill|bike|cycl|stair|ellip|rope|swim|row machine|cardio/i.test(n) ? 'c' : /plank|hold|wall sit/i.test(n) ? 't' : 's'; };
+const wkType = n => { const x = EXERCISES.find(e => e[0].toLowerCase() === n.toLowerCase()); return x ? x[2] : /lunge|squat|press|curl|raise|thrust|deadlift|extension|kickback|pulldown|fly|dip|bridge/i.test(n) ? 's' : /run|walk|treadmill|bike|cycl|stair|ellip|rope|swim|row machine|cardio|جري|مشي|عجلة|سلم|تريدميل|كارديو|نط/i.test(n) ? 'c' : /plank|hold|wall sit|بلانك/i.test(n) ? 't' : 's'; };
 const wkEmoji = n => { const x = EXERCISES.find(e => e[0].toLowerCase() === n.toLowerCase()); return x ? x[1] : wkType(n) === 'c' ? '\u{1F3C3}‍♀\u{FE0F}' : '\u{1F4AA}'; };
 function wkLast(name, before){
   const days = Object.keys(S.wlog || {}).filter(d => d < before).sort().reverse();
@@ -427,10 +427,11 @@ function wkAdd(day, name, extra){
   save(); return it;
 }
 function wkLine(it){
-  const v = f => it[f] !== '' && it[f] != null;
-  if (it.type === 'c') return it.name + (v('min') ? ' ' + it.min + ' min' : '') + (v('speed') ? ' @ ' + it.speed : '') + (v('inc') ? ', incline ' + it.inc : '');
-  if (it.type === 't') return it.name + (v('sets') ? ' ' + it.sets + ' ×' : '') + (v('sec') ? ' ' + it.sec + ' s' : '');
-  return it.name + (v('sets') ? ' ' + it.sets + (v('reps') ? '×' + it.reps : ' sets') : v('reps') ? ' ' + it.reps + ' reps' : '') + (v('kg') ? ' @ ' + it.kg + ' kg' : '');
+  const v = f => it[f] !== '' && it[f] != null, A = isAr(), U = A ? {min:' دقيقة', inc:'، ميل ', s:' ث', sets:' جولات', reps:' عدّة', kg:' كجم'} : {min:' min', inc:', incline ', s:' s', sets:' sets', reps:' reps', kg:' kg'};
+  const nm = tr(it.name);
+  if (it.type === 'c') return nm + (v('min') ? ' ' + it.min + U.min : '') + (v('speed') ? ' @ ' + it.speed : '') + (v('inc') ? U.inc + it.inc : '');
+  if (it.type === 't') return nm + (v('sets') ? ' ' + it.sets + ' ×' : '') + (v('sec') ? ' ' + it.sec + U.s : '');
+  return nm + (v('sets') ? ' ' + it.sets + (v('reps') ? '×' + it.reps : U.sets) : v('reps') ? ' ' + it.reps + U.reps : '') + (v('kg') ? ' @ ' + it.kg + U.kg : '');
 }
 function workoutHTML(){
   const day = ui.wkDay || todayStr(), L = (S.wlog || {})[day] || {items:[], note:''}, t = todayStr();
@@ -441,7 +442,7 @@ function workoutHTML(){
     '<span class="small muted" style="font-weight:700">Tap what you did, then fill in sets, reps and weight. It saves as you type, like a draft.</span>' +
     '<div class="chips">' + EXERCISES.map((x, i) => '<button class="chip" data-wkx="' + i + '">' + x[1] + ' ' + x[0] + '</button>').join('') + '</div>' +
     '<div class="row"><label class="field"><input class="in" id="wkN" placeholder="Another exercise…" aria-label="Exercise name"></label><button class="btn" id="wkAdd">Add</button></div>' +
-    '<div class="row"><button class="btn soft" data-wkt="glute" style="flex:1">+ Glute day</button><button class="btn soft" data-wkt="quad" style="flex:1">+ Quad day</button>' + (prevDay && !L.items.length ? '<button class="btn soft" id="wkCopy" style="flex:1">Repeat ' + nice(prevDay).slice(0, 3) + '</button>' : '') + '</div>' +
+    '<div class="row"><button class="btn soft" data-wkt="glute" style="flex:1">+ Glute day</button><button class="btn soft" data-wkt="quad" style="flex:1">+ Quad day</button>' + (prevDay && !L.items.length ? '<button class="btn soft" id="wkCopy" style="flex:1">Repeat ' + WD[parseD(prevDay).getDay()] + '</button>' : '') + '</div>' +
     (L.items.length ? '<div class="list">' + L.items.map(it => '<div class="sc"><span class="em">' + it.e + '</span><div style="min-width:0"><div class="nm">' + esc(it.name) + '</div><div class="fields' + (WK_FIELDS[it.type].length === 2 ? ' f2' : '') + '">' +
         WK_FIELDS[it.type].map(([f, lab]) => '<label class="field"><span>' + lab + '</span><input class="in num" type="number" inputmode="decimal" min="0" step="any" data-wkf="' + f + '" data-id="' + it.id + '" value="' + esc(it[f] == null ? '' : it[f]) + '"></label>').join('') + '</div></div>' + delBtn('data-wkdel', it.id) + '</div>').join('') + '</div>' +
       '<p class="small" style="margin:0;font-weight:800;color:var(--mint)">\u{1F4AA} ' + L.items.length + ' exercises' + (sets ? ' · ' + sets + ' sets' : '') + (mins ? ' · ' + mins + ' min cardio' : '') + '</p>'
@@ -477,3 +478,15 @@ function gymSheet(day, done){
     $('[data-wtick]', sh).onclick = ev => { setHabit('gym', day, !on, ev); close(); done(); };
   });
 }
+
+
+/* ============ SETTINGS: app language ============ */
+const settingsBase = VIEWS['me.settings'];
+VIEWS['me.settings'] = function(el){
+  settingsBase(el);
+  const L = lang(), card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<h2>' + (L === 'ar' ? 'اللغة' : 'Language') + '</h2><div class="chips" data-notr><button class="chip' + (L === 'ar' ? ' on' : '') + '" data-lang="ar">العربي المصري</button><button class="chip' + (L === 'en' ? ' on' : '') + '" data-lang="en">English</button></div>';
+  el.prepend(card);
+  $$('[data-lang]', card).forEach(b => b.onclick = () => { if (b.dataset.lang === L) return; S.settings.lang = b.dataset.lang; save(); location.reload(); });
+};

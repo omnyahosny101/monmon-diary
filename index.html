@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shrikhand&family=Nunito:wght@400;600;700;800;900&family=Fredoka:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shrikhand&family=Nunito:wght@400;600;700;800;900&family=Fredoka:wght@500;600&family=Lalezar&family=Cairo:wght@400;600;700;800;900&display=swap">
 <style>
 /* Layout: one phone column; six colour-coded sections (Today rose, Food coral, Money mint, Plans lilac, Grow sky, Me berry).
    Each section: segmented sub-menu, then stacked soft cards with a 1.5px tinted border. Tab bar pinned to the bottom. */
@@ -24,9 +24,9 @@
   --acc:var(--rose); --acc-soft:var(--rose-soft);
   --shadow:0 12px 28px -18px rgba(150,40,90,.45);
   --r:22px;
-  --f-display:"Shrikhand","Georgia",serif;
-  --f-body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --f-num:"Fredoka","Nunito",system-ui,sans-serif;
+  --f-display:"Shrikhand","Lalezar","Georgia",serif;
+  --f-body:"Nunito","Cairo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"Fredoka","Nunito","Cairo",system-ui,sans-serif;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
@@ -342,6 +342,16 @@ canvas.confetti{position:fixed;inset:0;width:100%;height:100%;z-index:1;pointer-
 .tab svg{width:21px;height:21px}
 .tab[aria-selected="true"]{background:var(--acc);color:#fff}
 
+/* right-to-left (Arabic) */
+[dir=rtl] .pill{margin-right:0;margin-left:4px}
+[dir=rtl] .habit .fire{margin-left:0;margin-right:auto}
+[dir=rtl] .habit.mini .fire{right:auto;left:6px}
+[dir=rtl] .monthnav button,[dir=rtl] .daynav button{transform:scaleX(-1)}
+[dir=rtl] .item,[dir=rtl] .sc,[dir=rtl] .habit,[dir=rtl] .ovt,[dir=rtl] .ur{text-align:right}
+[dir=rtl] h1{font-size:clamp(30px,9vw,40px);line-height:1.15}
+[dir=rtl] h2{font-size:22px;line-height:1.3}
+[dir=rtl] .eyebrow{letter-spacing:0}
+[dir=rtl] .seg button,[dir=rtl] .tab{letter-spacing:0}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 @media (max-width:370px){.hgrid{grid-template-columns:1fr}.hgrid.hg3,.ov{grid-template-columns:repeat(3,1fr)}.ringwrap{grid-template-columns:1fr;justify-items:center}.sc .fields{grid-template-columns:1fr 1fr}.tab{font-size:9px}}
 </style>
@@ -526,6 +536,788 @@ const FORBIDDEN = [
   {name:'Fried chicken (2 pieces)', e:'\u{1F357}', kcal:500, protein:35, sugar:false},
 ];
 
+/* ============ LANGUAGE: Egyptian Arabic (default) or English ============
+   The app is written in English. In Arabic mode every text the page shows is translated on the fly:
+   AR holds exact strings, AR_RX handles strings built from parts (numbers, names, dates),
+   AR_WORDS is the last resort for single words left inside a sentence. Dates and months switch arrays. */
+const AR = Object.create(null);
+const AR_RX = [];
+const AR_WORDS = [];
+const AR_WD = ['الأحد', 'الاتنين', 'التلات', 'الأربع', 'الخميس', 'الجمعة', 'السبت'];
+const AR_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+function lang(){ try { return (S && S.settings && S.settings.lang) || 'ar'; } catch(e){ return 'ar'; } }
+const isAr = () => lang() === 'ar';
+const trCache = new Map(), trOut = new Set();
+let wordsRx = null;
+function tr(s){
+  if (s == null) return s; s = String(s);
+  if (!isAr() || !/[A-Za-z]/.test(s) || trOut.has(s)) return s;
+  if (trCache.has(s)) return trCache.get(s);
+  const m = /^(\s*)([\s\S]*?)(\s*)$/.exec(s);
+  let out = s;
+  try { out = m[1] + trCore(m[2]) + m[3]; } catch(e){}
+  trCache.set(s, out); trOut.add(out); return out;
+}
+const flipArrows = s => s.replace(/[›‹→←]/g, c => ({'›':'‹', '‹':'›', '→':'←', '←':'→'}[c]));
+function trCore(t){
+  if (!t || !/[A-Za-z]/.test(t)) return t;
+  if (AR[t] != null) return AR[t];
+  // leading emoji or symbols, trailing emoji, hearts or arrows
+  const sm = /^([^A-Za-z0-9؀-ۿ“"'(+]*)([\s\S]*?)([\s‍️←-⇿⌀-⏿☀-➿⬀-⯿\u{1F000}-\u{1FFFF}♡›‹→←✓✦]*)$/u.exec(t);
+  if (sm && (sm[1] || sm[3]) && sm[2]){
+    const mid = sm[2];
+    if (AR[mid] != null) return sm[1] + AR[mid] + flipArrows(sm[3]);
+    if (/[A-Za-z]/.test(mid) && mid !== t){ const r = trCore(mid); if (r !== mid) return sm[1] + r + flipArrows(sm[3]); }
+  }
+  const latin = x => (x.match(/[A-Za-z]/g) || []).length;
+  if (t.includes(' · ')){
+    const parts = t.split(' · ').map(trCore).join(' · ');
+    if (!latin(parts)) return parts;
+    const whole = rxChain(t); return latin(whole) < latin(parts) ? whole : parts;
+  }
+  return rxChain(t);
+}
+function rxChain(t){
+  let r = t;
+  for (const [rx, rep] of AR_RX){ if (!/[A-Za-z]{2}/.test(r)) break; if (rx.test(r)) r = r.replace(rx, rep); }
+  return /[A-Za-z]{2}/.test(r) ? trWords(r) : r;
+}
+function trWords(t){
+  if (!AR_WORDS.length) return t;
+  if (!wordsRx){
+    AR_WORDS.sort((a, b) => b[0].length - a[0].length);
+    wordsRx = new RegExp('(^|[^A-Za-z])(' + AR_WORDS.map(w => w[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(?![A-Za-z])', 'g');
+  }
+  const map = new Map(AR_WORDS);
+  return t.replace(wordsRx, (all, pre, w) => pre + map.get(w));
+}
+// a name inside a sentence: translate it if it is one of ours, keep it if it is hers
+const trName = n => tr(n);
+
+/* ---------- the page ---------- */
+const TR_ATTRS = ['placeholder', 'aria-label', 'title'];
+function trText(n){
+  const p = n.parentNode; if (!p || p.nodeType !== 1) return;
+  const tag = p.nodeName; if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'TEXTAREA' || (p.closest && p.closest('[data-notr]'))) return;
+  const v = n.nodeValue; if (!v || !/[A-Za-z]/.test(v) || trOut.has(v)) return;
+  const nv = tr(v); if (nv !== v) n.nodeValue = nv;
+}
+function trEl(el){
+  for (const a of TR_ATTRS){ const v = el.getAttribute(a); if (v && /[A-Za-z]/.test(v)){ const nv = tr(v); if (nv !== v) el.setAttribute(a, nv); } }
+  if (el.nodeName === 'INPUT' && (el.type === 'text' || el.type === 'search') && el.value && AR[el.value] != null) el.value = AR[el.value];
+}
+function trNode(root){
+  if (!isAr() || !root) return;
+  if (root.nodeType === 3) return trText(root);
+  if (root.nodeType !== 1) return;
+  trEl(root);
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+  let n; while ((n = w.nextNode())){ if (n.nodeType === 3) trText(n); else trEl(n); }
+}
+let trObserver = null;
+function applyLang(){
+  const ar = isAr(), H = document.documentElement;
+  H.lang = ar ? 'ar' : 'en'; H.dir = ar ? 'rtl' : 'ltr';
+  if (ar){
+    WD.splice(0, 7, ...AR_WD); MONTHS.splice(0, 12, ...AR_MONTHS); MONTHS_L.splice(0, 12, ...AR_MONTHS);
+    document.title = tr(document.title);
+    if (!trObserver){
+      trObserver = new MutationObserver(muts => { for (const m of muts){ if (m.type === 'characterData') trText(m.target); else m.addedNodes.forEach(trNode); } });
+      trObserver.observe(document.body, {childList:true, subtree:true, characterData:true});
+    }
+    trNode(document.body);
+  }
+}
+function trReminders(r){
+  if (!isAr()) return r;
+  const f = x => Object.assign({}, x, {title:tr(x.title), body:tr(x.body)});
+  return {repeat:r.repeat.map(f), once:r.once.map(f)};
+}
+/* Egyptian Arabic: app screens. Keys are the English text exactly as the page shows it. */
+Object.assign(AR, {
+  // ---------- shell and tabs ----------
+  "5 pages or more ticks reading; an episode ticks listening.": "٥ صفحات أو أكتر بتعلّم على القراية؛ وحلقة بتعلّم على السماع.", "All sessions already have dates": "كل الجلسات ليها مواعيد خلاص",
+  "Beauty plan": "خطة البيوتي", "It starts the countdown and plans your beauty sessions around it.": "بيبدأ العد التنازلي وبيخطط جلسات البيوتي على أساسه.",
+  "Multi-session lasers first, about 4 weeks apart. Filler and Botox 3–4 weeks before the wedding. Confirm spacing with your clinic.": "الليزر اللي على كذا جلسة الأول، بين كل جلسة والتانية حوالي 4 أسابيع. الفيلر والبوتوكس قبل الفرح بـ3–4 أسابيع. اتأكدي من المواعيد مع العيادة.",
+  "Nothing here yet.": "لسه مفيش حاجة هنا.", "Nothing planned yet.": "لسه مفيش حاجة متخططة.", "Reading & listening": "القراية والسماع", "Suggest dates": "اقترحي مواعيد", "Tagged": "متعلّمة",
+  "Tap 💍 on a meshwar or a self-care session (laser, pampering) and it shows up here too.": "دوسي 💍 على أي مشوار أو جلسة عناية بنفسك (ليزر، دلع) وهتظهر هنا كمان.",
+  "You did it!": "عملتيها!", "Your day so far": "يومك لحد دلوقتي", "Money › Savings": "الفلوس ‹ التحويش", "from mashawer and self-care": "من المشاوير والعناية بنفسي",
+  "Reminder the evening before each planned session. Lashes stay monthly in Self-care.": "تذكير بالليل قبل كل جلسة متخططة. الرموش بتفضل شهري في العناية بنفسي.",
+  "Urgent tasks sit at the top of Today and remind you the evening before, at 9:00 on the day and 1 hour before the deadline. Important ones remind you the evening before.": "التاسكات المستعجلة بتبقى فوق في النهارده وبتفكّرك بالليل قبلها، والساعة 9 يومها، وقبل الميعاد بساعة. والمهمة بتفكّرك بالليل قبلها.",
+  "Something": "حاجة", "Nothing logged yet today.": "لسه مفيش حاجة متسجلة النهارده.", "Nothing logged for this day.": "مفيش حاجة متسجلة لليوم ده.",
+  "Monmon's Life": "حياة مونمون", "Monmon’s Life": "حياة مونمون", "Today": "النهارده", "Food": "الأكل", "Money": "الفلوس", "Plans": "الخطط", "Grow": "تطوير", "Me": "أنا",
+  "Settings": "الإعدادات", "Sections": "الأقسام", "Close": "اقفلي", "Done": "تم", "Add": "ضيفي", "Save": "احفظي", "Delete": "امسحي", "Delete?": "أمسحه؟",
+  "All": "الكل", "Another one": "واحدة تانية", "Emoji": "إيموجي", "Name": "الاسم", "Date": "التاريخ", "Day": "اليوم", "Time": "الساعة", "Note": "ملاحظة", "Notes": "ملاحظات",
+  "Price": "السعر", "Amount": "المبلغ", "Category": "النوع", "Optional": "اختياري", "Previous month": "الشهر اللي فات", "Next month": "الشهر الجاي",
+  "Previous day": "اليوم اللي قبله", "Next day": "اليوم اللي بعده", "Not yet": "لسه", "Set up": "جهّزي", "Yes, log it": "أيوه، سجّليها", "Mark as done": "خلص",
+  "Mark done": "خلص", "Mark as not done": "لسه مخلصش", "today": "النهارده", "this week": "الأسبوع ده", "this month": "الشهر ده", "yet today": "لسه النهارده",
+
+  // ---------- Today ----------
+  "Emergency": "طوارئ", "🚨 Emergency": "🚨 طوارئ", "Flag as emergency": "علّميها طوارئ", "Remove emergency flag": "شيلي علامة الطوارئ", "Flag removed": "اتشالت العلامة",
+  "Meshwar": "مشوار", "Mashawer": "المشاوير", "Wedding prep": "تجهيزات الفرح", "To buy": "هتشتريها", "Task": "تاسك", "Beauty": "بيوتي", "To do": "مطلوب",
+  "Do these first": "اعملي دول الأول", "URGENT": "مستعجل", "SOON": "قريب", "Due soon": "معادها قرّب",
+  "days to your wedding": "يوم على فرحك", "Your wedding day!": "النهارده فرحك!", "Wedding tracker": "عدّاد الفرح", "Set your wedding date": "حددي ميعاد الفرح",
+  "Wedding preparations": "تجهيزات الفرح", "Open wedding preparations": "افتحي تجهيزات الفرح", "Everything is done": "كله خلص",
+  "Try this today": "جربي ده النهارده", "Where to?": "رايحة فين؟", "Where": "فين", "No date": "من غير ميعاد", "No date yet": "لسه مفيش ميعاد",
+  "No mashawer planned.": "مفيش مشاوير متخططة.", "Tasks": "التاسكات", "All tasks": "كل التاسكات", "Personal": "شخصي", "Add a task…": "ضيفي تاسك…", "New task": "تاسك جديد",
+  "For": "لمين", "Work": "شغل", "My to-dos": "تاسكاتي", "No open work tasks.": "مفيش تاسكات شغل مفتوحة.", "Nothing on your list.": "مفيش حاجة في الليستة.",
+  "Urgent": "مستعجل", "Important": "مهم", "Normal": "عادي", "Overdue": "متأخر", "Missed": "فاتت", "missed": "فاتت", "Due": "آخر ميعاد", "By": "لحد الساعة",
+  "What did I do today?": "عملت إيه النهارده؟", "Worked": "اشتغلت", "Worked from home": "اشتغلت من البيت", "Gym": "الجيم", "Out with friends": "خرجت مع صحابي",
+  "With my fiancé": "مع خطيبي", "With family": "مع العيلة", "Pampered myself": "دلّعت نفسي", "Finished a meshwar": "خلّصت مشوار",
+  "Spent today": "صرفت النهارده", "Nothing spent yet today.": "لسه مصرفتيش حاجة النهارده.", "What was it?": "كانت إيه؟", "Enter an amount": "اكتبي المبلغ",
+  "Today’s habits": "عادات النهارده", "Customize": "عدّلي", "Daily": "يومي", "Weekly": "أسبوعي", "Monthly": "شهري", "tap to log": "دوسي وسجّلي", "5+ pages": "٥ صفحات أو أكتر",
+  "All daily habits done. Proud of you!": "خلّصتي كل عادات النهارده. فخورة بيكي!",
+  "Dear diary": "يومياتي", "Sad": "زعلانة", "Meh": "مش أوي", "Okay": "تمام", "Good": "كويسة", "Amazing": "تحفة", "Today’s 3 questions": "أسئلة النهارده التلاتة",
+  "My answer…": "إجابتي…", "What I did": "عملت إيه", "How I felt": "حسيت بإيه", "Quick notes and drafts": "ملاحظات ومسودات سريعة",
+  "A little summary of my day…": "ملخص صغير ليومي…", "My feelings today…": "إحساسي النهارده…", "Anything to remember about today…": "أي حاجة عايزة أفتكرها من النهارده…",
+  "See my whole day": "شوفي يومي كله",
+  "Beauty and pampering": "البيوتي والدلع", "All months": "كل الشهور", "No sessions planned. Plan them in Plans › Self-care.": "مفيش جلسات متخططة. خططيها من الخطط ‹ العناية بنفسي.",
+  "Shopping list": "ليستة الشوبينج", "Add something to buy…": "ضيفي حاجة تشتريها…", "New item": "حاجة جديدة", "Bought": "اتشترت", "Everything is bought": "كله اتشترى",
+  "Big buys still get the 48-hour wait. Ticked items stay at the bottom.": "الحاجات الكبيرة لسه ليها قاعدة الـ48 ساعة. اللي اتعلّم عليه بينزل تحت.",
+  "Payday window": "فترة القبض", "Log salary and save": "سجّلي المرتب وحوّشي",
+  "Last month, 63% of your spending happened within two days of a salary. Move your savings first, then wait 48 hours before anything big.": "الشهر اللي فات، 63% من مصاريفك كانت في خلال يومين من القبض. حوّشي الأول، واستني 48 ساعة قبل أي حاجة كبيرة.",
+  "Friday money check-in": "مراجعة فلوس الجمعة", "Log any spending I missed this week": "أسجّل أي مصاريف نسيتها الأسبوع ده", "Check my budgets in Money": "أراجع الميزانيات في الفلوس",
+  "Move savings to my jars": "أحوّل التحويش للحصّالات", "valU installment on track": "قسط valU ماشي مظبوط", "Decide on my wait list": "أقرر في ليستة الانتظار",
+  "Friday check-in done!": "مراجعة الجمعة خلصت!",
+  "One new experience this month": "تجربة جديدة الشهر ده", "Choose one": "اختاري واحدة", "Coming up": "الجاي", "Next meal": "الوجبة الجاية", "Did you know": "تعرفي إن",
+  "Happy birthday, Monmon!": "كل سنة وانتي طيبة يا مونمون!", "It’s after 11 PM": "الساعة عدّت 11 بالليل",
+  "Reading today": "قراية النهارده", "Book": "الكتاب", "Pages today": "صفحات النهارده", "What are you reading?": "بتقري إيه؟", "5 pages or more ticks the habit.": "٥ صفحات أو أكتر بتعلّم على العادة.",
+  "Listening today": "سماع النهارده", "Podcast or episode": "بودكاست أو حلقة", "El Da7ee7, El Hadara…": "الدحيح، الحضارة…", "Saved. 5 pages ticks it ♡": "اتحفظ. ٥ صفحات تعلّم عليها ♡",
+  "Gym today": "الجيم النهارده", "Write my workout": "اكتبي تمريني", "Edit my workout": "عدّلي تمريني", "Just tick it": "علّمي عليها بس", "Mark gym as not done": "الجيم لسه متعملش",
+  "Write exactly what you did: running, leg press, leg extensions…": "اكتبي بالظبط عملتي إيه: جري، ليج بريس، ليج إكستنشن…",
+  "Handled! Breathe out ♡": "اتحلّت! خدي نفس ♡", "Done! One less thing ♡": "تمام! حاجة أقل ♡", "Done! One step closer": "تمام! خطوة أقرب",
+  "Emergency. It’s at the top of Today now.": "طوارئ. بقت فوق في النهارده.", "Logged. Glowing! ♡": "اتسجّلت. منوّرة! ♡", "Done. Glowing! ♡": "تمام. منوّرة! ♡",
+  "Countdown started": "العد التنازلي بدأ", "Date cleared": "الميعاد اتشال", "Added. I’ll remind you a day before.": "اتضاف. هفكّرك قبلها بيوم.",
+  "Write the task": "اكتبي التاسك", "Where are you going?": "رايحة فين؟", "What do you need to buy?": "محتاجة تشتري إيه؟", "Urgent task done! Breathe out ♡": "التاسك المستعجل خلص! خدي نفس ♡",
+
+  // ---------- categories ----------
+  "Food & groceries": "أكل وبقالة", "Eating out & outings": "أكل بره وخروجات", "Talabat, Noon, Amazon": "طلبات، نون، أمازون", "Self-care": "العناية بنفسي", "Pets": "حيواناتي",
+  "Subscriptions": "اشتراكات", "Gifts & occasions": "هدايا ومناسبات", "Transport": "مواصلات", "Sadaqa & donations": "صدقة وتبرعات", "Wedding": "الفرح", "Shein + customs": "شي إن + الجمارك",
+  "Clothes & shopping": "هدوم وشوبينج", "Courses & hobbies": "كورسات وهوايات", "valU installment": "قسط valU", "Phone & internet": "موبايل ونت", "Lashes": "رموش", "Bills": "فواتير", "Other": "تاني",
+
+  // ---------- habits ----------
+  "Shower": "شاور", "Vitamins": "الفيتامينات", "No sugar or junk": "من غير سكر ولا أكل مضر", "Read 5+ pages": "اقري ٥ صفحات أو أكتر", "Wake up on time": "اصحي في ميعادي",
+  "No shopping after 11 PM": "مفيش شوبينج بعد 11 بالليل", "Moisturise my body": "أرطّب جسمي", "Dry brushing": "الدراي براشينج", "Wash hair": "أغسل شعري",
+  "Nails at home": "ضوافري في البيت", "Pedicure in the shower": "باديكير في الشاور", "Laser session": "جلسة ليزر", "Moroccan bath": "حمام مغربي",
+  "A new book after 14 days": "كتاب جديد بعد 14 يوم", "A new lip gloss after 30 days": "ليب جلوس جديد بعد 30 يوم",
+  "After 30 days: an outing you love, like ice skating, a museum or a concert": "بعد 30 يوم: خروجة بتحبيها، زي التزلج أو متحف أو حفلة",
+  "After 14 days: a café afternoon with your book": "بعد 14 يوم: قعدة في كافيه مع كتابك",
+  "All daily habits done!": "خلّصتي كل عادات النهارده!", "Every single one, today. You’re glowing, queen.": "كلهم من غير ما تفوّتي ولا واحدة. منوّرة يا ملكة.",
+  "Yay, thank you ♡": "يااه، شكرًا ♡", "Your reward": "مكافأتك", "Habit added ♡": "العادة اتضافت ♡", "Name your habit": "سمّي العادة", "Reward saved": "المكافأة اتحفظت",
+
+  // ---------- wedding ----------
+  "Wedding date": "ميعاد الفرح", "All preparations": "كل التجهيزات", "beauty sessions": "جلسات بيوتي", "known prices": "أسعار معروفة", "in beauty jar": "في حصالة البيوتي",
+  "Hair laser · session 1": "ليزر شعر · جلسة 1", "Hair laser · session 2": "ليزر شعر · جلسة 2", "Hair laser · session 3": "ليزر شعر · جلسة 3",
+  "Lashes · session 1": "رموش · جلسة 1", "Lashes · session 2": "رموش · جلسة 2", "Lashes · session 3": "رموش · جلسة 3",
+  "Pico laser · session 1": "بيكو ليزر · جلسة 1", "Pico laser · session 2": "بيكو ليزر · جلسة 2",
+  "Spider veins laser · session 1": "ليزر الـ spider veins · جلسة 1", "Spider veins laser · session 2": "ليزر الـ spider veins · جلسة 2",
+  "Moroccan bath · 1": "حمام مغربي · 1", "Moroccan bath · 2": "حمام مغربي · 2", "Dr. Yasser Bleil": "دكتور ياسر بليل", "Hair dye": "صبغة شعر", "Hair treatment": "تريتمنت للشعر",
+  "Butt peeling": "بيلينج للـ butt", "Dermapen": "ديرما بن", "Filler: lips 0.5 ml, cheeks 1 ml": "فيلر: شفايف 0.5 مل، خدود 1 مل", "Botox: crow’s feet, nose": "بوتوكس: حوالين العين والمناخير",
+  "Skin booster": "سكن بوستر", "Facial": "فيشال", "Price per ml not known yet": "سعر المل لسه مش معروف", "Price not known yet": "السعر لسه مش معروف", "5,000–10,000": "5,000–10,000",
+  "Done on": "اتعمل يوم", "Planned": "متخطط", "Book the makeup artist": "أحجز الميكب أرتست", "Find the dress": "ألاقي الفستان", "Book the hairdresser": "أحجز الكوافير",
+  "Find a hairdresser": "ألاقي كوافير", "Makeup trial": "تجربة الميكب", "Hair trial": "تجربة الشعر", "Shoes and accessories": "الشوز والاكسسوارات", "Nails, a few days before": "الضوافر، قبلها بكام يوم",
+  "Turkey travel papers": "ورق سفر تركيا", "Wedding shopping (20,000 budget, November)": "شوبينج الفرح (ميزانية 20,000، نوفمبر)",
+  "Add or set dates": "ضيفي أو حددي مواعيد", "Add a session to October…": "ضيفي جلسة لأكتوبر…", "Add a session to November…": "ضيفي جلسة لنوفمبر…", "Add a session to December…": "ضيفي جلسة لديسمبر…",
+  "New session": "جلسة جديدة", "Invitations, photographer, dress fitting…": "الدعوات، المصور، بروفة الفستان…", "Name the session": "سمّي الجلسة",
+  "Tap 💍 on a meshwar to add it here.": "دوسي 💍 على أي مشوار عشان يظهر هنا.", "Beauty plan complete!": "خطة البيوتي خلصت!", "Every session done. You’re ready to glow on your day.": "كل الجلسات خلصت. جاهزة تنوّري يوم فرحك.",
+  "Wedding prep complete!": "تجهيزات الفرح خلصت!", "Everything on your list is done. Now enjoy every moment, bride.": "كل اللي في ليستتك خلص. استمتعي بكل لحظة يا عروسة.",
+  "Panties": "بانتيهات", "More lingerie (cosplay)": "لانجري تاني (cosplay)", "Perfumes": "برفانات", "Body lotion": "بادي لوشن", "Body splash": "بادي سبلاش", "Body care": "بادي كير",
+  "Winter clothes": "هدوم شتوي", "Summer clothes": "هدوم صيفي", "Trousers": "بنطلونات", "Sneakers": "كوتشيات", "Boots": "بوت", "Makeup": "ميكب", "Shorts": "شورتات",
+  "Heels and ballerinas": "هيلز وباليرينا", "Honeymoon clothes": "هدوم الهاني مون", "Pyjamas": "بيجامات",
+  "Oriental Weavers (El Nassageon) for the carpets": "النساجون الشرقيون عشان السجاد", "Buy the chandelier": "أجيب النجفة", "For the apartment": "للشقة",
+  "Hairdresser visit": "مشوار الكوافير", "Bridal shop": "محل فساتين الفرح", "Added to wedding prep": "اتضاف لتجهيزات الفرح", "Removed from wedding prep": "اتشال من تجهيزات الفرح",
+  "Wedding prep tag": "علامة تجهيزات الفرح", "Tag wedding": "علّميها للفرح", "Wedding preparation": "تجهيزات الفرح",
+
+  // ---------- money ----------
+  "Overview": "نظرة عامة", "Spending": "المصاريف", "Savings": "التحويش", "Sadaqa": "الصدقة", "Shein": "شي إن", "Receipts": "الإيصالات", "Salary": "المرتب", "Net worth": "صافي ثروتي",
+  "income": "الدخل", "spent": "اتصرف", "left after saving": "الباقي بعد التحويش", "Monthly budget": "الميزانية الشهرية", "Money goals": "أهداف الفلوس", "This month’s money goals": "أهداف فلوس الشهر ده",
+  "Invest this month": "استثمري الشهر ده", "Thndr, reminder on the 1st": "Thndr، تذكير يوم 1", "Buy gold": "اشتري دهب", "Reminder on the 1st": "تذكير يوم 1", "Reminder on the 1st of every month": "تذكير يوم 1 من كل شهر",
+  "Saved into jars this month": "اتحوّش في الحصالات الشهر ده", "Emergency fund, car, wedding": "فلوس الطوارئ، العربية، الفرح", "valU payoff": "سداد valU",
+  "no new valU purchases": "مفيش مشتريات valU جديدة", "My patterns this month": "عاداتي في الصرف الشهر ده", "Spent within 2 days of a salary": "اتصرف في خلال يومين من القبض",
+  "Last month it was 63%": "الشهر اللي فات كانت 63%", "Small purchases under 100 EGP": "مشتريات صغيرة تحت 100 جنيه", "They add up quietly": "بتتجمّع من غير ما تاخدي بالك",
+  "Delivery and eating out": "دليفري وأكل بره", "Deciding meals in the morning helps": "إنك تقرري الأكل من الصبح بيفرق", "By category": "حسب النوع", "protected": "محمي",
+  "Sadaqa, pets and gifts are protected: they’re values, never spending to cut.": "الصدقة والحيوانات والهدايا محمية: دي قيم، مش مصاريف نقلل منها.",
+  "A value, not a leak": "قيمة، مش تسريب", "Add spending": "ضيفي مصروف", "Amount (EGP)": "المبلغ (جنيه)", "No spending logged this month yet.": "لسه مفيش مصاريف متسجلة الشهر ده.",
+  "Set budgets per category in Me › Settings to see progress bars.": "حطي ميزانية لكل نوع من أنا ‹ الإعدادات عشان تشوفي الشريط.",
+  "ALL MY JARS": "كل حصالاتي", "Every jar celebrates you at 25%, 50%, 75% and 100%.": "كل حصالة بتحتفل بيكي عند 25% و50% و75% و100%.",
+  "Emergency fund": "فلوس الطوارئ", "Add to this jar (EGP)": "ضيفي للحصالة دي (جنيه)", "Car down payment": "مقدم العربية", "Wedding shopping": "شوبينج الفرح", "Wedding beauty": "بيوتي الفرح",
+  "New savings jar": "حصالة جديدة", "Car": "العربية", "Travel": "سفر", "Gold": "دهب", "Home": "البيت", "Target (EGP)": "الهدف (جنيه)", "Create jar": "اعملي الحصالة",
+  "What are you saving for?": "بتحوّشي لإيه؟", "Name your jar": "سمّي الحصالة", "Jar created": "الحصالة اتعملت",
+  "times this month": "مرات الشهر ده", "EGP this month": "جنيه الشهر ده", "average EGP": "متوسط بالجنيه", "Log sadaqa": "سجّلي صدقة", "Give": "اتصدّقي",
+  "It’s also added to Spending under Sadaqa & donations.": "بتتضاف كمان للمصاريف تحت صدقة وتبرعات.", "Your first sadaqa will show here.": "أول صدقة هتظهر هنا.",
+  "Street animals, a family, the mosque…": "حيوانات الشارع، أسرة، الجامع…", "Your first sadaqa here!": "أول صدقة هنا!", "May it come back to you multiplied.": "ربنا يرجّعهالك أضعاف.",
+  "True-cost calculator": "حاسبة السعر الحقيقي", "Shein customs and VAT add about 61%, paid days later on delivery.": "جمارك وضريبة شي إن بتزوّد حوالي 61%، وبتدفعيها بعدها بأيام وقت الاستلام.",
+  "Cart total (EGP)": "إجمالي الكارت (جنيه)", "What is it": "إيه هو", "Shein order (adds 61%)": "أوردر شي إن (يزود 61%)", "cart": "الكارت", "customs later": "جمارك بعدين", "true cost": "السعر الحقيقي",
+  "Add to my 48-hour wait list": "ضيفيه لليستة انتظار الـ48 ساعة", "saved by waiting": "اتوفّر بالانتظار", "waiting": "مستنية", "Shein this month": "شي إن الشهر ده", "Wait list": "ليستة الانتظار",
+  "Dress": "فستان", "Dress, bag…": "فستان، شنطة…", "Ready to decide": "جاهزة تقرري", "Still want it": "لسه عايزاه", "Let go · saved": "سيبيه · اتوفّر", "Logged at its true cost": "اتسجل بسعره الحقيقي",
+  "On the wait list. Decide in 48 hours ♡": "في ليستة الانتظار. قرري بعد 48 ساعة ♡", "Enter the cart total": "اكتبي إجمالي الكارت", "Buying opens at 9 AM": "الشرا بيفتح الساعة 9 الصبح",
+  "Nothing waiting. Add something above before you buy it.": "مفيش حاجة مستنية. ضيفي أي حاجة فوق قبل ما تشتريها.", "Add things to the wait list now; buying opens at 9 AM.": "ضيفي الحاجات لليستة الانتظار دلوقتي؛ الشرا بيفتح الساعة 9 الصبح.",
+  "You let it go!": "سيبتيها!", "Move it to a jar?": "تحوّليها لحصالة؟", "Move it now": "حوّليها دلوقتي", "Your wait-list item": "الحاجة اللي في ليستة الانتظار",
+  "Add an order receipt": "ضيفي إيصال أوردر", "Store": "المحل", "Talabat": "طلبات", "Noon": "نون", "Amazon": "أمازون", "What did I order": "طلبت إيه", "Groceries, lotion, lip gloss…": "بقالة، لوشن، ليب جلوس…",
+  "INCOME IN 2026": "الدخل في 2026", "SALARY IN": "المرتب في", "Salaries": "المرتبات", "Paid": "اتقبض", "Bonus or other income": "بونص أو دخل تاني", "From": "من", "Add bonus": "ضيفي البونص",
+  "October total": "إجمالي أكتوبر", "Other income": "دخل تاني", "Monthly salary": "المرتب الشهري", "Salary saved": "المرتب اتحفظ", "Include bonuses in the month you received them.": "حطي البونص في الشهر اللي قبضتيه فيه.",
+  "Payday: pay yourself first": "يوم القبض: ادفعي لنفسك الأول", "You paid yourself first!": "دفعتي لنفسك الأول!", "Move to": "حوّلي لـ", "Log it": "سجّليه",
+  "Your plan: move 30% of every salary to savings within an hour.": "خطتك: حوّلي 30% من كل مرتب للتحويش في خلال ساعة.",
+  "Your plan for November and December: what’s left after the budget goes to the wedding.": "خطتك لنوفمبر وديسمبر: اللي يفضل بعد الميزانية يروح للفرح.",
+  "MY NET WORTH": "صافي ثروتي", "What I own and owe": "اللي ليا واللي عليا", "Thndr investments": "استثمارات Thndr", "Lent to family": "سلف للعيلة", "Bank balance": "رصيد البنك",
+  "valU prepaid card (borrowed)": "كارت valU (سلف)", "valU debt": "دين valU", "From your valU payoff in Overview": "من سداد valU في النظرة العامة", "long-term goal: financial freedom in your thirties": "الهدف البعيد: حرية مالية في التلاتينات",
+  "Toto": "توتو", "Toto 🐱": "توتو 🐱", "Male baladi cat, about 1.5 years old, white with orange tabby patches.": "قط بلدي ذكر، حوالي سنة ونص، أبيض وفيه بقع برتقاني.",
+  "1 Friskies pouch, ¼ chicken breast, 1–2 spoons of dry food, 1 spoon of Greek yogurt": "كيس فريسكيز، ربع صدر فراخ، معلقة أو اتنين دراي فود، معلقة زبادي يوناني",
+  "Only 2–3 times a week": "مرتين أو تلاتة في الأسبوع بس", "Liver, hearts and tuna. Liver is very high in vitamin A": "كبدة وقلوب وتونة. الكبدة فيها فيتامين A عالي جدًا",
+  "Weight (kg)": "الوزن (كجم)", "Neutering": "التعقيم", "Neutering usually reduces roaming and fights with other male cats.": "التعقيم غالبًا بيقلل اللف بره والخناق مع القطط الذكور.",
+  "Price (EGP)": "السعر (جنيه)", "Add a pet expense": "ضيفي مصروف للحيوانات", "Ask the vet": "اسألي الدكتور البيطري", "Cat food for Toto, dry food for street cats…": "أكل لتوتو، دراي فود لقطط الشارع…",
+  "Toto & street friends": "توتو وصحابه في الشارع", "Toto neutering": "تعقيم توتو", "Toto’s weight saved": "وزن توتو اتحفظ", "Get well soon, Toto ♡": "ألف سلامة يا توتو ♡",
+  "Cat food, chicken liver, vet visits, dry food for street cats and dogs": "أكل قطط، كبدة فراخ، زيارات الدكتور، دراي فود لقطط وكلاب الشارع",
+  "Installment logged ♡": "القسط اتسجل ♡", "valU paid off!": "valU اتسدد!", "Debt-free, Monmon. From now on that money goes to your future, starting with the car fund.": "من غير ديون يا مونمون. من دلوقتي الفلوس دي رايحة لمستقبلك، أولها حصالة العربية.",
+  "Gold bought!": "اشتريتي دهب!", "Invested this month!": "استثمرتي الشهر ده!", "Rich-girl habits. Your future self is clapping for you.": "عادات بنت غنية. نفسك في المستقبل بتسقفلك.",
+  "Financial freedom in your thirties is built exactly like this.": "الحرية المالية في التلاتينات بتتبني كده بالظبط.", "Paid off": "اتسدد", "Budget saved": "الميزانية اتحفظت",
+  "Enter the amount": "اكتبي المبلغ", "Restored ♡": "اترجّعت ♡",
+
+  // ---------- plans ----------
+  "Experiences": "التجارب", "Shopping": "الشوبينج", "Vision board": "لوحة الأحلام", "Work hours": "ساعات الشغل",
+  "Clear edges help you focus: a start reminder with your top task, and a log-off reminder. Sunday to Thursday. Change them in Me › Settings.": "الحدود الواضحة بتساعدك تركزي: تذكير بالبداية مع أهم تاسك، وتذكير بالقفلة. من الأحد للخميس. غيّريها من أنا ‹ الإعدادات.",
+  "Work tasks": "تاسكات الشغل", "Priority": "الأولوية", "Add task": "ضيفي تاسك", "Clear finished tasks": "امسحي التاسكات اللي خلصت",
+  "Tap the siren on any task to make it an emergency. Emergencies sit at the top of Today and remind you the evening before, at 9:00 on the day and 1 hour before the deadline.": "دوسي على السارينة في أي تاسك عشان تبقى طوارئ. الطوارئ بتبقى فوق في النهارده وبتفكّرك بالليل قبلها، والساعة 9 يومها، وقبل الميعاد بساعة.",
+  "Lenme launch post, BIB lead form…": "بوست لانش Lenme، فورم ليدز BIB…", "Call the clinic, pay a bill…": "أكلم العيادة، أدفع فاتورة…", "Lenme post, BIB report…": "بوست Lenme، ريبورت BIB…",
+  "Call the venue": "أكلم القاعة", "iSchool report": "ريبورت iSchool", "BIB lead form": "فورم ليدز BIB", "Work task due today": "تاسك شغل معاده النهارده", "To-do today": "تاسك النهارده",
+  "Urgent today": "مستعجل النهارده", "Urgent tomorrow": "مستعجل بكرة", "Important tomorrow": "مهم بكرة", "1 hour left": "فاضل ساعة", "Pick one important task and start it first.": "اختاري تاسك مهم وابدئي بيه.",
+  "New meshwar": "مشوار جديد", "Remind me a day before": "فكّريني قبلها بيوم", "Add meshwar": "ضيفي المشوار", "day before": "قبلها بيوم",
+  "Tap 💍 on any meshwar to add it to your wedding preparations.": "دوسي 💍 على أي مشوار عشان يتضاف لتجهيزات الفرح.", "Bank, tailor, bridal shop, clinic…": "البنك، الترزي، محل الفساتين، العيادة…",
+  "What to bring or do there": "تاخدي إيه أو تعملي إيه هناك", "Meshwar added": "المشوار اتضاف", "Your meshwar is tomorrow.": "مشوارك بكرة.", "pick a day": "اختاري يوم",
+  "New experiences": "تجارب جديدة", "Places to go and things to try, and who to share them with.": "أماكن تروحيها وحاجات تجربيها، ومع مين.", "Add an experience": "ضيفي تجربة",
+  "Ice skating": "تزلج على الجليد", "Museum day": "يوم في متحف", "A concert": "حفلة", "Horse riding": "ركوب خيل", "Hot-air balloon in Luxor": "بالون في الأقصر", "Snorkeling in Dahab": "سنوركلينج في دهب",
+  "Pottery class": "كلاس فخار", "Cooking class": "كلاس طبخ", "Sunrise hike": "هايكنج وقت الشروق", "Paint and sip night": "ليلة رسم ومشروب", "Felucca ride": "مركب في النيل", "Day trip to Fayoum": "يوم في الفيوم",
+  "What": "إيه", "When": "إمتى", "With whom": "مع مين", "My fiancé": "خطيبي", "Friends": "صحابي", "Family": "العيلة", "Mom": "ماما", "My brother": "أخويا", "Just me": "أنا بس",
+  "Add to my list": "ضيفي لليستتي", "Waiting for me": "مستنياني", "Add your first new experience.": "ضيفي أول تجربة جديدة.", "Try ice skating, visit a new museum…": "جربي التزلج، زوري متحف جديد…",
+  "Plan it": "خططيها", "Lived it": "عيشتها", "A little memory to keep": "ذكرى صغيرة تحتفظي بيها", "Save the memory": "احفظي الذكرى", "New experience unlocked!": "تجربة جديدة اتفتحت!",
+  "Life is for living, and you’re living it.": "الحياة اتعملت عشان نعيشها، وانتي عايشاها.", "What do you want to experience?": "عايزة تجربي إيه؟", "A new experience awaits.": "في تجربة جديدة مستنياكي.",
+  "sessions done": "جلسات خلصت", "planned EGP": "جنيه متخطط", "spent EGP": "جنيه اتصرف",
+  "Reminder the evening before each planned date. A done date adds the price to Money › Self-care.": "تذكير بالليل قبل كل ميعاد. لما تكتبي يوم اتعمل، السعر بيتضاف للفلوس ‹ العناية بنفسي.",
+  "Add another session": "ضيفي جلسة تانية", "Service": "الخدمة", "Facial, nails, massage…": "فيشال، ضوافر، مساج…", "Name the service": "سمّي الخدمة", "Your month is set ♡": "شهرك اتظبط ♡",
+  "Self-care month complete!": "شهر العناية بنفسك خلص!", "Your self-care month": "شهر العناية بنفسك", "Session logged!": "الجلسة اتسجلت!",
+  "Laser hair removal": "ليزر إزالة الشعر", "Spider veins removal": "إزالة الـ spider veins", "Dermapen session": "جلسة ديرما بن", "Pico laser session": "جلسة بيكو ليزر",
+  "Filler injection": "حقن فيلر", "Skin booster session": "جلسة سكن بوستر",
+  "Your list is empty.": "الليستة فاضية.", "Your monthly food groceries are in Food › Groceries.": "بقالة الأكل الشهرية في الأكل ‹ البقالة.", "Add an item": "ضيفي حاجة", "Item": "الحاجة",
+  "Remove ticked items": "امسحي اللي اتعلّم عليه",
+  "Things I wish for": "حاجات بتمناها", "Dream big. Tap a card when it comes true.": "احلمي كبير. دوسي على الكارت لما يتحقق.", "Add your first wish below.": "ضيفي أول أمنية تحت.", "Add a wish": "ضيفي أمنية",
+  "I wish for": "بتمنى", "Why it matters or how": "ليه مهمة أو إزاي", "Add to my board": "ضيفيها للوحة", "My own car, a trip to Italy…": "عربيتي الخاصة، رحلة لإيطاليا…", "Write your wish": "اكتبي أمنيتك",
+  "A wish came true!": "أمنية اتحققت!", "It came true": "اتحققت", "You dreamed it and worked for it. Mabrouk, Monmon!": "حلمتي بيها واشتغلتي عشانها. مبروك يا مونمون!",
+
+  // ---------- grow ----------
+  "Skills": "المهارات", "Hobbies": "الهوايات", "Skills I’m mastering": "مهارات بتقنها", "Hobbies I’m learning": "هوايات بتعلمها",
+  "Log each practice session, move the slider as you grow, and keep your next step clear.": "سجّلي كل مرة بتتمرني فيها، حركي الشريط وانتي بتكبري، وخلي خطوتك الجاية واضحة.",
+  "Media buying (in depth)": "الميديا باينج (بعمق)", "Email campaigns": "حملات الإيميل", "Mosaic": "موزاييك", "Pottery": "فخار", "Bedazzling": "تلبيس بالستراس", "Block building puzzles": "ألغاز تركيب بلوكات",
+  "Acrylic painting": "رسم أكريليك", "Pole dancing": "بول دانس", "Next step": "الخطوة الجاية", "Notes and resources": "ملاحظات ومصادر", "+ I practiced today": "+ اتمرنت النهارده",
+  "Add a skill": "ضيفي مهارة", "Add a hobby": "ضيفي هواية", "The very next thing to do": "أول حاجة هتعمليها", "Courses, links, what I learned…": "كورسات، لينكات، اتعلمت إيه…",
+  "SEO, Meta ads, copywriting…": "SEO، إعلانات ميتا، كوبي رايتنج…", "Painting, belly dancing, crochet…": "رسم، رقص شرقي، كروشيه…",
+  "Learn campaign structure: campaign, ad set, ad": "اتعلمي هيكل الحملة: campaign، ad set، ad", "Write one welcome email sequence": "اكتبي سلسلة إيميلات ترحيب واحدة",
+  "Find a beginner workshop or kit": "دوري على ورشة للمبتدئين أو كيت", "Book a wheel-throwing class": "احجزي كلاس عجلة الفخار",
+  "Get a rhinestone kit and decorate a phone case or a denim jacket": "هاتي كيت ستراس وزيّني جراب موبايل أو جاكيت جينز",
+  "Pick a 3D block puzzle set to build on a quiet evening": "اختاري لعبة بلوكات 3D تركبيها في ليلة هادية",
+  "Get a canvas, brushes and 5 basic colours, then paint one small piece": "هاتي كانفاس وفرش و5 ألوان أساسية، وارسمي حتة صغيرة",
+  "Book a beginner pole class": "احجزي كلاس بول دانس للمبتدئين", "Practice is how talent is made. Proud of you.": "التمرين هو اللي بيعمل الموهبة. فخورة بيكي.",
+  "From curious to confident. Time to show it off.": "من فضول لثقة. وقت تفرّجي الناس.", "Keep going. Every session builds on the last.": "كمّلي. كل مرة بتبني على اللي قبلها.",
+
+  // ---------- me ----------
+  "My days": "أيامي", "Diary": "اليوميات", "Habits": "العادات", "Body": "جسمي", "My day": "يومي", "habits": "عادات", "kcal eaten": "سعرة اتاكلت", "EGP spent": "جنيه اتصرف", "Spent": "اتصرف",
+  "Read & listened": "قريت وسمعت", "Notes and draft for this day": "ملاحظات ومسودة لليوم ده", "Write anything about this day…": "اكتبي أي حاجة عن اليوم ده…", "Nothing logged for this day yet.": "لسه مفيش حاجة متسجلة لليوم ده.",
+  "Mood calendar": "تقويم المود", "Tap a day to open its full record.": "دوسي على أي يوم تفتحي كل اللي فيه.", "pages this month": "صفحة الشهر ده", "episodes this month": "حلقة الشهر ده", "This month": "الشهر ده",
+  "no-sugar streak": "أيام من غير سكر", "Customize my habits": "عدّلي عاداتي",
+  "Set a reward for each one; it pops up when you hit a streak milestone (3, 7, 14, 21, 30 days and more).": "حطي مكافأة لكل عادة؛ بتظهرلك لما توصلي لعدد أيام ورا بعض (3، 7، 14، 21، 30 يوم وأكتر).",
+  "How often": "كل قد إيه", "Every day": "كل يوم", "Times a week": "مرات في الأسبوع", "Times a month": "مرات في الشهر", "My reward": "مكافأتي", "Per week": "في الأسبوع", "Per month": "في الشهر",
+  "Add a habit": "ضيفي عادة", "Habit name": "اسم العادة", "A face mask, a new nail colour…": "ماسك للوش، لون مانيكير جديد…", "Skincare, stretch, pray on time…": "سكين كير، استرتش، أصلي في ميعادي…",
+  "Today’s workout": "تمرين النهارده", "Tap what you did, then fill in sets, reps and weight. It saves as you type, like a draft.": "دوسي على اللي عملتيه، وبعدين اكتبي الجولات والعدّات والوزن. بيتحفظ وانتي بتكتبي، زي المسودة.",
+  "Running": "جري", "Treadmill walk, incline": "مشي على التريدميل بميل", "Stair climber": "سلّم", "Bike": "عجلة", "Leg press": "ليج بريس", "Leg extension": "ليج إكستنشن", "Leg curl": "ليج كيرل",
+  "Hip thrust": "هيب ثرست", "Romanian deadlift": "رومانيان ديدلفت", "Hack squat": "هاك سكوات", "Smith squat": "سميث سكوات", "Sissy squat": "سيسي سكوات", "Hip abduction": "هيب أبدكشن",
+  "Cable kickbacks": "كيبل كيك باك", "Back extension": "باك إكستنشن", "Lat pulldown": "لات بول داون", "Seated row": "سيتد رو", "Shoulder press": "شولدر بريس", "Plank": "بلانك", "Walking lunges": "ووكينج لانجز",
+  "Hack squat or Smith squat": "هاك سكوات أو سميث سكوات", "Leg press, feet low": "ليج بريس، الرجل تحت", "Leg extension, leaning back": "ليج إكستنشن، وانتي مايلة لورا", "Sissy squat or reverse Nordic": "سيسي سكوات أو ريفرس نورديك",
+  "+ Glute day": "+ يوم الجلوتس", "+ Quad day": "+ يوم الكوادز", "Glute day": "يوم الجلوتس", "Quad day": "يوم الكوادز", "Add to log": "ضيفيه للسجل", "Minutes": "دقايق", "Speed": "السرعة", "Incline": "الميل",
+  "Sets": "جولات", "Reps": "عدّات", "Kg": "كجم", "Seconds": "ثواني", "Workout day": "يوم التمرين", "Another exercise…": "تمرين تاني…", "Exercise name": "اسم التمرين", "Name the exercise": "سمّي التمرين",
+  "How it felt, what to change next time…": "كان عامل إزاي، وهتغيري إيه المرة الجاية…", "Past workouts": "تمارين فاتت", "Last workout": "آخر تمرين", "4 sets": "4 جولات", "3 sets": "3 جولات",
+  "kg muscle": "كجم عضل", "body fat": "دهون", "Where you are": "انتي فين دلوقتي", "InBody history": "سجل الإنبودي", "Weight": "الوزن", "Muscle": "العضل", "Fat %": "الدهون %", "Visceral": "الدهون الحشوية",
+  "Add a scan": "ضيفي قياس", "Muscle (SMM)": "العضل (SMM)", "Body fat %": "نسبة الدهون %", "Fat mass kg": "كتلة الدهون كجم", "Scan saved": "القياس اتحفظ", "Add weight, muscle and body fat %": "اكتبي الوزن والعضل ونسبة الدهون",
+  "Your body is changing!": "جسمك بيتغير!",
+  "About me": "عني", "Wake-up time": "ميعاد الصحيان", "Work starts": "الشغل بيبدأ", "Work ends": "الشغل بيخلص", "Celebrations": "الاحتفالات", "Confetti and messages for streaks, savings and wins": "كونفيتي ورسايل للإنجازات والتحويش",
+  "My jobs": "شغلاناتي", "Payday": "يوم القبض", "Meal plan": "خطة الأكل", "Plan start date (Day 1)": "بداية الخطة (يوم 1)", "Monthly investment amount (EGP)": "مبلغ الاستثمار الشهري (جنيه)",
+  "Still to decide: gym subscription and a clothes budget.": "لسه هتقرري: اشتراك الجيم وميزانية الهدوم.", "Reminders": "التذكيرات",
+  "Reminders work in the iPhone app. In the browser these switches are saved for when you use the app.": "التذكيرات بتشتغل في أبلكيشن الآيفون. في المتصفح الاختيارات دي بتتحفظ لما تستخدمي الأبلكيشن.",
+  "Wake-up and wind-down": "الصحيان والهدوء قبل النوم", "Start and log-off, Sunday to Thursday": "البداية والقفلة، من الأحد للخميس", "Paydays": "أيام القبض", "Pay yourself first on each salary day": "ادفعي لنفسك الأول كل يوم قبض",
+  "Fridays at 12:00": "الجمعة الساعة 12", "Shop-free hours": "ساعات من غير شوبينج", "11 PM: no shopping until 9 AM": "11 بالليل: مفيش شوبينج لحد 9 الصبح", "9:00, 14:00, 17:30, 20:30 with that day’s meal": "9:00، 14:00، 17:30، 20:30 بوجبة اليوم",
+  "12:00 am and 2:00 am": "12 بالليل و2 بالليل", "Evening check-in": "مراجعة بالليل", "10:00 pm: habits, spending, day log": "10 بالليل: العادات، المصاريف، يومك", "Start of the month": "أول الشهر",
+  "Invest, buy gold, plan self-care": "استثمري، اشتري دهب، خططي للعناية بنفسك", "Invest, buy gold, plan self-care, log salary": "استثمري، اشتري دهب، خططي للعناية بنفسك، سجّلي المرتب",
+  "Tasks and plans": "التاسكات والخطط", "Urgent tasks, mashawer, experiences, beauty and self-care sessions": "التاسكات المستعجلة، المشاوير، التجارب، جلسات البيوتي والعناية بنفسك",
+  "Urgent tasks, mashawer, experiences and self-care sessions": "التاسكات المستعجلة، المشاوير، التجارب وجلسات العناية بنفسك",
+  "Backup": "نسخة احتياطي", "Everything is saved on this phone. Copy a backup now and then and keep it in Notes.": "كل حاجة متحفظة على الموبايل ده. خدي نسخة كل فترة وحطيها في النوتس.",
+  "Copy backup": "انسخي النسخة", "Restore from backup": "رجّعي من نسخة", "Restore": "رجّعي", "Paste your backup here": "الصقي النسخة هنا", "Backup copied. Paste it in Notes.": "النسخة اتنسخت. الصقيها في النوتس.",
+  "Select all and copy": "حددي الكل وانسخي", "That backup text isn’t valid": "النسخة دي مش سليمة", "made for Omnya ♡": "معمول لأمنية ♡", "made for Omnya": "معمول لأمنية", "No limit": "من غير حد", "Start date saved": "ميعاد البداية اتحفظ",
+  "Language": "اللغة", "App language": "لغة الأبلكيشن",
+
+  // ---------- reminders (fixed text) ----------
+  "Water break": "بريك مية", "Have a glass of water and tap it in Monmon’s Life.": "اشربي كوباية مية وعلّميها في حياة مونمون.", "Diary time, Monmon ♡": "وقت اليوميات يا مونمون ♡",
+  "How was today? Pick your mood and answer today’s 3 questions.": "النهارده كان عامل إزاي؟ اختاري المود وجاوبي أسئلة النهارده التلاتة.", "Before you sleep": "قبل ما تنامي",
+  "If you haven’t yet, close the day in your diary. Then rest, beautiful.": "لو لسه، اقفلي يومك في اليوميات. وبعدين ارتاحي يا جميلة.", "Evening check-in": "مراجعة بالليل",
+  "Tick your habits, log your spending and what you did today.": "علّمي على عاداتك، وسجّلي مصاريفك وعملتي إيه النهارده.", "New month: invest": "شهر جديد: استثمري",
+  "Add your monthly amount to your investments this month.": "حطي مبلغك الشهري في استثماراتك الشهر ده.", "Gold reminder": "تذكير الدهب", "Buy gold this month.": "اشتري دهب الشهر ده.",
+  "Plan your self-care month": "خططي شهر العناية بنفسك", "Open Plans › Self-care and set this month’s sessions and prices.": "افتحي الخطط ‹ العناية بنفسي وحددي جلسات الشهر وأسعارها.",
+  "Log your salary": "سجّلي مرتبك", "Add this month’s salary in Money › Salary.": "ضيفي مرتب الشهر ده في الفلوس ‹ المرتب.", "Good morning, Monmon": "صباح الخير يا مونمون",
+  "Same time every day. Curtains open, a glass of water, then your day.": "نفس الميعاد كل يوم. افتحي الستارة، كوباية مية، وبعدين يومك.", "Wind down": "اهدي شوية",
+  "Work time": "وقت الشغل", "Log off, Monmon ♡": "اقفلي يا مونمون ♡", "Work is done for today. Close the laptop.": "الشغل خلص النهارده. اقفلي اللابتوب.",
+  "10 minutes: log what you missed, check budgets, move savings.": "10 دقايق: سجّلي اللي فاتك، راجعي الميزانيات، حوّلي التحويش.",
+  "No shopping until 9 AM. Put wishes on the wait list and decide in the morning.": "مفيش شوبينج لحد 9 الصبح. حطي اللي نفسك فيه في ليستة الانتظار وقرري الصبح.",
+  "Your self-care session is tomorrow.": "جلسة العناية بنفسك بكرة.", "Your wedding beauty session is tomorrow.": "جلسة بيوتي الفرح بكرة.", "Flagged as an emergency. Can you do it today?": "متعلّمة طوارئ. تقدري تعمليها النهارده؟",
+  "Flagged as an emergency.": "متعلّمة طوارئ.", "Flagged as an emergency for the wedding.": "متعلّمة طوارئ للفرح.", "Pick a day for it today.": "اختاري لها يوم النهارده.",
+  "Breakfast time, Monmon ♡": "وقت الفطار يا مونمون ♡", "Lunch time, Monmon ♡": "وقت الغدا يا مونمون ♡", "Snack time, Monmon ♡": "وقت السناك يا مونمون ♡", "Dinner time, Monmon ♡": "وقت العشا يا مونمون ♡",
+  "Move what’s left after your budget to the wedding fund first.": "حوّلي اللي يفضل بعد الميزانية لفلوس الفرح الأول.", "Move 30% to savings within the hour, before anything else.": "حوّلي 30% للتحويش في خلال ساعة، قبل أي حاجة.",
+  "Decision time": "وقت القرار", "Your plan starts tomorrow": "خطتك بتبدأ بكرة",
+});
+
+/* strings built from parts */
+const mrat = n => (+n >= 3 && +n <= 10) ? n + ' مرات' : n + ' مرة';
+AR_RX.push(
+  [/^(\S+) total$/, (_, a) => 'إجمالي ' + tr(a)],
+  [/^Add a session to (.+)…$/, (_, a) => 'ضيفي جلسة لـ' + a + '…'],
+  [/^(\d+) pages(?: of (.+))?$/, (_, a, b) => a + ' صفحة' + (b ? ' من ' + b : '')],
+  [/^Fat mass ([\d.]+) kg; the healthy range on your scan is ([\d.–]+) kg\. ?/, (_, a, b) => 'كتلة الدهون ' + a + ' كجم؛ المعدل الصحي في قياسك ' + b + ' كجم. '],
+  [/^(\d+) times so far$/, (_, a) => mrat(a) + ' لحد دلوقتي'], [/^(.+) in total$/, (_, a) => tr(a) + ' في المجموع'],
+  [/^That’s about (\d+) kcal( and it will reset your no-sugar streak)?\. (.+)$/, (_, a, b, c) => 'دي حوالي ' + a + ' سعرة' + (b ? ' وهتصفّر عدّاد الأيام من غير سكر' : '') + '. ' + tr(c)],
+  [/^You did it: (.+)!$/, (_, a) => 'عملتيها: ' + tr(a) + '!'],
+  [/^Nothing logged for (.+) yet\.$/, (_, a) => 'لسه مفيش حاجة متسجلة في ' + a + '.'],
+  [/^Amount \(30% is (.+)\)$/, (_, a) => 'المبلغ (30% يعني ' + a + ')'],
+  [/^Debt-free\. That (.+) a month can go to your car fund now\.$/, (_, a) => 'من غير ديون. الـ' + a + ' دول في الشهر ممكن يروحوا لحصالة العربية دلوقتي.'],
+  [/^Let go · saved (.+)$/, (_, a) => 'سيبتيها · اتوفّر ' + tr(a)], [/^Bought · (.+)$/, (_, a) => 'اتشترت · ' + tr(a)],
+  [/^with (.+)$/, (_, a) => 'مع ' + a.split(', ').map(tr).join('، ')],
+  [/^Tomorrow: (.+)$/, (_, a) => 'بكرة: ' + tr(a)],
+  [/^Today: (.+)$/, (_, a) => 'النهارده: ' + tr(a)],
+  [/^Still open: (.+)$/, (_, a) => 'لسه مفتوحة: ' + tr(a)],
+  [/^Wedding: (.+)$/, (_, a) => 'الفرح: ' + tr(a)],
+  [/^To buy: (.+)$/, (_, a) => 'هتشتريها: ' + tr(a)],
+  [/^Budget: (.+)$/, (_, a) => 'الميزانية: ' + tr(a)],
+  [/^Start with: (.+)$/, (_, a) => 'ابدئي بـ: ' + tr(a)],
+  [/^(.+) payday$/, (_, a) => 'يوم قبض ' + tr(a)],
+  [/^(.+) salary$/, (_, a) => 'مرتب ' + tr(a)],
+  [/^(.+) pay$/, (_, a) => 'قبض ' + tr(a)],
+  [/^(.+): (.+)\. Still want it\?$/, (_, a, b) => tr(a) + ': ' + tr(b) + '. لسه عايزاه؟'],
+  [/^Phone away soon\. Wake-up is at (.+)\.$/, (_, a) => 'سيبي الموبايل قريب. الصحيان الساعة ' + a + '.'],
+  [/^Progress for (.+)$/, (_, a) => 'التقدم في ' + tr(a)],
+  [/^Budget for (.+)$/, (_, a) => 'ميزانية ' + tr(a)],
+  [/^Today, (.+)$/, (_, a) => 'النهارده، ' + a],
+  [/^(\d+) days so far$/, (_, a) => a + ' يوم لحد دلوقتي'],
+  [/^No (diary entries|spending logged|orders logged|pet expenses) in (.+?)\.(.*)$/, (_, k, m, rest) => ({'diary entries':'مفيش يوميات في ', 'spending logged':'مفيش مصاريف متسجلة في ', 'orders logged':'مفيش أوردرات متسجلة في ', 'pet expenses':'مفيش مصاريف للحيوانات في '}[k]) + m + '.' + (rest ? tr(rest) : '')],
+  [/^Write today’s on the Today tab\.$/, 'اكتبي بتاعة النهارده من صفحة النهارده.'],
+  [/^Monthly budgets$/, 'الميزانيات الشهرية'],
+  [/^total (.+)$/, (_, a) => 'الإجمالي ' + a],
+  [/^At (.+), and a wind-down (.+) hours before$/, (_, a, b) => 'الساعة ' + a + '، وهدوء قبلها بـ' + b + ' ساعة'],
+  [/^kg on (.+)$/, (_, a) => 'كجم يوم ' + a],
+  [/^Gym this week: (\d+) of (\d+) sessions\.(.*)$/, (_, a, b, rest) => 'الجيم الأسبوع ده: ' + a + ' من ' + b + ' مرات.' + (rest.trim() ? ' ' + tr(rest.trim()) : '')],
+  [/^Add a whole template to your log with the buttons below\.$/, 'ضيفي التمرينة كلها لسجلك من الزراير اللي تحت.'],
+  [/^(\d+) exercises?$/, (_, a) => a + ' تمارين'], [/^(\d+) sets$/, (_, a) => a + ' جولات'], [/^(\d+) min cardio$/, (_, a) => a + ' دقيقة كارديو'],
+  [/^Workout$/, 'تمرين'],
+  [/^Fat mass ([\d.]+) kg; the healthy range on your scan is ([\d.–]+) kg\. ?/, (_, a, b) => 'كتلة الدهون ' + a + ' كجم؛ المعدل الصحي في قياسك ' + b + ' كجم. '],
+  [/Visceral fat (\d+) \(healthy is 1–9\)\. ?/, (_, a) => 'الدهون الحشوية ' + a + ' (الصحي من 1 لـ 9). '],
+  [/Your best result yet: fat down, muscle up\. Keep training 5 days a week to protect it\./, 'أحسن نتيجة لحد دلوقتي: الدهون نزلت والعضل زاد. كمّلي تمرين 5 أيام في الأسبوع عشان تحافظي عليها.'],
+  [/^Body fat down ([\d.]+) points\. ?/, (_, a) => 'الدهون نزلت ' + a + ' نقطة. '],
+  [/Muscle up ([\d.]+) kg\./, (_, a) => 'العضل زاد ' + a + ' كجم.'],
+  [/^(\d+) \/ (\d+) done$/, (_, a, b) => a + ' / ' + b + ' خلصوا'],
+  [/^(\d+)\/(\d+) done$/, (_, a, b) => a + '/' + b + ' خلصوا'],
+  [/^(\d+)\/(\d+) bought$/, (_, a, b) => a + '/' + b + ' اتشتروا'],
+  [/^(\d+)\/(\d+) this week$/, (_, a, b) => a + '/' + b + ' الأسبوع ده'],
+  [/^(\d+)\/(\d+) this month$/, (_, a, b) => a + '/' + b + ' الشهر ده'],
+  [/^(.+) beauty$/, (_, a) => 'بيوتي ' + tr(a)],
+  [/^Payday window: (.+)$/, (_, a) => 'فترة القبض: ' + tr(a)],
+  [/^10 minutes\. (\d+) Fridays done in a row\.$/, (_, a) => '10 دقايق. ' + a + ' جمعة ورا بعض.'],
+  [/^Pick something new to try in (.+), inside your outings budget\.$/, (_, a) => 'اختاري حاجة جديدة تجربيها في ' + a + '، في حدود ميزانية الخروجات.'],
+  [/^(.+) looks beautiful on you\. Plan something new and fun today\.$/, (_, a) => a + ' لايقين عليكي. خططي لحاجة جديدة ولذيذة النهارده.'],
+  [/^Done (.+)$/, (_, a) => 'اتعمل ' + a],
+  [/^Was due (.+)$/, (_, a) => 'كان معاده ' + a], [/^was (.+)$/, (_, a) => 'كان ' + a],
+  [/^Due (.+)$/, (_, a) => 'آخر ميعاد ' + a], [/^by (\d.+)$/, (_, a) => 'لحد ' + a],
+  [/^Overdue$/, 'متأخر'],
+  [/^Paid (.+)$/, (_, a) => 'اتقبض ' + a],
+  [/^Usually around the (\d+)(st|nd|rd|th)$/, (_, a) => 'غالبًا حوالي يوم ' + a],
+  [/^Updated (.+)$/, (_, a) => 'اتحدّث ' + a],
+  [/^Regular pay: (.+) a month across (\d+) jobs\. Bonuses are tracked but never counted as regular\.$/, (_, a, b) => 'الدخل الثابت: ' + tr(a) + ' في الشهر من ' + b + ' شغلانات. البونص بيتسجل بس مش بيتحسب ثابت.'],
+  [/^Savings jars hold (.+)\. They’re money you’ve set aside, so keep Bank balance for what’s left\.$/, (_, a) => 'الحصالات فيها ' + tr(a) + '. دي فلوس انتي حاطاها على جنب، فخلي رصيد البنك للباقي.'],
+  [/^(.+) of (.+), six months of expenses\.$/, (_, a, b) => tr(a) + ' من ' + tr(b) + '، مصاريف ست شهور.'],
+  [/^([^♡]+) left$/, (_, a) => 'باقي ' + tr(a)],
+  [/^(\d+) of (\d+) installments paid$/, (_, a, b) => a + ' من ' + b + ' أقساط اتدفعت'],
+  [/^Pay (.+)$/, (_, a) => 'ادفعي ' + tr(a)],
+  [/^(\d+)% of your (.+) jar!$/, (_, a, b) => a + '% من حصالة ' + tr(b) + '!'],
+  [/^(\d+)% of (.+)!$/, (_, a, b) => a + '% من ' + tr(b) + '!'],
+  [/^(\d+)% of ([^!]+)$/, (_, a, b) => a + '% من ' + tr(b)],
+  [/^Last: (.+) on (.+)$/, (_, a, b) => 'آخر مرة: ' + tr(a) + ' يوم ' + b],
+  [/^(\d+) deposits?$/, (_, a) => a + ' إيداع'],
+  [/^(\d+) times of sadaqa$/, (_, a) => mrat(a) + ' صدقة'],
+  [/^(.+) given in total$/, (_, a) => tr(a) + ' اتصدّق بيهم في المجموع'],
+  [/^(.+) with customs$/, (_, a) => tr(a) + ' بالجمارك'],
+  [/^(\d+) hours to go$/, (_, a) => 'فاضل ' + a + ' ساعة'],
+  [/^Total$/, 'الإجمالي'], [/^budget (.+)$/, (_, a) => 'الميزانية ' + a],
+  [/^Reminder the evening before each session\. These also show in Plans › Self-care, month by month\. (.+) spent so far\.$/, (_, a) => 'تذكير بالليل قبل كل جلسة. بتظهر كمان في الخطط ‹ العناية بنفسي، شهر بشهر. اتصرف ' + tr(a) + ' لحد دلوقتي.'],
+  [/^Wedding shopping jar: (.+) of (.+)\. The 48-hour wait still applies to big buys\.$/, (_, a, b) => 'حصالة شوبينج الفرح: ' + tr(a) + ' من ' + tr(b) + '. قاعدة الـ48 ساعة لسه على الحاجات الكبيرة.'],
+  [/^(\d+) sessions?$/, (_, a) => mrat(a)],
+  [/^Set up (.+)$/, (_, a) => 'جهّزي ' + a],
+  [/^Set up (.+) with your 8 sessions, each on its own day\. Change any date or price after\.$/, (_, a) => 'جهّزي ' + a + ' بجلساتك الـ8، كل واحدة في يوم. تقدري تغيري أي ميعاد أو سعر بعدين.'],
+  [/^(\d+) times? so far$/, (_, a) => mrat(a) + ' لحد دلوقتي'],
+  [/^Added (.+)$/, (_, a) => 'اتضاف ' + tr(a)],
+  [/^Saved (.+)$/, (_, a) => 'اتحوّش ' + tr(a)],
+  [/^(.+) added$/, (_, a) => 'اتضاف ' + tr(a)],
+  [/^(.+) Session logged!$/, (_, a) => a + ' الجلسة اتسجلت!'],
+  [/^(\d+) sessions planned\. Adjust any date\.$/, (_, a) => a + ' جلسات اتخططت. غيّري أي ميعاد.'],
+  [/^(\d+) days of (.+)!$/, (_, a, b) => a + ' يوم ورا بعض: ' + tr(b) + '!'],
+  [/^Look at you, Monmon\. (\d+) days in a row\. Keep the flame going\.$/, (_, a) => 'بصي على نفسك يا مونمون. ' + a + ' يوم ورا بعض. خلي النار والعة.'],
+  [/^(.+): (week|month)ly goal done!$/, (_, a, p) => tr(a) + ': هدف ' + (p === 'week' ? 'الأسبوع' : 'الشهر') + ' خلص!'],
+  [/^(\d+) of (\d+) this (week|month)\. That’s the commitment, Monmon\.$/, (_, a, b, p) => a + ' من ' + b + (p === 'week' ? ' الأسبوع ده' : ' الشهر ده') + '. هو ده الالتزام يا مونمون.'],
+  [/^(\d+) times of sadaqa!$/, (_, a) => mrat(a) + ' صدقة!'],
+  [/^May it come back to you multiplied\. (.+) given so far\.$/, (_, a) => 'ربنا يرجّعهالك أضعاف. اتصدّقتي بـ' + tr(a) + ' لحد دلوقتي.'],
+  [/^(.+) jar is full!$/, (_, a) => 'حصالة ' + tr(a) + ' اتملت!'], [/^(.+) is full!$/, (_, a) => tr(a) + ' اتملت!'],
+  [/^(\d+)% of your (.+) jar!$/, (_, a, b) => a + '% من حصالة ' + tr(b) + '!'],
+  [/^You did it! (.+) saved\. Enjoy it, you earned it\.$/, (_, a) => 'عملتيها! اتحوّش ' + tr(a) + '. استمتعي بيها، تستاهليها.'],
+  [/^(.+) saved so far\. Every pound is a step closer\.$/, (_, a) => 'اتحوّش ' + tr(a) + ' لحد دلوقتي. كل جنيه خطوة أقرب.'],
+  [/^(.+) saved\. Celebrate with an experience, not a purchase\.$/, (_, a) => 'اتحوّش ' + tr(a) + '. احتفلي بتجربة، مش بحاجة تشتريها.'],
+  [/^(.+) moved to (.+) before spending a pound\. That’s how wealth is built\.$/, (_, a, b) => tr(a) + ' اتحوّلوا لـ' + tr(b) + ' قبل ما تصرفي جنيه. كده الثروة بتتبني.'],
+  [/^(\d+) Fridays in a row\. You’re running your money, not the other way round\.$/, (_, a) => a + ' جمعة ورا بعض. انتي اللي ماشية فلوسك، مش العكس.'],
+  [/^(.+) stayed with you\. (.+) saved by waiting so far\. Move it to a jar\?$/, (_, a, b) => tr(a) + ' فضلوا معاكي. ' + tr(b) + ' اتوفروا بالانتظار لحد دلوقتي. تحوّليهم لحصالة؟'],
+  [/^Installment logged ♡ (.+) left$/, (_, a) => 'القسط اتسجل ♡ باقي ' + tr(a)],
+  [/^Sadaqa logged ♡ (\d+) times so far$/, (_, a) => 'الصدقة اتسجلت ♡ ' + mrat(a) + ' لحد دلوقتي'],
+  [/^(.+) with (.+)\. Life is for living, and you’re living it\.$/, (_, a, b) => tr(a) + ' مع ' + b.split(', ').map(tr).join('، ') + '. الحياة اتعملت عشان نعيشها، وانتي عايشاها.'],
+  [/^(.+)\. Life is for living, and you’re living it\.$/, (_, a) => tr(a) + '. الحياة اتعملت عشان نعيشها، وانتي عايشاها.'],
+  [/^(.+)\. You dreamed it and worked for it\. Mabrouk, Monmon!$/, (_, a) => tr(a) + '. حلمتي بيها واشتغلتي عشانها. مبروك يا مونمون!'],
+  [/^All (\d+) sessions done\. You invested in you\.$/, (_, a) => 'الـ' + a + ' جلسات خلصوا. استثمرتي في نفسك.'],
+  [/^You mastered (.+)!$/, (_, a) => 'اتقنتي ' + tr(a) + '!'], [/^(.+): (\d+)% there!$/, (_, a, b) => tr(a) + ': وصلتي ' + b + '%!'],
+  [/^First session of (.+)!$/, (_, a) => 'أول مرة ' + tr(a) + '!'], [/^(\d+) sessions of (.+)!$/, (_, a, b) => mrat(a) + ' ' + tr(b) + '!'],
+  [/^Day (\d+) meals: all done!$/, (_, a) => 'وجبات يوم ' + a + ': كلها خلصت!'],
+  [/^(.+) is saved\. You can swap it into any day now\.$/, (_, a) => tr(a) + ' اتحفظت. تقدري تبدليها في أي يوم دلوقتي.'],
+  [/^(.+) Done\. Glowing! ♡$/, (_, a) => a + ' تمام. منوّرة! ♡'], [/^(.+) Logged\. Glowing! ♡$/, (_, a) => a + ' اتسجلت. منوّرة! ♡'],
+  [/^\+ (\d+) more flagged$/, (_, a) => '+ ' + a + ' كمان متعلّمين'],
+);
+
+/* single words left inside sentences */
+AR_WORDS.push(
+  ['EGP', 'جنيه'], ['kcal', 'سعرة'], ['done', 'خلصوا'], ['this week', 'الأسبوع ده'], ['this month', 'الشهر ده'], ['day before', 'قبلها بيوم'],
+);
+/* Egyptian Arabic: food screens, meal plan, dishes, groceries. */
+Object.assign(AR, {
+  // ---------- screens ----------
+  "Meals": "الوجبات", "My dishes": "أكلاتي", "Forbidden": "الممنوع", "Month": "الشهر", "Groceries": "البقالة", "Tips": "نصايح",
+  "Breakfast": "فطار", "Lunch": "غدا", "Snack": "سناك", "Dinner": "عشا", "Gym day": "يوم جيم", "Water": "المية", "Swap": "بدّلي", "⇄ Swap": "⇄ بدّلي", "Mark eaten": "اتاكلت",
+  "Tap the circle when you’ve eaten a meal. Tap Swap to eat something else from your dishes.": "دوسي على الدايرة لما تاكلي الوجبة. دوسي بدّلي لو عايزة تاكلي حاجة تانية من أكلاتك.",
+  "Dishes I love": "أكلات بحبها", "Every dish here can be swapped into your plan.": "أي أكلة هنا تقدري تبدليها في خطتك.", "Build my own meal": "اعملي وجبتي بنفسي", "Ingredient": "المكوّن",
+  "Grams": "جرامات", "How many": "كام واحدة", "Add ingredients to see calories and protein.": "ضيفي مكونات عشان تشوفي السعرات والبروتين.", "kcal": "سعرة", "g protein": "جم بروتين",
+  "ingredients": "مكونات", "Name it": "سمّيها", "Meal": "الوجبة", "Any": "أي وجبة", "Save to my dishes": "احفظيها في أكلاتي", "My shrimp rice bowl": "بول رز بالجمبري بتاعي",
+  "Give your dish a name": "سمّي أكلتك", "Add some ingredients first": "ضيفي مكونات الأول", "Saved to your dishes ♡": "اتحفظت في أكلاتك ♡", "Your first own dish!": "أول أكلة من اختراعك!",
+  "Clear ticks": "امسحي العلامات", "Groceries done!": "البقالة خلصت!", "Your whole month is in the basket. Future-you is eating well.": "شهرك كله في السلة. انتي في المستقبل هتاكلي كويس.",
+  "Beans, foul, tuna and sardines are canned. Buy fish, shrimp and fruit in two trips. On Talabat Mart, chicken orders over 350 EGP get 150 EGP off.": "الفاصوليا والفول والتونة والسردين معلبين. هاتي السمك والجمبري والفاكهة على مرتين. في طلبات مارت، أوردر الفراخ فوق 350 جنيه عليه خصم 150 جنيه.",
+  "Swap breakfast": "بدّلي الفطار", "Swap lunch": "بدّلي الغدا", "Swap snack": "بدّلي السناك", "Swap dinner": "بدّلي العشا", "Back to the plan": "ارجعي للخطة", "Swapped ♡": "اتبدلت ♡",
+  "Want something new? Build it in Food › My dishes. Treats from the forbidden corner never show here.": "عايزة حاجة جديدة؟ اعمليها من الأكل ‹ أكلاتي. حاجات ركن الممنوع عمرها ما بتظهر هنا.",
+  "Make it mine": "خليها بتاعتي", "Swapped": "اتبدلت", "change": "غيّري",
+  "planned meals": "وجبات متخططة", "meals eaten": "وجبات اتاكلت", "avg kcal a day": "متوسط السعرات في اليوم", "8 glasses!": "8 كوبايات!", "Fully hydrated. Glowing skin incoming.": "شربتي مية كفاية. بشرة منوّرة جاية.",
+  "You ate your whole plan today. Your body says thank you.": "كلتي خطتك كلها النهارده. جسمك بيقولك شكرًا.",
+  "The forbidden corner": "ركن الممنوع", "Treats I love but keep out of my plan. They never show up in swaps. If I have one, I log it honestly and move on kindly.": "حاجات بحبها بس بخليها بره خطتي. مش بتظهر في التبديل. لو كلت حاجة منها، بسجلها بصراحة وبكمّل بهدوء.",
+  "days since the last treat": "يوم من آخر حلويات", "treats this month": "حلويات الشهر ده", "I had it": "كلتها", "breaks no-sugar": "بتكسر عدّاد السكر",
+  "Add a forbidden treat": "ضيفي حاجة ممنوعة", "Treat": "الحاجة", "Protein (g)": "البروتين (جم)", "It’s a sugary treat": "فيها سكر", "Add to the forbidden corner": "ضيفيها لركن الممنوع",
+  "Kunafa, pizza…": "كنافة، بيتزا…", "Name the treat": "سمّي الحاجة", "Logged. Tomorrow is a fresh start ♡": "اتسجلت. بكرة بداية جديدة ♡",
+  "It’s okay to enjoy it. One treat doesn’t undo your progress; log it and get back on track at the next meal.": "عادي تستمتعي بيها. حاجة واحدة مش هتبوّظ تقدمك؛ سجليها وارجعي للخطة في الوجبة الجاية.",
+  "and it will reset your no-sugar streak": "وهتصفّر عدّاد الأيام من غير سكر",
+  "Crème caramel": "كريم كراميل", "Chocolate Danette": "دانيت شوكولاتة", "Gateau (1 slice)": "جاتوه (حتة)", "Fried chicken (2 pieces)": "فراخ مقلية (حتتين)",
+  // tips
+  "Iron that actually absorbs": "حديد يتمتص بجد", "Eat the guava, orange, mandarin or pomegranate with lunch.": "كلي الجوافة أو البرتقان أو اليوسفي أو الرمان مع الغدا.",
+  "No tea or coffee for 1 hour around meals.": "مفيش شاي ولا قهوة ساعة قبل وبعد الأكل.", "Take iron and vitamin D with lunch, 2 hours away from yogurt, milk and cheese.": "خدي الحديد وفيتامين د مع الغدا، بعيد ساعتين عن الزبادي واللبن والجبنة.",
+  "No added sugar": "من غير سكر زيادة", "Tea with milk, no sugar. No iced coffee, juices or desserts.": "شاي بلبن من غير سكر. مفيش آيس كوفي ولا عصاير ولا حلويات.",
+  "Fruit is your sweet treat. Light (low-sugar) jam is fine too, about a tablespoon.": "الفاكهة هي حلوياتك. المربى اللايت (قليلة السكر) كمان تمام، حوالي معلقة كبيرة.",
+  "Skip ketchup, BBQ, teriyaki, oyster and sweet chili sauce. Use low-sodium soy sauce, 1 to 2 tbsp per meal.": "بلاش كاتشب وباربكيو وترياكي وأويستر وسويت تشيلي. استخدمي صويا قليلة الملح، معلقة أو اتنين كبار في الوجبة.",
+  "Butter, measured": "زبدة، بالمقاس", "1 tsp on eggs and vegetables.": "معلقة صغيرة على البيض والخضار.", "2 tsp in mash or a soup.": "معلقتين صغيرين في البيوريه أو الشوربة.",
+  "Omelets get a small handful (30 g) of mozzarella.": "الأومليت ياخد حفنة صغيرة (30 جم) موتزاريلا.", "Gym days": "أيام الجيم", "Banana, apple or 3 fresh dates 60 to 90 minutes before.": "موزة أو تفاحة أو 3 بلحات قبلها بساعة لساعة ونص.",
+  "Dinner after the gym is your recovery meal; keep the full protein.": "العشا بعد الجيم هو وجبة الريكفري؛ خليه بالبروتين كله.", "Supplements": "المكملات",
+  "Check your Centrum label; most contain iron and vitamin D already. Show the doctor all three labels.": "بصي على علبة السنتروم؛ أغلبها فيها حديد وفيتامين د أصلًا. وري الدكتور التلات علب.",
+  "Stop Centrum 2 to 3 days before blood tests; its biotin can distort thyroid results.": "وقفي السنتروم قبل التحاليل بيومين أو تلاتة؛ البيوتين اللي فيه ممكن يلخبط نتايج الغدة.",
+  "10 to 20 minutes of midday sun, 3 to 4 times a week.": "10 لـ 20 دقيقة شمس الضهر، 3 لـ 4 مرات في الأسبوع.",
+  "Banana, apple or 3 fresh dates, 60 to 90 minutes before training": "موزة أو تفاحة أو 3 بلحات، قبل التمرين بساعة لساعة ونص",
+
+  // ---------- meals ----------
+  "2 boiled eggs": "بيضتين مسلوقين", "2 boiled eggs + a small bunch of grapes": "بيضتين مسلوقين + عنقود عنب صغير", "2 boiled eggs + pear": "بيضتين مسلوقين + كمترى",
+  "3 boiled eggs, tannour bread, cucumber & tomato": "3 بيضات مسلوقة، عيش تنور، خيار وطماطم", "A small bunch of grapes": "عنقود عنب صغير", "Apple": "تفاحة", "Banana": "موزة",
+  "Big tuna salad with corn & chickpeas": "سلطة تونة كبيرة بالدرة والحمص", "Big tuna salad with corn & white beans": "سلطة تونة كبيرة بالدرة والفاصوليا البيضا",
+  "Cannelloni with chicken or shrimp (monthly treat) + salad": "كانيلوني بالفراخ أو الجمبري (دلع الشهر) + سلطة", "Cannelloni with chicken or shrimp (monthly treat) + salad, orange": "كانيلوني بالفراخ أو الجمبري (دلع الشهر) + سلطة، برتقانة",
+  "Carrot & cucumber sticks + 2 boiled eggs": "أصابع جزر وخيار + بيضتين مسلوقين", "Carrot & cucumber sticks + 2 boiled eggs + eshta": "أصابع جزر وخيار + بيضتين مسلوقين + قشطة",
+  "Chicken & white bean salad": "سلطة فراخ وفاصوليا بيضا", "Chicken fillet salad with corn & chickpeas": "سلطة فيليه فراخ بالدرة والحمص",
+  "Chicken fillet with peas & carrots, basmati rice": "فيليه فراخ بالبسلة والجزر، رز بسمتي", "Chicken fillet with peas & carrots, basmati rice, orange": "فيليه فراخ بالبسلة والجزر، رز بسمتي، برتقانة",
+  "Chicken fillet with steamed broccoli & carrots, butter": "فيليه فراخ مع بروكلي وجزر على البخار، زبدة", "Chicken fillet with steamed broccoli & zucchini, butter": "فيليه فراخ مع بروكلي وكوسة على البخار، زبدة",
+  "Chicken fillet, basmati rice, green beans, carrots & peppers sautéed in butter": "فيليه فراخ، رز بسمتي، فاصوليا خضرا وجزر وفلفل سوتيه بالزبدة",
+  "Chicken fillet, basmati rice, green beans, carrots & peppers sautéed in butter, guava": "فيليه فراخ، رز بسمتي، فاصوليا خضرا وجزر وفلفل سوتيه بالزبدة، جوافة",
+  "Chicken fillet, quinoa, roasted broccoli & peppers": "فيليه فراخ، كينوا، بروكلي وفلفل في الفرن", "Chicken fillet, quinoa, roasted broccoli & peppers, guava": "فيليه فراخ، كينوا، بروكلي وفلفل في الفرن، جوافة",
+  "Chicken fillet, quinoa, roasted broccoli & peppers, half a pomegranate": "فيليه فراخ، كينوا، بروكلي وفلفل في الفرن، نص رمانة",
+  "Chicken noodle soup with soy sauce, ginger, mushrooms & spinach": "شوربة نودلز بالفراخ والصويا والجنزبيل والمشروم والسبانخ", "Chicken salad with red beans & colored peppers": "سلطة فراخ بالفاصوليا الحمرا والفلفل الألوان",
+  "Chickpea & tuna salad with colored peppers": "سلطة حمص وتونة بالفلفل الألوان", "Colored pepper & mozzarella omelet in butter, tannour bread": "أومليت فلفل ألوان وموتزاريلا بالزبدة، عيش تنور",
+  "Cottage cheese": "جبنة قريش", "Cottage cheese, light jam and tannour bread": "جبنة قريش ومربى لايت وعيش تنور", "Cottage cheese, tannour bread, apple on the side": "جبنة قريش، عيش تنور، وتفاحة جنبها",
+  "Cottage cheese, tannour bread, banana on the side": "جبنة قريش، عيش تنور، وموزة جنبها", "Cottage cheese; apple an hour later": "جبنة قريش؛ وتفاحة بعدها بساعة",
+  "Cottage cheese; eshta an hour later": "جبنة قريش؛ وقشطة بعدها بساعة", "Cottage cheese; half a mango an hour later": "جبنة قريش؛ ونص مانجاية بعدها بساعة", "Cottage cheese; pear an hour later": "جبنة قريش؛ وكمترى بعدها بساعة",
+  "Eggs in butter with tomato & colored peppers, tannour bread": "بيض بالزبدة بالطماطم والفلفل الألوان، عيش تنور", "Eshta": "قشطة",
+  "Foul with tomato & onion, 1 boiled egg, tannour bread": "فول بالطماطم والبصل، بيضة مسلوقة، عيش تنور", "Foul with tomato & onion, tannour bread": "فول بالطماطم والبصل، عيش تنور",
+  "Garlic butter shrimp, basmati rice, sautéed green beans & carrots": "جمبري بالزبدة والتوم، رز بسمتي، فاصوليا خضرا وجزر سوتيه",
+  "Garlic butter shrimp, basmati rice, sautéed green beans & carrots, half a pomegranate": "جمبري بالزبدة والتوم، رز بسمتي، فاصوليا خضرا وجزر سوتيه، نص رمانة",
+  "Garlic butter shrimp, basmati rice, sautéed green beans & carrots, orange": "جمبري بالزبدة والتوم، رز بسمتي، فاصوليا خضرا وجزر سوتيه، برتقانة",
+  "Greek yogurt": "زبادي يوناني", "Greek yogurt + apple": "زبادي يوناني + تفاحة", "Greek yogurt + banana": "زبادي يوناني + موزة", "Greek yogurt + half a pomegranate": "زبادي يوناني + نص رمانة",
+  "Greek yogurt + pear": "زبادي يوناني + كمترى", "Greek yogurt with apple & cinnamon": "زبادي يوناني بالتفاح والقرفة", "Greek yogurt with banana & cinnamon": "زبادي يوناني بالموز والقرفة",
+  "Grilled bolti, basmati rice, salad": "بلطي مشوي، رز بسمتي، سلطة", "Grilled bolti, basmati rice, salad, mandarin": "بلطي مشوي، رز بسمتي، سلطة، يوسفي", "Grilled bolti, basmati rice, salad, orange": "بلطي مشوي، رز بسمتي، سلطة، برتقانة",
+  "Grilled bouri, basmati rice, salad": "بوري مشوي، رز بسمتي، سلطة", "Grilled bouri, basmati rice, salad, guava": "بوري مشوي، رز بسمتي، سلطة، جوافة", "Grilled bouri, basmati rice, salad, orange": "بوري مشوي، رز بسمتي، سلطة، برتقانة",
+  "Guava": "جوافة", "Half a mango": "نص مانجاية", "Half a pomegranate": "نص رمانة",
+  "Mackerel singari, basmati rice, salad": "ماكريل سنجاري، رز بسمتي، سلطة", "Mackerel singari, basmati rice, salad, guava": "ماكريل سنجاري، رز بسمتي، سلطة، جوافة",
+  "Mahshi warak enab (about 10 pieces) + grilled chicken fillet": "محشي ورق عنب (حوالي 10 صوابع) + فيليه فراخ مشوي", "Mahshi warak enab (about 10 pieces) + grilled chicken fillet, orange": "محشي ورق عنب (حوالي 10 صوابع) + فيليه فراخ مشوي، برتقانة",
+  "Mandarin": "يوسفي", "Mushroom & mozzarella omelet in butter, tannour bread": "أومليت مشروم وموتزاريلا بالزبدة، عيش تنور", "Mushroom cream soup (butter) + grilled chicken fillet": "شوربة كريمة مشروم (بالزبدة) + فيليه فراخ مشوي",
+  "Orange": "برتقانة", "Pear": "كمترى", "Pink sauce ribbon pasta with chicken fillet": "مكرونة شرايط بالصوص البينك وفيليه الفراخ", "Pink sauce ribbon pasta with chicken fillet, guava": "مكرونة شرايط بالصوص البينك وفيليه الفراخ، جوافة",
+  "Pink sauce ribbon pasta with chicken fillet, orange": "مكرونة شرايط بالصوص البينك وفيليه الفراخ، برتقانة", "Pink sauce ribbon pasta with shrimp": "مكرونة شرايط بالصوص البينك والجمبري",
+  "Sardines with lemon over a green salad": "سردين بالليمون على سلطة خضرا", "Shrimp salad with corn": "سلطة جمبري بالدرة",
+  "Soy sauce chicken noodle stir-fry with peppers, carrots & broccoli": "نودلز فراخ بالصويا سوتيه بالفلفل والجزر والبروكلي", "Soy sauce chicken noodle stir-fry with peppers, carrots & broccoli, half a pomegranate": "نودلز فراخ بالصويا سوتيه بالفلفل والجزر والبروكلي، نص رمانة",
+  "Soy sauce shrimp noodles with mushrooms & colored peppers": "نودلز جمبري بالصويا والمشروم والفلفل الألوان", "Soy sauce shrimp noodles with mushrooms & colored peppers, mandarin": "نودلز جمبري بالصويا والمشروم والفلفل الألوان، يوسفي",
+  "Soy-garlic chicken with green beans sautéed in butter": "فراخ بالصويا والتوم مع فاصوليا خضرا سوتيه بالزبدة", "Spinach & mozzarella omelet in butter, tannour bread": "أومليت سبانخ وموتزاريلا بالزبدة، عيش تنور",
+  "Tamry butter chicken, basmati rice": "بتر تشيكن تمري، رز بسمتي", "Tamry butter chicken, basmati rice, mandarin": "بتر تشيكن تمري، رز بسمتي، يوسفي", "Tamry butter chicken, basmati rice, orange": "بتر تشيكن تمري، رز بسمتي، برتقانة",
+  "Tamry chicken quarter, air-fried sweet potato, salad": "ربع فرخة تمري، بطاطا في الإير فراير، سلطة", "Tamry chicken quarter, air-fried sweet potato, salad, guava": "ربع فرخة تمري، بطاطا في الإير فراير، سلطة، جوافة",
+  "Tamry chicken quarter, air-fried sweet potato, salad, half a pomegranate": "ربع فرخة تمري، بطاطا في الإير فراير، سلطة، نص رمانة",
+  "Tamry chicken quarter, buttery boiled potatoes, salad": "ربع فرخة تمري، بطاطس مسلوقة بالزبدة، سلطة", "Tamry chicken quarter, buttery boiled potatoes, salad, guava": "ربع فرخة تمري، بطاطس مسلوقة بالزبدة، سلطة، جوافة",
+  "Tamry chicken quarter, buttery boiled potatoes, salad, mandarin": "ربع فرخة تمري، بطاطس مسلوقة بالزبدة، سلطة، يوسفي",
+  "Tamry curry chicken, basmati rice": "فراخ كاري تمري، رز بسمتي", "Tamry curry chicken, basmati rice, guava": "فراخ كاري تمري، رز بسمتي، جوافة", "Tamry curry chicken, basmati rice, mandarin": "فراخ كاري تمري، رز بسمتي، يوسفي",
+  "Tamry curry chicken, basmati rice, orange": "فراخ كاري تمري، رز بسمتي، برتقانة",
+  "Tamry wings & drumsticks, air-fried sweet potato": "أجنحة ودبابيس تمري، بطاطا في الإير فراير", "Tamry wings & drumsticks, air-fried sweet potato, mandarin": "أجنحة ودبابيس تمري، بطاطا في الإير فراير، يوسفي",
+  "Tamry wings & drumsticks, mashed potato with butter": "أجنحة ودبابيس تمري، بيوريه بطاطس بالزبدة", "Tamry wings & drumsticks, mashed potato with butter, guava": "أجنحة ودبابيس تمري، بيوريه بطاطس بالزبدة، جوافة",
+  "Tamry wings & drumsticks, mashed potato with butter, mandarin": "أجنحة ودبابيس تمري، بيوريه بطاطس بالزبدة، يوسفي",
+  "Tea with milk, no sugar": "شاي بلبن من غير سكر", "Tea with milk, no sugar + pear": "شاي بلبن من غير سكر + كمترى", "Tomato soup + grilled chicken fillet": "شوربة طماطم + فيليه فراخ مشوي",
+  "Tuna & boiled egg salad": "سلطة تونة وبيض مسلوق", "Vegetable cream soup (butter) + 2 boiled eggs": "شوربة كريمة خضار (بالزبدة) + بيضتين مسلوقين", "Vegetable cream soup (butter) + grilled chicken fillet": "شوربة كريمة خضار (بالزبدة) + فيليه فراخ مشوي",
+
+  // ---------- ingredients ----------
+  "Chicken breast (cooked)": "صدر فراخ (مطبوخ)", "Chicken thigh, skinless (cooked)": "ورك فراخ من غير جلد (مطبوخ)", "Tamry roast chicken, skinless": "فراخ تمري روستو من غير جلد", "Shrimp (cooked)": "جمبري (مطبوخ)",
+  "Bolti / tilapia (grilled)": "بلطي (مشوي)", "Bouri / mullet (grilled)": "بوري (مشوي)", "Mackerel (cooked)": "ماكريل (مطبوخ)", "Tuna, canned in water (1 can drained)": "تونة في مية (علبة مصفّاة)",
+  "Sardines, canned (1 can drained)": "سردين (علبة مصفّاة)", "Egg": "بيضة", "Greek yogurt (1 cup, 170 g)": "زبادي يوناني (علبة 170 جم)", "Mozzarella": "موتزاريلا", "Milk": "لبن",
+  "Butter (1 tsp, 5 g)": "زبدة (معلقة صغيرة، 5 جم)", "Olive oil (1 tbsp)": "زيت زيتون (معلقة كبيرة)", "Cooking cream (1 tbsp)": "كريمة طبخ (معلقة كبيرة)", "Basmati rice (cooked)": "رز بسمتي (مطبوخ)",
+  "Quinoa (cooked)": "كينوا (مطبوخة)", "Ribbon pasta (cooked)": "مكرونة شرايط (مطبوخة)", "Egg or rice noodles (cooked)": "نودلز بيض أو رز (مطبوخة)", "Potato (boiled)": "بطاطس (مسلوقة)",
+  "Mashed potato with butter": "بيوريه بطاطس بالزبدة", "Sweet potato (baked)": "بطاطا (في الفرن)", "Tannour bread (half loaf)": "عيش تنور (نص رغيف)", "Foul (cooked)": "فول (مطبوخ)",
+  "Chickpeas (canned)": "حمص (معلب)", "Red beans (canned)": "فاصوليا حمرا (معلبة)", "White beans (canned)": "فاصوليا بيضا (معلبة)", "Sweet corn (canned)": "درة (معلبة)", "Peas": "بسلة",
+  "Green beans": "فاصوليا خضرا", "Lettuce": "خس", "Cucumber": "خيار", "Tomato": "طماطم", "Carrot": "جزر", "Zucchini": "كوسة", "Mushrooms": "مشروم", "Broccoli": "بروكلي", "Spinach": "سبانخ",
+  "Colored peppers": "فلفل ألوان", "Mahshi warak enab (1 piece)": "محشي ورق عنب (صباع)", "Tahini (1 tbsp)": "طحينة (معلقة كبيرة)", "Honey (1 tsp)": "عسل (معلقة صغيرة)",
+  "Light jam (1 tbsp)": "مربى لايت (معلقة كبيرة)", "Soy sauce (1 tbsp)": "صويا (معلقة كبيرة)", "Pomegranate (half)": "رمان (نص رمانة)", "Mango (half)": "مانجا (نص)", "Fresh dates (3)": "بلح (3)",
+
+  // ---------- groceries ----------
+  "Protein": "بروتين", "Cans": "معلبات", "Dairy": "ألبان", "Bread & carbs": "عيش ونشويات", "Vegetables": "خضار", "Fruit (November)": "فاكهة (نوفمبر)", "Pantry": "مخزن",
+  "Chicken fillet": "فيليه فراخ", "Tamry whole chicken": "فرخة تمري كاملة", "Tamry wings & drumsticks": "أجنحة ودبابيس تمري", "Tamry curry chicken": "فراخ كاري تمري", "Tamry butter chicken": "بتر تشيكن تمري",
+  "Shrimp": "جمبري", "Bolti": "بلطي", "Bouri": "بوري", "Mackerel": "ماكريل", "Eggs": "بيض", "Tuna": "تونة", "Sardines": "سردين", "Chickpeas": "حمص", "Sweet corn": "درة", "Red beans": "فاصوليا حمرا",
+  "White beans": "فاصوليا بيضا", "Foul": "فول", "Butter": "زبدة", "Cooking cream": "كريمة طبخ", "Tannour bread": "عيش تنور", "Basmati rice": "رز بسمتي", "Quinoa": "كينوا", "Ribbon pasta": "مكرونة شرايط",
+  "Egg or rice noodles": "نودلز بيض أو رز", "Potatoes": "بطاطس", "Sweet potatoes": "بطاطا", "Cannelloni": "كانيلوني", "Mahshi warak enab": "محشي ورق عنب", "Tomatoes": "طماطم", "Cucumbers": "خيار",
+  "Carrots": "جزر", "Onion": "بصل", "Lemons": "ليمون", "Bananas": "موز", "Apples": "تفاح", "Oranges": "برتقان", "Mandarins": "يوسفي", "Pomegranates": "رمان", "Pears": "كمترى", "Mango": "مانجا",
+  "Grapes": "عنب", "Fresh dates": "بلح", "Olive oil": "زيت زيتون", "Low-sodium soy sauce": "صويا قليلة الملح", "Fresh ginger": "جنزبيل فريش", "Garlic, cinnamon, cumin, spices": "توم، قرفة، كمون، بهارات",
+  "Light jam (low sugar)": "مربى لايت (قليلة السكر)",
+  "5 kg": "5 كيلو", "1 bird": "فرخة", "1 box (1 kg)": "علبة (1 كيلو)", "1 kg": "1 كيلو", "2 fish": "سمكتين", "1 fish": "سمكة", "75 (2½ trays)": "75 (طبقين ونص)", "9 cans": "9 علب", "3 cans": "3 علب",
+  "2 cans": "علبتين", "1 can": "علبة", "14 cups (170 g)": "14 علبة (170 جم)", "1.2 kg": "1.2 كيلو", "350 g": "350 جم", "250 g": "250 جم", "300 ml": "300 مل", "4 L": "4 لتر", "13 large loaves": "13 رغيف كبير",
+  "1.5 kg": "1.5 كيلو", "1 pack (400 g)": "كيس (400 جم)", "1 pack (250 g)": "كيس (250 جم)", "4 medium": "4 وسط", "1 pack": "كيس", "about 10 pieces": "حوالي 10 صوابع", "6 kg": "6 كيلو", "3.5 kg": "3.5 كيلو",
+  "8 heads": "8 خسّات", "1 kg (4 boxes)": "1 كيلو (4 علب)", "2 heads": "2 حبة", "500 g": "500 جم", "1 bunch": "حزمة", "1 small frozen bag": "كيس فريزر صغير", "500 ml": "500 مل", "1 small bottle": "إزازة صغيرة",
+  "1 small piece": "حتة صغيرة", "as needed": "حسب الحاجة", "1 jar": "برطمان",
+  "lunches, salads, soups, cannelloni filling": "غدا، سلطات، شوربة، حشو كانيلوني", "4 lunches": "4 غدوات", "3 lunches, freeze the rest": "3 غدوات، والباقي في الفريزر", "2 lunches, freeze the rest": "2 غدا، والباقي في الفريزر",
+  "garlic butter shrimp, pink pasta, salad": "جمبري بالزبدة والتوم، مكرونة بينك، سلطة", "grilled": "مشوي", "singari": "سنجاري", "omelets, boiled, snacks": "أومليت، مسلوق، سناكس", "4 breakfasts": "4 فطار",
+  "8 portions of 150 g": "8 حصص كل واحدة 150 جم", "for omelets": "للأومليت", "eggs, mash, veg, soups": "بيض، بيوريه، خضار، شوربة", "soups and pink sauce": "شوربة وصوص بينك", "includes 1 tea with milk a day": "فيه شاي بلبن كل يوم",
+  "half a loaf per meal": "نص رغيف في الوجبة", "3 soy sauce dishes": "3 أكلات بالصويا", "mash, boiled, soup": "بيوريه، مسلوق، شوربة", "once a month": "مرة في الشهر", "1 lunch": "غدا واحد",
+  "salads, eggs, foul, tomato soup, sauce": "سلطات، بيض، فول، شوربة طماطم، صوص", "foul only": "للفول بس", "8 for pre-gym": "8 قبل الجيم", "4 for pre-gym": "4 قبل الجيم", "pre-gym": "قبل الجيم",
+  "4 soy sauce dishes": "4 أكلات بالصويا", "noodles and soup": "نودلز وشوربة", "breakfast with cottage cheese": "فطار مع الجبنة القريش",
+});
+AR_RX.push(
+  [/^Your plan starts in (\d+) days?\. Here is a peek at Day 1\.$/, (_, a) => 'خطتك بتبدأ بعد ' + a + ' يوم. ودي نظرة على يوم 1.'],
+  [/^of ([\d,]+) kcal$/, (_, a) => 'من ' + a + ' سعرة'],
+  [/^Day (\d+)$/, (_, a) => 'يوم ' + a],
+  [/^(\d+) \/ 8 glasses$/, (_, a) => a + ' / 8 كوبايات'],
+  [/^Glass (\d+)$/, (_, a) => 'كوباية ' + a],
+  [/^([\d,]+) kcal$/, (_, a) => a + ' سعرة'],
+  [/^([\d.]+) g protein$/, (_, a) => a + ' جم بروتين'],
+  [/^([\d.]+) g$/, (_, a) => a + ' جم'],
+  [/^(\d+) of (\d+) in the basket$/, (_, a, b) => a + ' من ' + b + ' في السلة'],
+  [/^Plan: (.+)$/, (_, a) => 'الخطة: ' + tr(a)],
+  [/^Swap (.+)$/, (_, a) => 'بدّلي ' + tr(a)],
+  [/^About ([\d,]+) g protein a day\. Tap a day to open it\.$/, (_, a) => 'حوالي ' + a + ' جم بروتين في اليوم. دوسي على أي يوم تفتحيه.'],
+  [/^Having (.+)\?$/, (_, a) => 'هتاكلي ' + tr(a) + '؟'],
+);
+/* Egyptian Arabic: diary questions, daily wisdom, "Did you know" facts. */
+Object.assign(AR, {
+  // ---------- diary questions ----------
+  "What made me smile today?": "إيه اللي خلاني أضحك النهارده؟", "What am I grateful for today?": "أنا ممتنة لإيه النهارده؟",
+  "What did I do today that future me will thank me for?": "عملت إيه النهارده هتشكرني عليه أنا اللي في المستقبل؟", "What drained my energy, and what gave me energy?": "إيه اللي سحب طاقتي، وإيه اللي إداني طاقة؟",
+  "Did I treat my body kindly today? How?": "عاملت جسمي بحنية النهارده؟ إزاي؟", "What is one thing I learned today?": "إيه حاجة واحدة اتعلمتها النهارده؟",
+  "Who did I connect with, and how did it feel?": "اتواصلت مع مين، وكان إحساسه إيه؟", "What would I do differently if I lived today again?": "لو عشت النهارده تاني، كنت هعمل إيه مختلف؟",
+  "What am I proud of today, even if it’s small?": "أنا فخورة بإيه النهارده، حتى لو صغير؟", "Did I spend money on what really matters to me?": "صرفت فلوسي على اللي يهمني بجد؟",
+  "What worried me today, and is it in my control?": "إيه اللي قلقني النهارده، وهو في إيدي ولا لأ؟", "How close did I get to my bigger goals today?": "قربت قد إيه من أهدافي الكبيرة النهارده؟",
+  "What was the best moment of my day?": "إيه أحلى لحظة في يومي؟", "Did I keep a promise I made to myself?": "وفيت بوعد وعدته لنفسي؟", "What do I need more of tomorrow, and less of?": "محتاجة إيه أكتر بكرة، وإيه أقل؟",
+  "How did I take care of my mind today?": "اهتميت بدماغي إزاي النهارده؟", "What is one kind thing I did for someone?": "إيه حاجة حلوة عملتها لحد؟", "What am I looking forward to?": "أنا مستنية إيه بشوق؟",
+  "What emotion showed up most today, and why?": "إيه أكتر إحساس ظهر النهارده، وليه؟", "Did I rest enough today?": "ارتحت كفاية النهارده؟", "Which habit helped me most today?": "أنهي عادة ساعدتني أكتر النهارده؟",
+  "If today had a title, what would it be?": "لو النهارده ليه عنوان، هيبقى إيه؟", "What did I avoid today, and why?": "هربت من إيه النهارده، وليه؟", "How did I show love to the people around me?": "وريت حبي للي حواليا إزاي؟",
+  "What small win did I get for my future: money, skills or health?": "إيه المكسب الصغير اللي عملته لمستقبلي: فلوس، مهارات ولا صحة؟", "What did I do just for me today?": "عملت إيه لنفسي بس النهارده؟",
+  "What thought do I want to let go of before sleeping?": "إيه الفكرة اللي عايزة أسيبها قبل ما أنام؟", "What can I make easier for tomorrow-me?": "أقدر أسهّل إيه على نفسي بكرة؟",
+  "Where did I feel most like myself today?": "حسيت إني أنا بجد فين النهارده؟", "What advice would I give myself right now?": "هنصح نفسي بإيه دلوقتي؟",
+
+  // ---------- wisdom sources ----------
+  "Atomic Habits · James Clear": "العادات الذرية · جيمس كلير", "The Psychology of Money · Morgan Housel": "سيكولوجية المال · مورجان هاوسل",
+  "Men Are from Mars, Women Are from Venus · John Gray": "الرجال من المريخ والنساء من الزهرة · جون جراي", "Surrounded by Idiots · Thomas Erikson": "محاط بالحمقى · توماس إريكسون",
+  "The 5 Love Languages · Gary Chapman": "لغات الحب الخمس · جاري تشابمان", "Research by John Gottman": "أبحاث جون جوتمان", "Mindset · Carol Dweck": "العقلية · كارول دويك",
+  "Grit · Angela Duckworth": "الشغف والمثابرة · أنجيلا داكوورث", "Thinking, Fast and Slow · Daniel Kahneman": "التفكير السريع والبطيء · دانيال كانمان",
+  "Man’s Search for Meaning · Viktor Frankl": "الإنسان يبحث عن المعنى · فيكتور فرانكل", "Daring Greatly · Brené Brown": "الجرأة العظيمة · برينيه براون",
+  "The 7 Habits of Highly Effective People · Stephen Covey": "العادات السبع للناس الأكثر فعالية · ستيفن كوفي", "How to Win Friends and Influence People · Dale Carnegie": "كيف تكسب الأصدقاء وتؤثر في الناس · ديل كارنيجي",
+  "Never Split the Difference · Chris Voss": "لا تقسم الفرق أبدًا · كريس فوس", "Women Don’t Ask · Linda Babcock and Sara Laschever": "النساء لا يطلبن · ليندا بابكوك وسارة لاشيفر",
+  "Deep Work · Cal Newport": "العمل العميق · كال نيوبورت", "Essentialism · Greg McKeown": "الجوهرية · جريج ماكيون", "The Four Agreements · Don Miguel Ruiz": "الاتفاقيات الأربع · دون ميجيل رويز",
+  "Letters from a Stoic · Seneca": "رسائل من رواقي · سينيكا", "Enchiridion · Epictetus": "المختصر · إبكتيتوس", "Rich Dad Poor Dad · Robert Kiyosaki": "الأب الغني والأب الفقير · روبرت كيوساكي",
+  "The Richest Man in Babylon · George Clason": "أغنى رجل في بابل · جورج كلاسون", "Harvard Study of Adult Development": "دراسة هارفارد لتطور البالغين",
+  "Research on gratitude · Emmons and McCullough": "أبحاث الامتنان · إيمونز وماكولو", "Research on happiness · Van Boven and Gilovich": "أبحاث السعادة · فان بوفن وجيلوفيتش",
+  "The fresh start effect · Dai, Milkman and Riis": "تأثير البداية الجديدة · داي وميلكمان وريس", "Implementation intentions · Peter Gollwitzer": "نوايا التنفيذ · بيتر جولويتزر",
+  "The spotlight effect · Thomas Gilovich": "تأثير الأضواء · توماس جيلوفيتش", "Self-Compassion · Kristin Neff": "التعاطف مع الذات · كريستين نيف", "Parkinson’s law": "قانون باركنسون",
+  "The Pareto principle": "مبدأ باريتو", "The paradox of choice · Iyengar and Lepper": "مفارقة الاختيار · آينجر وليبر",
+
+  // ---------- wisdom ideas and advice ----------
+  "“You do not rise to the level of your goals. You fall to the level of your systems.”": "«انتي مش بتطلعي لمستوى أهدافك. انتي بتنزلي لمستوى أنظمتك.»",
+  "Make one good habit easier today: put your book on your pillow or your gym bag by the door. Make one bad habit harder: log out of the app that eats your evenings.": "سهّلي عادة حلوة النهارده: حطي الكتاب على المخدة أو شنطة الجيم جنب الباب. وصعّبي عادة وحشة: اعملي لوج آوت من الأبلكيشن اللي بياكل سهراتك.",
+  "Every action is a vote for the person you want to become. You don’t need a unanimous vote, just a majority.": "كل حاجة بتعمليها صوت للشخص اللي عايزة تبقيه. مش محتاجة إجماع، كفاية الأغلبية.",
+  "Decide who you’re becoming (“a woman who keeps promises to herself”) and cast one small vote for her before noon.": "قرري انتي بتبقي مين («ست بتوفي بوعودها لنفسها») وادّيها صوت صغير قبل الضهر.",
+  "Getting 1% better every day for a year compounds to about 37 times better. Getting 1% worse compounds toward zero.": "لو اتحسنتي 1% كل يوم لمدة سنة، بتبقي أحسن حوالي 37 مرة. ولو بقيتي أوحش 1%، بتقربي من الصفر.",
+  "Pick one area, like media buying, and do one tiny thing in it today. Tiny is the point.": "اختاري مجال واحد، زي الميديا باينج، واعملي فيه حاجة صغيرة أوي النهارده. الصغر هو الفكرة.",
+  "Wealth is what you don’t see: the cars not bought, the upgrades skipped, the money left invested.": "الثروة هي اللي مش باين: العربيات اللي متشترتش، الأبجريدات اللي اتأجلت، والفلوس اللي فضلت مستثمرة.",
+  "Before your next non-essential purchase, ask: will I care about this in a month? If not, move that amount to a savings jar.": "قبل أي حاجة مش ضرورية هتشتريها، اسألي: هتفرق معايا بعد شهر؟ لو لأ، حوّلي المبلغ ده لحصالة.",
+  "The hardest financial skill is getting the goalpost to stop moving: knowing what “enough” is.": "أصعب مهارة مالية إن الهدف يبطل يتحرك: إنك تعرفي يعني إيه «كفاية».",
+  "Write down what “enough” looks like for you this year. Spending that doesn’t serve it is optional.": "اكتبي «الكفاية» بالنسبالك شكلها إيه السنة دي. أي صرف مش بيخدمها يبقى اختياري.",
+  "The highest dividend money pays is the ability to control your own time.": "أعلى مكسب بتديهولك الفلوس هو إنك تتحكمي في وقتك.",
+  "Think of savings as buying freedom: the freedom to choose your job, your hours and when to say no.": "بصي للتحويش على إنه بيشتريلك حرية: حرية تختاري شغلك ومواعيدك وإمتى تقولي لأ.",
+  "Gray describes many men handling stress by withdrawing to “their cave” to think alone, and many women handling it by talking it through. Neither is wrong; they’re different.": "جراي بيوصف إن رجالة كتير بيتعاملوا مع الضغط إنهم يدخلوا «كهفهم» يفكروا لوحدهم، وستات كتير بيتعاملوا معاه بالكلام. محدش فيهم غلط؛ هما بس مختلفين.",
+  "If your fiancé goes quiet, give him space before asking what’s wrong. When you need to talk, tell him: “I don’t need a solution, I just need you to listen.”": "لو خطيبك سكت، اديله مساحة قبل ما تسأليه ماله. ولما تحتاجي تتكلمي، قوليله: «أنا مش عايزة حل، أنا عايزاك تسمعني بس.»",
+  "Gray argues that in a partner’s eyes, many small loving gestures often count as much as one big one.": "جراي بيقول إن في عين الشريك، الحاجات الصغيرة الحلوة الكتير ساعات بتفرق قد حاجة واحدة كبيرة.",
+  "Do one small thing for someone you love today: a voice note, their favourite snack, a real compliment.": "اعملي حاجة صغيرة لحد بتحبيه النهارده: فويس نوت، السناك اللي بيحبه، أو مجاملة بجد.",
+  "Erikson sorts people into four colours: Red (direct, decisive), Yellow (enthusiastic, social), Green (calm, loyal) and Blue (careful, analytical). Most conflict comes from speaking only your own colour.": "إريكسون بيقسم الناس لأربع ألوان: أحمر (مباشر وحاسم)، أصفر (متحمس واجتماعي)، أخضر (هادي ووفي)، وأزرق (دقيق وتحليلي). أغلب الخناقات بتيجي من إنك بتتكلمي بلونك انتي بس.",
+  "Before a hard work conversation, guess their colour. Give Reds the bottom line, Yellows energy, Greens time and reassurance, Blues data and details.": "قبل أي كلام صعب في الشغل، خمّني لونهم. الأحمر اديله الخلاصة، الأصفر طاقة، الأخضر وقت وطمأنينة، والأزرق أرقام وتفاصيل.",
+  "The colour model is a lens, not a science: psychologists consider it a simplification. Its real value is reminding you that “difficult” people often just communicate differently.": "موديل الألوان عدسة مش علم: علماء النفس شايفينه تبسيط. قيمته الحقيقية إنه بيفكرك إن الناس «الصعبة» غالبًا بس بتتواصل بطريقة مختلفة.",
+  "Next time someone annoys you, ask “what do they need that I’m not giving?” before deciding they’re the problem.": "المرة الجاية لما حد يضايقك، اسألي «هو محتاج إيه أنا مش بديهوله؟» قبل ما تقرري إنه هو المشكلة.",
+  "People give and receive love in five main ways: words of affirmation, quality time, gifts, acts of service and physical touch. We tend to give love in our own language, not theirs.": "الناس بتدي وتاخد الحب بخمس طرق: كلام حلو، وقت مع بعض، هدايا، خدمات، ولمسة. وإحنا غالبًا بنحب بلغتنا إحنا، مش بلغتهم.",
+  "Ask your fiancé which one matters most to him, and tell him yours. It’s one of the best conversations before marriage.": "اسألي خطيبك أنهي واحدة بتفرق معاه أكتر، وقوليله بتاعتك. ده من أحلى الكلام قبل الجواز.",
+  "In Gottman’s studies, stable couples had about five positive interactions for every negative one during conflict.": "في دراسات جوتمان، الأزواج المستقرين كان عندهم حوالي خمس مواقف حلوة قصاد كل موقف وحش وقت الخلاف.",
+  "If you have to raise something hard today, surround it with warmth: appreciation first, the issue second, affection after.": "لو لازم تفتحي موضوع صعب النهارده، حاوطيه بدفا: تقدير الأول، الموضوع تاني، وحنية بعدها.",
+  "Gottman found contempt (eye-rolling, mockery, superiority) to be the strongest predictor of divorce among his “Four Horsemen”: criticism, contempt, defensiveness and stonewalling.": "جوتمان لقى إن الاحتقار (تقليب العين، التريقة، التعالي) أقوى مؤشر للطلاق من «الفرسان الأربعة»: النقد، الاحتقار، الدفاعية، والتجاهل.",
+  "Complain about the behaviour, not the person: “I felt alone when you were on your phone” instead of “You never care.”": "اشتكي من التصرف، مش من الشخص: «حسيت إني لوحدي لما كنت على الموبايل» بدل «انت عمرك ما بتهتم.»",
+  "Couples still together six years later had “turned toward” each other’s small bids for attention about 86% of the time; couples who divorced, about 33%.": "الأزواج اللي فضلوا مع بعض بعد ست سنين كانوا بيستجيبوا لمحاولات الاهتمام الصغيرة من بعض حوالي 86% من الوقت؛ واللي اتطلقوا حوالي 33%.",
+  "When someone you love shares something small, a meme, a thought, a sigh, turn toward it. Small moments build the marriage.": "لما حد بتحبيه يشاركك حاجة صغيرة، ميم، فكرة، تنهيدة، اهتمي بيها. اللحظات الصغيرة هي اللي بتبني الجواز.",
+  "People with a growth mindset believe ability is built through effort and learning; they see failure as information, not identity.": "اللي عندهم عقلية النمو مؤمنين إن القدرة بتتبني بالمجهود والتعلم؛ وشايفين الفشل معلومة، مش هوية.",
+  "Add “yet” to one sentence today: “I’m not good at email campaigns, yet.”": "زودي «لسه» على جملة النهارده: «أنا مش شاطرة في حملات الإيميل، لسه.»",
+  "Duckworth’s research found passion plus long-term perseverance often predicts achievement better than talent alone.": "أبحاث داكوورث لقت إن الشغف مع المثابرة على المدى الطويل غالبًا بيتوقعوا النجاح أحسن من الموهبة لوحدها.",
+  "Choose one long-term goal and show up for it today, especially if you’re bored. Boredom is where most people quit.": "اختاري هدف طويل واحد واشتغلي عليه النهارده، خصوصًا لو زهقانة. الزهق هو المكان اللي أغلب الناس بتبطل فيه.",
+  "We have a fast, emotional System 1 and a slow, deliberate System 2. Most bad decisions are fast ones that deserved slow thinking.": "عندنا نظام 1 سريع وعاطفي، ونظام 2 بطيء ومتأني. أغلب القرارات الوحشة كانت سريعة وكانت محتاجة تفكير بطيء.",
+  "For any decision over a few thousand pounds or a big life choice, sleep on it once before saying yes.": "أي قرار فوق كام ألف جنيه أو اختيار كبير في حياتك، نامي عليه ليلة قبل ما تقولي آه.",
+  "Loss aversion: losing something feels roughly twice as painful as gaining the same thing feels good.": "النفور من الخسارة: إنك تخسري حاجة بيوجع تقريبًا ضعف فرحتك لو كسبتيها.",
+  "When an investment dips, remember the pain is louder than the facts. Don’t make money decisions on a scary day.": "لما استثمار ينزل، افتكري إن الوجع صوته أعلى من الحقايق. متاخديش قرارات فلوس في يوم مخوّف.",
+  "“Everything can be taken from a man but one thing: the last of the human freedoms, to choose one’s attitude in any given set of circumstances.”": "«كل حاجة ممكن تتاخد من الإنسان إلا حاجة واحدة: آخر حرياته، إنه يختار موقفه في أي ظروف.»",
+  "You can’t control every part of today, but you can choose how you meet it. Choose on purpose.": "مش هتقدري تتحكمي في كل حاجة النهارده، بس تقدري تختاري هتقابليه إزاي. اختاري عن قصد.",
+  "Brown’s research found vulnerability is the birthplace of connection, courage and creativity, not weakness.": "أبحاث براون لقت إن الضعف الإنساني هو أصل التواصل والشجاعة والإبداع، مش ضعف.",
+  "Say the honest thing today, kindly: ask for help, admit you’re tired, tell someone you miss them.": "قولي الحاجة الصادقة النهارده بلطف: اطلبي مساعدة، اعترفي إنك تعبانة، قولي لحد إنه وحشك.",
+  "Focus on your circle of influence (what you can act on), not your circle of concern (everything you worry about).": "ركزي على دايرة تأثيرك (اللي تقدري تعملي فيه حاجة)، مش دايرة قلقك (كل حاجة بتقلقك).",
+  "Write your worry, then circle the one part you can act on today. Do that part; release the rest.": "اكتبي اللي قلقك، وعلّمي على الجزء الوحيد اللي تقدري تعملي فيه حاجة النهارده. اعمليه؛ وسيبي الباقي.",
+  "Begin with the end in mind: imagine who you want to be at the end, then plan backwards.": "ابدئي والنهاية في دماغك: تخيلي عايزة تبقي مين في الآخر، وخططي بالعكس.",
+  "Picture yourself one year after your wedding. What habits does that woman have? Start one of them this week.": "تخيلي نفسك بعد الفرح بسنة. الست دي عندها عادات إيه؟ ابدئي واحدة منها الأسبوع ده.",
+  "Become genuinely interested in other people. A person’s own name is, to them, the sweetest sound.": "اهتمي بالناس بجد. اسم الواحد هو أحلى صوت بالنسباله.",
+  "Use people’s names today and ask one follow-up question about something they care about.": "نادي الناس بأساميهم النهارده واسألي سؤال متابعة عن حاجة تهمهم.",
+  "The former FBI negotiator recommends labelling emotions (“It seems like…”) and asking “how” and “what” questions instead of saying no.": "المفاوض السابق في الـ FBI بينصح إنك تسمّي المشاعر («شكلك…») وتسألي بـ«إزاي» و«إيه» بدل ما تقولي لأ.",
+  "When an offer is too low, try: “How am I supposed to do that?” Then stay quiet and let them answer.": "لما العرض يبقى قليل أوي، جربي: «المفروض أعمل ده إزاي؟» وبعدين اسكتي وسيبيهم يردوا.",
+  "In Babcock’s study of graduates, far more men than women negotiated their first salary (57% vs 7%), a gap that compounds over a career.": "في دراسة بابكوك على الخريجين، الرجالة فاوضوا على أول مرتب أكتر بكتير من الستات (57% قصاد 7%)، وده فرق بيكبر على مدار الشغل كله.",
+  "Never accept a first offer without asking for more. The worst answer is usually just “no”.": "عمرك ما توافقي على أول عرض من غير ما تطلبي أكتر. أوحش رد غالبًا هيبقى «لأ» بس.",
+  "Focused work without distraction produces far more value than scattered hours of shallow work.": "الشغل المركز من غير تشتيت بيطلع قيمة أكتر بكتير من ساعات متقطعة من الشغل السطحي.",
+  "Block 60 minutes today with your phone in another room for your most important task.": "احجزي 60 دقيقة النهارده والموبايل في أوضة تانية لأهم تاسك عندك.",
+  "If it isn’t a clear yes, then it’s a clear no. Saying no to the good makes room for the great.": "لو مش آه واضحة، يبقى لأ واضحة. إنك تقولي لأ للكويس بيفضّي مكان للأحسن.",
+  "Say no to one thing this week that you’d only half-want to do.": "قولي لأ لحاجة واحدة الأسبوع ده انتي عايزاها نص نص.",
+  "Don’t take anything personally: what others say and do is mostly about their own world.": "متاخديش حاجة على نفسك: اللي الناس بتقوله وبتعمله غالبًا عن دنيتهم هما.",
+  "If someone is rude today, let it be their story, not yours.": "لو حد كان قليل الذوق النهارده، خليها حكايته هو، مش حكايتك.",
+  "Seneca wrote that we suffer more often in imagination than in reality.": "سينيكا كتب إننا بنتعذب في خيالنا أكتر ما بنتعذب في الحقيقة.",
+  "When you catch yourself picturing the worst, ask: is this happening, or am I rehearsing it?": "لما تلاقي نفسك بتتخيلي الأسوأ، اسألي: ده بيحصل فعلًا، ولا أنا بتمرّن عليه؟",
+  "Some things are within our control (our choices, effort, attitude) and some are not (others’ opinions, outcomes). Peace comes from knowing the difference.": "في حاجات في إيدينا (اختياراتنا، مجهودنا، موقفنا) وحاجات لأ (آراء الناس، النتايج). الراحة بتيجي من إنك تعرفي الفرق.",
+  "Sort today’s stress into two lists: mine and not mine. Spend energy only on the first.": "قسمي ضغط النهارده لليستتين: بتاعي ومش بتاعي. اصرفي طاقتك على الأولى بس.",
+  "Kiyosaki defines an asset as something that puts money in your pocket and a liability as something that takes money out.": "كيوساكي بيعرّف الأصل إنه حاجة بتحط فلوس في جيبك، والالتزام إنه حاجة بتطلع فلوس منه.",
+  "Before a big purchase, like a car, list its monthly costs: fuel, insurance, maintenance. Budget for the real price.": "قبل أي حاجة كبيرة زي العربية، اكتبي مصاريفها الشهرية: بنزين، تأمين، صيانة. اعملي ميزانية للسعر الحقيقي.",
+  "Pay yourself first: keep at least a tenth of everything you earn before paying anyone else.": "ادفعي لنفسك الأول: خلي على الأقل عُشر اللي بتكسبيه ليكي قبل ما تدفعي لأي حد.",
+  "On payday, move your saving and investing amount first, then live on the rest.": "يوم القبض، حوّلي مبلغ التحويش والاستثمار الأول، وعيشي بالباقي.",
+  "This study has followed people for over 80 years. Its clearest finding: good relationships keep us happier and healthier than money or fame.": "الدراسة دي متابعة ناس من أكتر من 80 سنة. أوضح نتيجة فيها: العلاقات الحلوة بتخلينا أسعد وأصح من الفلوس والشهرة.",
+  "Invest in one relationship today: call your mom, plan a date, reply to a friend you’ve been meaning to.": "استثمري في علاقة واحدة النهارده: كلمي مامتك، خططي لخروجة، أو ردي على صاحبتك اللي كان نفسك تردي عليها.",
+  "People who regularly wrote down things they were grateful for reported more optimism and better wellbeing than those who didn’t.": "اللي كانوا بيكتبوا الحاجات اللي ممتنين لها بانتظام كانوا أكتر تفاؤلًا وأحسن حالًا من اللي مكانوش بيكتبوا.",
+  "Answer one of today’s diary questions with three specific things you’re grateful for.": "جاوبي سؤال من أسئلة اليوميات النهارده بتلات حاجات محددة انتي ممتنة لها.",
+  "Spending on experiences tends to bring more lasting happiness than spending on things, partly because we adapt to things quickly.": "الصرف على التجارب غالبًا بيجيب سعادة بتدوم أكتر من الصرف على الحاجات، جزء من السبب إننا بنتعود على الحاجات بسرعة.",
+  "Next time you want to treat yourself, consider an experience from your list instead of an item.": "المرة الجاية لما تحبي تدلعي نفسك، فكري في تجربة من ليستتك بدل حاجة تشتريها.",
+  "People are more likely to start new goals at “temporal landmarks”: a Monday, a new month, a birthday.": "الناس بتبدأ أهداف جديدة أكتر عند «علامات الوقت»: يوم اتنين، شهر جديد، عيد ميلاد.",
+  "Use the next landmark on purpose. Decide now what you’ll start on the 1st of the month.": "استغلي العلامة الجاية عن قصد. قرري دلوقتي هتبدئي إيه يوم 1 في الشهر.",
+  "Plans in the form “When X happens, I will do Y” make people far more likely to follow through.": "الخطط اللي على شكل «لما يحصل كذا، هعمل كذا» بتخلي الناس تكمّل أكتر بكتير.",
+  "Write one: “When I finish lunch, I will read 5 pages.”": "اكتبي واحدة: «لما أخلص الغدا، هقرا 5 صفحات.»",
+  "In experiments, people greatly overestimated how much others noticed their appearance or mistakes.": "في التجارب، الناس بالغوا جدًا في تقدير قد إيه غيرهم واخد باله من شكلهم أو غلطاتهم.",
+  "Wear the outfit, ask the question, post the idea. People are thinking about themselves, not you.": "البسي الطقم، اسألي السؤال، انشري الفكرة. الناس بتفكر في نفسها، مش فيكي.",
+  "Research shows that treating yourself kindly after a mistake increases motivation to improve, rather than making you lazy.": "الأبحاث بتقول إنك لما تعاملي نفسك بحنية بعد غلطة، بيزيد حماسك تتحسني، مش بيكسّلك.",
+  "Talk to yourself today the way you’d talk to your best friend after a bad day.": "كلمي نفسك النهارده زي ما بتكلمي أقرب صاحبة ليكي بعد يوم وحش.",
+  "Work expands to fill the time available for its completion.": "الشغل بيتمط عشان يملا الوقت المتاح له.",
+  "Give your next task a shorter deadline than feels comfortable, and watch it shrink to fit.": "ادي التاسك الجاي ديدلاين أقصر من المريح، وشوفيه بيصغر عشان يلحق.",
+  "Roughly 80% of results often come from 20% of efforts.": "تقريبًا 80% من النتايج غالبًا بتيجي من 20% من المجهود.",
+  "Which 20% of your work brings most of your results? Do that first today.": "أنهي 20% من شغلك بتجيب أغلب نتايجك؟ اعمليها الأول النهارده.",
+  "In a famous study, shoppers offered 6 jams were about 10 times more likely to buy than those offered 24.": "في دراسة مشهورة، الناس اللي اتعرض عليهم 6 أنواع مربى اشتروا حوالي 10 أضعاف اللي اتعرض عليهم 24.",
+  "Reduce your options to decide faster: two outfits, three dinner choices, one course at a time.": "قللي اختياراتك عشان تقرري أسرع: طقمين، تلات اختيارات للعشا، كورس واحد في المرة.",
+
+  // ---------- fact categories ----------
+  "Investing": "استثمار", "Economics": "اقتصاد", "Politics": "سياسة", "Health": "صحة", "Jobs": "شغل", "Countries": "بلاد", "Top countries": "البلاد الأولى", "Women": "الستات", "Psychology": "علم نفس",
+
+  // ---------- facts ----------
+  "Rule of 72: divide 72 by your yearly return to estimate how many years it takes money to double. At 12% a year, about 6 years.": "قاعدة الـ72: اقسمي 72 على العائد السنوي عشان تعرفي الفلوس هتتضاعف في كام سنة. بـ12% في السنة، حوالي 6 سنين.",
+  "Investing 1,000 EGP a month at 15% a year for 20 years grows to roughly 1.5 million EGP before inflation, from 240,000 EGP put in. Time does most of the work.": "لو استثمرتي 1,000 جنيه في الشهر بـ15% في السنة لمدة 20 سنة، هتوصل لحوالي 1.5 مليون جنيه قبل التضخم، من 240,000 جنيه بس حطيتيهم. الوقت بيعمل أغلب الشغل.",
+  "Over 15 years or more, the large majority of actively managed US stock funds have done worse than the simple S&P 500 index, according to S&P’s SPIVA reports.": "على مدى 15 سنة أو أكتر، أغلب صناديق الأسهم الأمريكية المُدارة كانت أوحش من مؤشر S&P 500 البسيط، حسب تقارير SPIVA.",
+  "A 1% yearly fee sounds small, but over 30 years it can eat about a quarter of your final returns. Always check fees.": "رسوم 1% في السنة شكلها صغيرة، بس على 30 سنة ممكن تاكل حوالي ربع أرباحك. دايمًا بصي على الرسوم.",
+  "Investing a fixed amount on a schedule, called dollar-cost averaging, means you buy more when prices are low and less when they’re high, without guessing.": "إنك تستثمري مبلغ ثابت في مواعيد ثابتة (متوسط التكلفة) معناه إنك بتشتري أكتر لما الأسعار تنزل وأقل لما تطلع، من غير تخمين.",
+  "Many of the stock market’s best days come right after its worst ones. People who sell in panic often miss the recovery.": "أحسن أيام البورصة كتير بتيجي بعد أوحش أيامها على طول. اللي بيبيعوا من الخضة غالبًا بيفوتهم الرجوع.",
+  "Gold has long been a store of value when currencies lose value, but it pays no interest or dividends. It protects wealth more than it grows it.": "الدهب من زمان مخزن للقيمة لما العملات تقل قيمتها، بس مش بيدي فايدة ولا أرباح. بيحمي الثروة أكتر ما بيكبّرها.",
+  "The EGX30 is the main index of the Egyptian Exchange, tracking 30 of its largest and most traded companies.": "EGX30 هو المؤشر الرئيسي للبورصة المصرية، وبيتابع أكبر 30 شركة وأكترهم تداول.",
+  "Your real return is your return minus inflation. A 20% certificate during 25% inflation still loses buying power.": "عائدك الحقيقي هو العائد ناقص التضخم. شهادة بـ20% وقت تضخم 25% لسه بتخسّرك قوة شرائية.",
+  "Money you’ll need within 3 to 5 years usually belongs somewhere safer than stocks, because markets can drop sharply in the short term.": "الفلوس اللي هتحتاجيها في خلال 3 لـ 5 سنين مكانها غالبًا حاجة أأمن من الأسهم، لأن السوق ممكن ينزل جامد في المدى القصير.",
+  "When inflation is high, central banks usually raise interest rates. Borrowing gets more expensive, saving gets more attractive and spending slows.": "لما التضخم يعلى، البنوك المركزية غالبًا بترفع الفايدة. السلف بيغلى، والتحويش بيبقى أحلى، والصرف بيهدى.",
+  "Egypt’s main sources of foreign currency include remittances from Egyptians working abroad, Suez Canal fees, tourism and exports.": "أهم مصادر العملة الصعبة في مصر: تحويلات المصريين بره، رسوم قناة السويس، السياحة، والتصدير.",
+  "Roughly 12% of global trade passes through the Suez Canal, which makes shipping disruptions in the Red Sea felt worldwide.": "حوالي 12% من التجارة العالمية بتعدي من قناة السويس، عشان كده أي مشكلة شحن في البحر الأحمر العالم كله بيحس بيها.",
+  "When a currency is devalued, imports get more expensive and exports get cheaper for foreign buyers.": "لما العملة تتعوم، الاستيراد بيغلى والتصدير بيرخص على المشتري الأجنبي.",
+  "The US dollar is on one side of about 88% of all currency trades in the world, according to the Bank for International Settlements (2022).": "الدولار الأمريكي طرف في حوالي 88% من كل تداولات العملات في العالم، حسب بنك التسويات الدولية (2022).",
+  "GDP is the total value of everything a country produces in a year. A common rule of thumb defines a recession as two quarters in a row of shrinking GDP.": "الناتج المحلي هو قيمة كل اللي البلد بتنتجه في سنة. والقاعدة المشهورة إن الركود هو ربعين سنة ورا بعض الناتج فيهم بيقل.",
+  "A tariff is a tax on imports. It’s usually paid by the importing company and passed on to shoppers as higher prices.": "التعريفة الجمركية ضريبة على الاستيراد. غالبًا الشركة المستوردة بتدفعها وبتحمّلها على الناس في الأسعار.",
+  "The US has the world’s largest economy measured in dollars; China’s is the largest when adjusted for local prices (purchasing power parity).": "أمريكا عندها أكبر اقتصاد في العالم بالدولار؛ والصين الأكبر لو حسبناها بالأسعار المحلية (تعادل القوة الشرائية).",
+  "The UN Security Council has 5 permanent members with veto power: the US, UK, France, Russia and China.": "مجلس الأمن فيه 5 أعضاء دايمين معاهم الفيتو: أمريكا، بريطانيا، فرنسا، روسيا، والصين.",
+  "The European Union has 27 member countries since the UK left in 2020.": "الاتحاد الأوروبي فيه 27 دولة من ساعة ما بريطانيا خرجت في 2020.",
+  "In 2024 the BRICS group expanded beyond Brazil, Russia, India, China and South Africa to include Egypt, Ethiopia, Iran and the UAE.": "في 2024 مجموعة البريكس كبرت عن البرازيل وروسيا والهند والصين وجنوب أفريقيا، ودخلت فيها مصر وإثيوبيا وإيران والإمارات.",
+  "IMF loans usually come with conditions, such as cutting subsidies or letting the currency float, which is why they often shape a country’s prices.": "قروض صندوق النقد غالبًا بييجي معاها شروط، زي تقليل الدعم أو تعويم العملة، عشان كده بتأثر على أسعار البلد.",
+  "Rwanda has the highest share of women in parliament of any country, with women holding more than 60% of seats in its lower house.": "رواندا عندها أعلى نسبة ستات في البرلمان في العالم، الستات واخدين أكتر من 60% من مقاعد مجلس النواب.",
+  "A 2023 US Surgeon General report compared the health risks of chronic loneliness to smoking up to 15 cigarettes a day.": "تقرير أمريكي في 2023 قارن أضرار الوحدة المزمنة على الصحة بإنك تشربي لحد 15 سيجارة في اليوم.",
+  "Large studies link walking around 7,000 steps a day to a much lower risk of early death; you don’t need 10,000 for most of the benefit.": "دراسات كبيرة ربطت المشي حوالي 7,000 خطوة في اليوم بخطر أقل بكتير للوفاة بدري؛ مش محتاجة 10,000 عشان تاخدي أغلب الفايدة.",
+  "Worldwide, women live about 5 years longer than men on average, according to the WHO.": "في العالم كله، الستات بيعيشوا في المتوسط حوالي 5 سنين أكتر من الرجالة، حسب منظمة الصحة العالمية.",
+  "Women are about twice as likely as men to experience depression, per the WHO, which makes mental-health check-ins worth taking seriously.": "الستات معرضين للاكتئاب تقريبًا ضعف الرجالة حسب منظمة الصحة العالمية، فمتابعة صحتك النفسية تستاهل تاخديها بجد.",
+  "Strength training helps protect bone density, which starts declining for women from their thirties and faster after menopause.": "تمارين القوة بتساعد تحافظ على كثافة العضم، اللي بتبدأ تقل عند الستات من التلاتينات وأسرع بعد انقطاع الدورة.",
+  "In an eye-tracking study by Ladders, recruiters spent an average of about 7 seconds on a first look at a CV. Put your best results at the top.": "في دراسة لـ Ladders بتتبع العين، الريكروترز قعدوا حوالي 7 ثواني بس في أول نظرة على الـ CV. حطي أحسن نتايجك فوق.",
+  "Many companies run CVs through applicant tracking systems that filter by keywords. Mirror the words in the job description.": "شركات كتير بتعدّي الـ CV على سيستم بيفلتر بالكلمات. استخدمي نفس كلمات الجوب ديسكريبشن.",
+  "For remote jobs, employers often care more about time-zone overlap and clear written communication than where you live.": "في الشغل الريموت، أصحاب الشغل غالبًا بيهتموا بتداخل التوقيت والكتابة الواضحة أكتر من انتي ساكنة فين.",
+  "In salary talks, the first number named tends to anchor the whole negotiation. Research the range and aim high.": "في كلام المرتب، أول رقم بيتقال بيثبّت التفاوض كله. اعرفي الرينج وارفعي سقفك.",
+  "Referred candidates are hired at much higher rates than people applying cold through job boards. Your network is part of your CV.": "اللي بييجوا بترشيح بيتعينوا بنسبة أعلى بكتير من اللي بيقدموا على المواقع. معارفك جزء من الـ CV بتاعك.",
+  "Performance marketers are judged on CAC (cost to acquire a customer) and LTV (what a customer is worth). An LTV of at least 3 times CAC is a common target.": "البرفورمانس ماركترز بيتقيّموا بالـ CAC (تكلفة جلب العميل) والـ LTV (العميل يسوى كام). هدف مشهور إن الـ LTV يبقى 3 أضعاف الـ CAC على الأقل.",
+  "In a 2022 UK four-day work week trial, 56 of the 61 companies kept the shorter week after it ended.": "في تجربة بريطانية في 2022 لأسبوع شغل 4 أيام، 56 شركة من 61 كمّلوا بالأسبوع القصير بعد ما التجربة خلصت.",
+  "In agencies, account managers own the client relationship, media buyers plan and optimise ad budgets, and strategists set the overall direction.": "في الأجنسيز، الأكاونت مانجر ماسك العلاقة مع العميل، والميديا باير بيخطط ويظبط ميزانية الإعلانات، والاستراتيجيست بيحدد الاتجاه كله.",
+  "Bhutan measures progress with Gross National Happiness, not just GDP.": "بوتان بتقيس تقدمها بالسعادة القومية، مش بالناتج المحلي بس.",
+  "Iceland has no standing army.": "أيسلندا معندهاش جيش دايم.", "Russia spans 11 time zones.": "روسيا فيها 11 توقيت.", "Canada has the longest coastline of any country.": "كندا عندها أطول ساحل في العالم.",
+  "Vatican City is the smallest country in the world, about 0.44 square kilometres.": "الفاتيكان أصغر دولة في العالم، حوالي 0.44 كيلو متر مربع.",
+  "Australia is wider than the Moon: about 4,000 km across, compared with the Moon’s 3,474 km diameter.": "أستراليا أعرض من القمر: حوالي 4,000 كم، والقمر قطره 3,474 كم.",
+  "Switzerland has four national languages: German, French, Italian and Romansh.": "سويسرا عندها 4 لغات رسمية: الألماني والفرنساوي والإيطالي والرومانشي.",
+  "Ethiopia uses its own calendar, about 7 to 8 years behind the one most of the world uses.": "إثيوبيا ليها تقويم خاص بيها، متأخر حوالي 7 لـ 8 سنين عن اللي العالم بيستخدمه.",
+  "Singapore imports about 90% of its food.": "سنغافورة بتستورد حوالي 90% من أكلها.", "The Great Pyramid of Giza was the tallest human-made structure on Earth for about 3,800 years.": "الهرم الأكبر في الجيزة كان أطول مبنى عمله البني آدم على الأرض لحوالي 3,800 سنة.",
+  "Cleopatra lived closer in time to the Moon landing than to the building of the Great Pyramid.": "كليوباترا عاشت في وقت أقرب للنزول على القمر من وقت بناء الهرم الأكبر.",
+  "Norway’s sovereign wealth fund, built from oil money, is the largest in the world, worth well over a trillion dollars.": "صندوق الثروة السيادي في النرويج، المعمول من فلوس البترول، أكبر صندوق في العالم، وقيمته أكتر من تريليون دولار.",
+  "Finland topped the World Happiness Report every year from 2018 to 2025.": "فنلندا كانت الأولى في تقرير السعادة العالمي كل سنة من 2018 لـ 2025.",
+  "Iceland has ranked first in the World Economic Forum’s Global Gender Gap Index for more than 15 years in a row.": "أيسلندا الأولى في مؤشر الفجوة بين الجنسين من المنتدى الاقتصادي العالمي لأكتر من 15 سنة ورا بعض.",
+  "France welcomes more international tourists than any other country.": "فرنسا بتستقبل سياح أكتر من أي بلد تاني.", "India became the world’s most populous country in 2023, overtaking China.": "الهند بقت أكتر بلد سكان في العالم في 2023، وعدّت الصين.",
+  "Denmark ranked as the least corrupt country in Transparency International’s index in recent years, including 2023 and 2024.": "الدنمارك كانت أقل بلد فساد في مؤشر الشفافية الدولية في السنين الأخيرة، منها 2023 و2024.",
+  "Finland drinks the most coffee per person, and Switzerland eats the most chocolate per person.": "فنلندا بتشرب أكتر قهوة للفرد، وسويسرا بتاكل أكتر شوكولاتة للفرد.",
+  "Japan and Hong Kong have some of the longest life expectancies in the world, over 84 years.": "اليابان وهونج كونج من أطول البلاد عمرًا في العالم، فوق 84 سنة.",
+  "In a 2021 Fidelity analysis of millions of accounts, women’s investments slightly outperformed men’s, by about 0.4 percentage points a year.": "في تحليل لـ Fidelity في 2021 على ملايين الحسابات، استثمارات الستات كانت أحسن شوية من الرجالة، بحوالي 0.4 نقطة مئوية في السنة.",
+  "A classic study (“Boys Will Be Boys”, Barber and Odean) found men traded 45% more than women, and the extra trading cut their returns.": "دراسة مشهورة («Boys Will Be Boys» لباربر وأوديان) لقت إن الرجالة بيتاجروا أكتر من الستات بـ45%، والتداول الزيادة ده قلل أرباحهم.",
+  "Globally, women earn about 20% less than men on average, according to the International Labour Organization.": "في العالم، الستات بيقبضوا في المتوسط حوالي 20% أقل من الرجالة، حسب منظمة العمل الدولية.",
+  "Psychologist Shelley Taylor proposed that under stress, women often “tend and befriend”, seeking connection, alongside the classic fight-or-flight response.": "عالمة النفس شيلي تايلور قالت إن الستات تحت الضغط غالبًا بيدوّروا على القرب والونس، جنب رد الفعل المعروف «حارب أو اهرب».",
+  "McKinsey’s Diversity Matters reports found companies with more women in leadership were more likely to outperform financially. Correlation, not proof, but consistent.": "تقارير ماكنزي لقت إن الشركات اللي فيها ستات أكتر في القيادة أداءها المالي غالبًا أحسن. ارتباط مش إثبات، بس متكرر.",
+  "The Dunning–Kruger effect: people with low skill in an area often overestimate their ability, while experts tend to underestimate theirs.": "تأثير دانينج-كروجر: اللي مهارتهم قليلة في حاجة غالبًا بيبالغوا في تقدير نفسهم، والخبرا بيقللوا من نفسهم.",
+  "The peak–end rule: we remember experiences mostly by their best or worst moment and how they ended. End your days and dates well.": "قاعدة الذروة والنهاية: بنفتكر التجارب بأحلى أو أوحش لحظة فيها وبنهايتها. خلّصي أيامك وخروجاتك حلو.",
+  "The mere exposure effect: we tend to like things more the more often we see them, which is why ads repeat.": "تأثير التعرض: بنحب الحاجات أكتر كل ما نشوفها أكتر، عشان كده الإعلانات بتتكرر.",
+  "Negativity bias: bad experiences affect us more strongly than good ones of the same size, so it takes several good moments to balance one bad one.": "انحياز السلبية: المواقف الوحشة بتأثر فينا أكتر من الحلوة اللي قدها، فمحتاجين كذا لحظة حلوة عشان نوازن لحظة وحشة.",
+  "Social proof: when unsure, people copy what others do. Reviews and “bestseller” labels work because of it.": "الدليل الاجتماعي: لما الناس مش متأكدة، بتقلد غيرها. الريفيوهات وعلامة «الأكثر مبيعًا» بتشتغل عشان كده.",
+  "Reciprocity, from Robert Cialdini’s research: people feel a strong pull to return favours, even small, unasked-for ones.": "المعاملة بالمثل، من أبحاث روبرت شالديني: الناس بتحس إنها لازم ترد الجميل، حتى لو صغير ومحدش طلبه.",
+  "The sunk cost fallacy: continuing something because of what you’ve already spent on it, even when quitting is better.": "مغالطة التكلفة الغارقة: إنك تكمّلي في حاجة عشان صرفتي عليها، حتى لو إنك تسيبيها أحسن.",
+  "The halo effect: one good trait, like attractiveness or confidence, makes us assume someone has other good traits too.": "تأثير الهالة: صفة حلوة واحدة، زي الجمال أو الثقة، بتخلينا نفترض إن الشخص عنده صفات حلوة تانية.",
+  "The Zeigarnik effect: unfinished tasks stay on your mind. Writing them down helps you let go.": "تأثير زايجارنيك: التاسكات اللي مخلصتش بتفضل في دماغك. لما تكتبيها بتقدري تسيبيها.",
+});
 /* ============ helpers ============ */
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => r.querySelectorAll(s);
@@ -541,6 +1333,7 @@ const ym = d => d.getFullYear() + '-' + pad(d.getMonth() + 1);
 const parseD = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d || 1); };
 const todayStr = () => ymd(new Date());
 const nice = s => { const d = parseD(s); return WD[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()]; };
+const niceDM = s => { const d = parseD(s); return d.getDate() + ' ' + MONTHS[d.getMonth()]; };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const dayOfYear = d => Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 864e5);
 const sum = (arr, f) => arr.reduce((a, x) => a + (+f(x) || 0), 0);
@@ -626,7 +1419,7 @@ function save(){
   try { localStorage.setItem(LS, JSON.stringify(S)); } catch(e){}
   clearTimeout(saveTimer); saveTimer = setTimeout(syncNative, 500);
 }
-function syncNative(){ const n = native(); if (!n) return; try { n.postMessage({type:'sync', state:JSON.stringify(S), reminders:buildReminders(), start:S.start}); } catch(e){} }
+function syncNative(){ const n = native(); if (!n) return; try { n.postMessage({type:'sync', state:JSON.stringify(S), reminders:trReminders(buildReminders()), start:S.start}); } catch(e){} }
 function toast(t){ $$('.toast').forEach(x => x.remove()); const el = document.createElement('div'); el.className = 'toast'; el.textContent = t; document.body.appendChild(el); setTimeout(() => el.remove(), 2000); }
 function hearts(x, y){
   if (x == null || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -765,7 +1558,7 @@ function render(){
   const d = new Date();
   if (!TABS.some(t => t.id === nav.tab)) nav.tab = 'today';
   document.body.dataset.tab = nav.tab;
-  $('#dateLabel').textContent = WD[d.getDay()] + ', ' + d.getDate() + ' ' + MONTHS_L[d.getMonth()];
+  $('#dateLabel').textContent = WD[d.getDay()] + (isAr() ? '، ' : ', ') + d.getDate() + ' ' + MONTHS_L[d.getMonth()];
   renderTabs();
   const T = TABS.find(x => x.id === nav.tab);
   if (T.subs && !T.subs.some(s => s[0] === nav.sub[nav.tab])) nav.sub[nav.tab] = T.subs[0][0];
@@ -774,7 +1567,7 @@ function render(){
   $$('.seg button', v).forEach(b => b.onclick = () => go(nav.tab, b.dataset.sub));
   (T.subs ? VIEWS[nav.tab + '.' + nav.sub[nav.tab]] : VIEWS[nav.tab])($('#body'));
   const seg = $('.seg', v), on = seg && $('[aria-pressed="true"]', seg);
-  if (on) seg.scrollLeft = on.offsetLeft - 20;
+  if (on) on.scrollIntoView({inline:'center', block:'nearest'});
 }
 $('#openSettings').onclick = () => go('me', 'settings');
 
@@ -983,7 +1776,7 @@ VIEWS['food.meals'] = function(el){
   armDelete(el, 'data-xdel', i => { extras.splice(+i, 1); save(); again(); });
   $('#gymBtn', el).onclick = () => { if (S.gym[sel]) delete S.gym[sel]; else S.gym[sel] = true; save(); again(); };
   $$('[data-swap]', el).forEach(b => b.onclick = () => swapSheet(sel, +b.dataset.swap, again));
-  const strp = $('#strip', el), cur = strp.children[sel - 1]; if (cur) requestAnimationFrame(() => strp.scrollTo({left:cur.offsetLeft - strp.clientWidth / 2 + 26}));
+  const strp = $('#strip', el), cur = strp.children[sel - 1]; if (cur) requestAnimationFrame(() => cur.scrollIntoView({inline:'center', block:'nearest'}));
 };
 function swapSheet(day, idx, done){
   const orig = PLAN[day - 1].meals[idx], key = day + '-' + idx, list = allDishes(orig.type).filter(d => d.name !== orig.name);
@@ -1061,7 +1854,7 @@ VIEWS['food.groc'] = function(el){
   $('#gReset', el).onclick = () => { S.groc = {}; save(); again(); };
 };
 VIEWS['food.tips'] = function(el){
-  const tip = (t, l) => '<div class="card"><h2>' + t + '</h2><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">' + l.map(x => '<li>' + x + '</li>').join('') + '</ul></div>';
+  const tip = (t, l) => '<div class="card"><h2>' + t + '</h2><ul style="margin:0;padding-inline-start:18px;display:flex;flex-direction:column;gap:4px">' + l.map(x => '<li>' + x + '</li>').join('') + '</ul></div>';
   el.innerHTML = tip('Iron that actually absorbs', ['Eat the guava, orange, mandarin or pomegranate with lunch.','No tea or coffee for 1 hour around meals.','Take iron and vitamin D with lunch, 2 hours away from yogurt, milk and cheese.']) +
     tip('No added sugar', ['Tea with milk, no sugar. No iced coffee, juices or desserts.','Fruit is your sweet treat. Light (low-sugar) jam is fine too, about a tablespoon.','Skip ketchup, BBQ, teriyaki, oyster and sweet chili sauce. Use low-sodium soy sauce, 1 to 2 tbsp per meal.']) +
     tip('Butter, measured', ['1 tsp on eggs and vegetables.','2 tsp in mash or a soup.','Omelets get a small handful (30 g) of mozzarella.']) +
@@ -1728,7 +2521,7 @@ VIEWS['plans.wedding'] = function(el){
   const known = sum(B, b => b.price), done = sum(B.filter(b => b.done), b => b.price), nDone = B.filter(b => b.done).length;
   const wj = jarByName('Wedding beauty'), sj = jarByName('Wedding shopping');
   const allPrep = prepItems(), prepDone = allPrep.filter(x => x.done).length, tagged = allPrep.filter(x => x.key[0] === 'm' || x.key[0] === 's');
-  el.innerHTML = '<div class="card wed" style="cursor:default">' + (W ? '<span class="wn num">' + Math.max(0, wd) + '</span><span style="min-width:0;text-align:left"><b style="display:block;font-size:17px">days to your wedding \u{1F48D}</b><span class="small" style="font-weight:700">' + nice(W) + '</span></span>' : '<span style="font-size:40px">\u{1F48D}</span><span style="min-width:0;text-align:left"><b style="display:block">Set your wedding date</b><span class="small" style="font-weight:700">It starts the countdown and plans your beauty sessions around it.</span></span>') + '</div>' +
+  el.innerHTML = '<div class="card wed" style="cursor:default">' + (W ? '<span class="wn num">' + Math.max(0, wd) + '</span><span style="min-width:0;text-align:start"><b style="display:block;font-size:17px">days to your wedding \u{1F48D}</b><span class="small" style="font-weight:700">' + nice(W) + '</span></span>' : '<span style="font-size:40px">\u{1F48D}</span><span style="min-width:0;text-align:start"><b style="display:block">Set your wedding date</b><span class="small" style="font-weight:700">It starts the countdown and plans your beauty sessions around it.</span></span>') + '</div>' +
     '<div class="card"><label class="field"><span>Wedding date</span><input class="in" id="wDate" type="date" value="' + esc(W) + '"></label><div class="statrow" style="color:var(--ink)"><span>All preparations</span><span class="num">' + prepDone + ' / ' + allPrep.length + '</span></div><div class="bar good"><i style="width:' + (allPrep.length ? prepDone / allPrep.length * 100 : 0) + '%"></i></div></div>' +
     '<div class="money3"><div class="mbox"><b>' + nDone + '/' + B.length + '</b><span>sessions done</span></div><div class="mbox"><b>' + fmt(known) + '</b><span>known prices</span></div><div class="mbox"><b>' + fmt(wj ? jarTotal(wj) : 0) + '</b><span>in beauty jar</span></div></div>' +
     '<div class="card"><div class="card-head"><h2>Beauty plan</h2>' + (W ? '<button class="linkbtn" id="wAuto">Suggest dates</button>' : '') + '</div>' +
@@ -1769,10 +2562,10 @@ VIEWS['me.body'] = function(el){
   const runs = S.runs.slice().sort((a, b) => a.date < b.date ? 1 : -1), bestMin = Math.max(5, ...S.runs.map(r => +r.min || 0)), bestSp = Math.max(6.2, ...S.runs.map(r => +r.speed || 0));
   const lastRun = runs[0];
   const day = (title, list, type) => '<div class="card"><div class="card-head"><h2>' + title + '</h2><button class="btn" data-wkt="' + type + '" style="padding:8px 12px">Add to log</button></div><div class="list">' + list.map(x => '<div class="item"><span>\u{1F4AA}</span><span class="t">' + x[0] + '</span><span class="amt muted" style="font-size:12.5px">' + x[1] + '</span></div>').join('') + '</div></div>';
-  el.innerHTML = workoutHTML() + '<div class="money3"><div class="mbox"><b>' + last.weight + '</b><span>kg on ' + nice(last.date).slice(4) + d('weight', 'down') + '</span></div><div class="mbox"><b>' + last.smm + '</b><span>kg muscle' + d('smm', 'up') + '</span></div><div class="mbox"><b>' + last.pbf + '%</b><span>body fat' + d('pbf', 'down') + '</span></div></div>' +
+  el.innerHTML = workoutHTML() + '<div class="money3"><div class="mbox"><b>' + last.weight + '</b><span>kg on ' + niceDM(last.date) + d('weight', 'down') + '</span></div><div class="mbox"><b>' + last.smm + '</b><span>kg muscle' + d('smm', 'up') + '</span></div><div class="mbox"><b>' + last.pbf + '%</b><span>body fat' + d('pbf', 'down') + '</span></div></div>' +
     '<div class="card tint"><h2>Where you are</h2><p style="margin:0;font-weight:700">' + (last.fat != null ? 'Fat mass ' + last.fat + ' kg; the healthy range on your scan is 11.1–17.8 kg. ' : '') + (last.visc != null ? 'Visceral fat ' + last.visc + ' (healthy is 1–9). ' : '') + 'Your best result yet: fat down, muscle up. Keep training 5 days a week to protect it.</p></div>' +
     '<div class="card"><h2>InBody history</h2><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Date</th><th class="r">Weight</th><th class="r">Muscle</th><th class="r">Fat %</th><th class="r">Visceral</th></tr></thead><tbody>' +
-      scans.map(s => '<tr><td>' + nice(s.date).slice(4) + ' ' + s.date.slice(2, 4) + '</td><td class="r num">' + s.weight + '</td><td class="r num">' + s.smm + '</td><td class="r num">' + s.pbf + '</td><td class="r num">' + (s.visc != null ? s.visc : '–') + '</td></tr>').join('') + '</tbody></table></div>' +
+      scans.map(s => '<tr><td>' + niceDM(s.date) + ' ' + s.date.slice(2, 4) + '</td><td class="r num">' + s.weight + '</td><td class="r num">' + s.smm + '</td><td class="r num">' + s.pbf + '</td><td class="r num">' + (s.visc != null ? s.visc : '–') + '</td></tr>').join('') + '</tbody></table></div>' +
       '<h3 style="margin-top:4px">Add a scan</h3><div class="row"><label class="field"><span>Date</span><input class="in" id="ibD" type="date" value="' + todayStr() + '"></label><label class="field"><span>Weight</span><input class="in num" id="ibW" type="number" step="0.1" inputmode="decimal"></label></div>' +
       '<div class="row"><label class="field"><span>Muscle (SMM)</span><input class="in num" id="ibM" type="number" step="0.1" inputmode="decimal"></label><label class="field"><span>Body fat %</span><input class="in num" id="ibP" type="number" step="0.1" inputmode="decimal"></label></div>' +
       '<div class="row"><label class="field"><span>Fat mass kg</span><input class="in num" id="ibF" type="number" step="0.1" inputmode="decimal"></label><label class="field"><span>Visceral</span><input class="in num" id="ibV" type="number" inputmode="numeric"></label><button class="btn" id="ibAdd">Save</button></div></div>' +
@@ -2197,7 +2990,7 @@ VIEWS['plans.wedding'] = function(el){
   const known = sum(ses, x => x.s.price), spent = sum(ses.filter(x => x.s.done), x => x.s.price), nDone = ses.filter(x => x.s.done).length;
   const wj = jarByName('Wedding beauty'), sj = jarByName('Wedding shopping'), shop = S.wedding.shopping || [], wm = S.mashawer.filter(m => m.wedding);
   const field = (s, f, label, type) => '<label class="field"><span>' + label + '</span><input class="in' + (type === 'number' ? ' num' : '') + '" type="' + type + '"' + (type === 'number' ? ' inputmode="decimal" min="0" placeholder="EGP"' : '') + ' data-wsf="' + f + '" data-id="' + s.id + '" value="' + esc(s[f] || '') + '"></label>';
-  el.innerHTML = '<div class="card wed" style="cursor:default">' + (W ? '<span class="wn num">' + Math.max(0, wd) + '</span><span style="min-width:0;text-align:left"><b style="display:block;font-size:17px">days to your wedding \u{1F48D}</b><span class="small" style="font-weight:700">' + nice(W) + '</span></span>' : '<span style="font-size:40px">\u{1F48D}</span><span style="min-width:0;text-align:left"><b style="display:block">Set your wedding date</b></span>') + '</div>' +
+  el.innerHTML = '<div class="card wed" style="cursor:default">' + (W ? '<span class="wn num">' + Math.max(0, wd) + '</span><span style="min-width:0;text-align:start"><b style="display:block;font-size:17px">days to your wedding \u{1F48D}</b><span class="small" style="font-weight:700">' + nice(W) + '</span></span>' : '<span style="font-size:40px">\u{1F48D}</span><span style="min-width:0;text-align:start"><b style="display:block">Set your wedding date</b></span>') + '</div>' +
     '<div class="card"><label class="field"><span>Wedding date</span><input class="in" id="wDate" type="date" value="' + esc(W) + '"></label><div class="statrow" style="color:var(--ink)"><span>All preparations</span><span class="num">' + prepDone + ' / ' + allPrep.length + '</span></div><div class="bar good"><i style="width:' + (allPrep.length ? prepDone / allPrep.length * 100 : 0) + '%"></i></div></div>' +
     '<div class="money3"><div class="mbox"><b>' + nDone + '/' + ses.length + '</b><span>beauty sessions</span></div><div class="mbox"><b>' + fmt(known) + '</b><span>known prices</span></div><div class="mbox"><b>' + fmt(wj ? jarTotal(wj) : 0) + '</b><span>in beauty jar</span></div></div>' +
     Object.keys(byMonth).sort().map(k => { const L = byMonth[k].sort((a, b) => (a.planned || '9') < (b.planned || '9') ? -1 : 1), d = L.filter(s => s.done).length;
@@ -2260,7 +3053,7 @@ const EXERCISES = [
   ['Back extension','\u{1F4AA}','s'], ['Lat pulldown','\u{1F4AA}','s'], ['Seated row','\u{1F4AA}','s'], ['Shoulder press','\u{1F4AA}','s'], ['Plank','\u{1F9D8}‍♀\u{FE0F}','t'],
 ];
 const WK_FIELDS = {s:[['sets','Sets'],['reps','Reps'],['kg','Kg']], c:[['min','Minutes'],['speed','Speed'],['inc','Incline']], t:[['sets','Sets'],['sec','Seconds']]};
-const wkType = n => { const x = EXERCISES.find(e => e[0].toLowerCase() === n.toLowerCase()); return x ? x[2] : /lunge|squat|press|curl|raise|thrust|deadlift|extension|kickback|pulldown|fly|dip|bridge/i.test(n) ? 's' : /run|walk|treadmill|bike|cycl|stair|ellip|rope|swim|row machine|cardio/i.test(n) ? 'c' : /plank|hold|wall sit/i.test(n) ? 't' : 's'; };
+const wkType = n => { const x = EXERCISES.find(e => e[0].toLowerCase() === n.toLowerCase()); return x ? x[2] : /lunge|squat|press|curl|raise|thrust|deadlift|extension|kickback|pulldown|fly|dip|bridge/i.test(n) ? 's' : /run|walk|treadmill|bike|cycl|stair|ellip|rope|swim|row machine|cardio|جري|مشي|عجلة|سلم|تريدميل|كارديو|نط/i.test(n) ? 'c' : /plank|hold|wall sit|بلانك/i.test(n) ? 't' : 's'; };
 const wkEmoji = n => { const x = EXERCISES.find(e => e[0].toLowerCase() === n.toLowerCase()); return x ? x[1] : wkType(n) === 'c' ? '\u{1F3C3}‍♀\u{FE0F}' : '\u{1F4AA}'; };
 function wkLast(name, before){
   const days = Object.keys(S.wlog || {}).filter(d => d < before).sort().reverse();
@@ -2276,10 +3069,11 @@ function wkAdd(day, name, extra){
   save(); return it;
 }
 function wkLine(it){
-  const v = f => it[f] !== '' && it[f] != null;
-  if (it.type === 'c') return it.name + (v('min') ? ' ' + it.min + ' min' : '') + (v('speed') ? ' @ ' + it.speed : '') + (v('inc') ? ', incline ' + it.inc : '');
-  if (it.type === 't') return it.name + (v('sets') ? ' ' + it.sets + ' ×' : '') + (v('sec') ? ' ' + it.sec + ' s' : '');
-  return it.name + (v('sets') ? ' ' + it.sets + (v('reps') ? '×' + it.reps : ' sets') : v('reps') ? ' ' + it.reps + ' reps' : '') + (v('kg') ? ' @ ' + it.kg + ' kg' : '');
+  const v = f => it[f] !== '' && it[f] != null, A = isAr(), U = A ? {min:' دقيقة', inc:'، ميل ', s:' ث', sets:' جولات', reps:' عدّة', kg:' كجم'} : {min:' min', inc:', incline ', s:' s', sets:' sets', reps:' reps', kg:' kg'};
+  const nm = tr(it.name);
+  if (it.type === 'c') return nm + (v('min') ? ' ' + it.min + U.min : '') + (v('speed') ? ' @ ' + it.speed : '') + (v('inc') ? U.inc + it.inc : '');
+  if (it.type === 't') return nm + (v('sets') ? ' ' + it.sets + ' ×' : '') + (v('sec') ? ' ' + it.sec + U.s : '');
+  return nm + (v('sets') ? ' ' + it.sets + (v('reps') ? '×' + it.reps : U.sets) : v('reps') ? ' ' + it.reps + U.reps : '') + (v('kg') ? ' @ ' + it.kg + U.kg : '');
 }
 function workoutHTML(){
   const day = ui.wkDay || todayStr(), L = (S.wlog || {})[day] || {items:[], note:''}, t = todayStr();
@@ -2290,7 +3084,7 @@ function workoutHTML(){
     '<span class="small muted" style="font-weight:700">Tap what you did, then fill in sets, reps and weight. It saves as you type, like a draft.</span>' +
     '<div class="chips">' + EXERCISES.map((x, i) => '<button class="chip" data-wkx="' + i + '">' + x[1] + ' ' + x[0] + '</button>').join('') + '</div>' +
     '<div class="row"><label class="field"><input class="in" id="wkN" placeholder="Another exercise…" aria-label="Exercise name"></label><button class="btn" id="wkAdd">Add</button></div>' +
-    '<div class="row"><button class="btn soft" data-wkt="glute" style="flex:1">+ Glute day</button><button class="btn soft" data-wkt="quad" style="flex:1">+ Quad day</button>' + (prevDay && !L.items.length ? '<button class="btn soft" id="wkCopy" style="flex:1">Repeat ' + nice(prevDay).slice(0, 3) + '</button>' : '') + '</div>' +
+    '<div class="row"><button class="btn soft" data-wkt="glute" style="flex:1">+ Glute day</button><button class="btn soft" data-wkt="quad" style="flex:1">+ Quad day</button>' + (prevDay && !L.items.length ? '<button class="btn soft" id="wkCopy" style="flex:1">Repeat ' + WD[parseD(prevDay).getDay()] + '</button>' : '') + '</div>' +
     (L.items.length ? '<div class="list">' + L.items.map(it => '<div class="sc"><span class="em">' + it.e + '</span><div style="min-width:0"><div class="nm">' + esc(it.name) + '</div><div class="fields' + (WK_FIELDS[it.type].length === 2 ? ' f2' : '') + '">' +
         WK_FIELDS[it.type].map(([f, lab]) => '<label class="field"><span>' + lab + '</span><input class="in num" type="number" inputmode="decimal" min="0" step="any" data-wkf="' + f + '" data-id="' + it.id + '" value="' + esc(it[f] == null ? '' : it[f]) + '"></label>').join('') + '</div></div>' + delBtn('data-wkdel', it.id) + '</div>').join('') + '</div>' +
       '<p class="small" style="margin:0;font-weight:800;color:var(--mint)">\u{1F4AA} ' + L.items.length + ' exercises' + (sets ? ' · ' + sets + ' sets' : '') + (mins ? ' · ' + mins + ' min cardio' : '') + '</p>'
@@ -2326,11 +3120,24 @@ function gymSheet(day, done){
     $('[data-wtick]', sh).onclick = ev => { setHabit('gym', day, !on, ev); close(); done(); };
   });
 }
+
+
+/* ============ SETTINGS: app language ============ */
+const settingsBase = VIEWS['me.settings'];
+VIEWS['me.settings'] = function(el){
+  settingsBase(el);
+  const L = lang(), card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<h2>' + (L === 'ar' ? 'اللغة' : 'Language') + '</h2><div class="chips" data-notr><button class="chip' + (L === 'ar' ? ' on' : '') + '" data-lang="ar">العربي المصري</button><button class="chip' + (L === 'en' ? ' on' : '') + '" data-lang="en">English</button></div>';
+  el.prepend(card);
+  $$('[data-lang]', card).forEach(b => b.onclick = () => { if (b.dataset.lang === L) return; S.settings.lang = b.dataset.lang; save(); location.reload(); });
+};
 /* ============ boot ============ */
 lifeMigrate();
 homeMigrate();
 weddingMigrate();
 hobbyMigrate();
+applyLang();
 render();
 syncNative();
 document.addEventListener('visibilitychange', () => { if (!document.hidden){ if (nav.tab === 'today') render(); syncNative(); } });

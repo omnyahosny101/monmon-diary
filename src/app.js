@@ -13,6 +13,7 @@ const ym = d => d.getFullYear() + '-' + pad(d.getMonth() + 1);
 const parseD = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d || 1); };
 const todayStr = () => ymd(new Date());
 const nice = s => { const d = parseD(s); return WD[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()]; };
+const niceDM = s => { const d = parseD(s); return d.getDate() + ' ' + MONTHS[d.getMonth()]; };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const dayOfYear = d => Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 864e5);
 const sum = (arr, f) => arr.reduce((a, x) => a + (+f(x) || 0), 0);
@@ -98,7 +99,7 @@ function save(){
   try { localStorage.setItem(LS, JSON.stringify(S)); } catch(e){}
   clearTimeout(saveTimer); saveTimer = setTimeout(syncNative, 500);
 }
-function syncNative(){ const n = native(); if (!n) return; try { n.postMessage({type:'sync', state:JSON.stringify(S), reminders:buildReminders(), start:S.start}); } catch(e){} }
+function syncNative(){ const n = native(); if (!n) return; try { n.postMessage({type:'sync', state:JSON.stringify(S), reminders:trReminders(buildReminders()), start:S.start}); } catch(e){} }
 function toast(t){ $$('.toast').forEach(x => x.remove()); const el = document.createElement('div'); el.className = 'toast'; el.textContent = t; document.body.appendChild(el); setTimeout(() => el.remove(), 2000); }
 function hearts(x, y){
   if (x == null || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -237,7 +238,7 @@ function render(){
   const d = new Date();
   if (!TABS.some(t => t.id === nav.tab)) nav.tab = 'today';
   document.body.dataset.tab = nav.tab;
-  $('#dateLabel').textContent = WD[d.getDay()] + ', ' + d.getDate() + ' ' + MONTHS_L[d.getMonth()];
+  $('#dateLabel').textContent = WD[d.getDay()] + (isAr() ? '، ' : ', ') + d.getDate() + ' ' + MONTHS_L[d.getMonth()];
   renderTabs();
   const T = TABS.find(x => x.id === nav.tab);
   if (T.subs && !T.subs.some(s => s[0] === nav.sub[nav.tab])) nav.sub[nav.tab] = T.subs[0][0];
@@ -246,7 +247,7 @@ function render(){
   $$('.seg button', v).forEach(b => b.onclick = () => go(nav.tab, b.dataset.sub));
   (T.subs ? VIEWS[nav.tab + '.' + nav.sub[nav.tab]] : VIEWS[nav.tab])($('#body'));
   const seg = $('.seg', v), on = seg && $('[aria-pressed="true"]', seg);
-  if (on) seg.scrollLeft = on.offsetLeft - 20;
+  if (on) on.scrollIntoView({inline:'center', block:'nearest'});
 }
 $('#openSettings').onclick = () => go('me', 'settings');
 
@@ -455,7 +456,7 @@ VIEWS['food.meals'] = function(el){
   armDelete(el, 'data-xdel', i => { extras.splice(+i, 1); save(); again(); });
   $('#gymBtn', el).onclick = () => { if (S.gym[sel]) delete S.gym[sel]; else S.gym[sel] = true; save(); again(); };
   $$('[data-swap]', el).forEach(b => b.onclick = () => swapSheet(sel, +b.dataset.swap, again));
-  const strp = $('#strip', el), cur = strp.children[sel - 1]; if (cur) requestAnimationFrame(() => strp.scrollTo({left:cur.offsetLeft - strp.clientWidth / 2 + 26}));
+  const strp = $('#strip', el), cur = strp.children[sel - 1]; if (cur) requestAnimationFrame(() => cur.scrollIntoView({inline:'center', block:'nearest'}));
 };
 function swapSheet(day, idx, done){
   const orig = PLAN[day - 1].meals[idx], key = day + '-' + idx, list = allDishes(orig.type).filter(d => d.name !== orig.name);
@@ -533,7 +534,7 @@ VIEWS['food.groc'] = function(el){
   $('#gReset', el).onclick = () => { S.groc = {}; save(); again(); };
 };
 VIEWS['food.tips'] = function(el){
-  const tip = (t, l) => '<div class="card"><h2>' + t + '</h2><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">' + l.map(x => '<li>' + x + '</li>').join('') + '</ul></div>';
+  const tip = (t, l) => '<div class="card"><h2>' + t + '</h2><ul style="margin:0;padding-inline-start:18px;display:flex;flex-direction:column;gap:4px">' + l.map(x => '<li>' + x + '</li>').join('') + '</ul></div>';
   el.innerHTML = tip('Iron that actually absorbs', ['Eat the guava, orange, mandarin or pomegranate with lunch.','No tea or coffee for 1 hour around meals.','Take iron and vitamin D with lunch, 2 hours away from yogurt, milk and cheese.']) +
     tip('No added sugar', ['Tea with milk, no sugar. No iced coffee, juices or desserts.','Fruit is your sweet treat. Light (low-sugar) jam is fine too, about a tablespoon.','Skip ketchup, BBQ, teriyaki, oyster and sweet chili sauce. Use low-sodium soy sauce, 1 to 2 tbsp per meal.']) +
     tip('Butter, measured', ['1 tsp on eggs and vegetables.','2 tsp in mash or a soup.','Omelets get a small handful (30 g) of mozzarella.']) +

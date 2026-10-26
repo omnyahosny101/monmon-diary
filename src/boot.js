@@ -3,6 +3,7 @@ lifeMigrate();
 homeMigrate();
 weddingMigrate();
 hobbyMigrate();
+applyLang();
 render();
 syncNative();
 document.addEventListener('visibilitychange', () => { if (!document.hidden){ if (nav.tab === 'today') render(); syncNative(); } });
