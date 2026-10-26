@@ -1,62 +1,72 @@
 import Foundation
 import UserNotifications
 
-/// Local reminders: each meal of the next 7 days, plus 4 daily water breaks.
-/// iOS keeps at most 64 pending reminders, so meals are rescheduled each time the app opens.
+/// Schedules the reminders the page sends: repeating ones (water, diary at 12 am and 2 am,
+/// evening check-in, start-of-month money reminders) and one-off ones (meals, mashawer and
+/// self-care the day before, task due dates). iOS keeps at most 64 pending reminders,
+/// so repeating ones go first, then the soonest one-off reminders.
 enum Reminders {
-    static let mealTimes: [(label: String, hour: Int, minute: Int)] = [
-        ("Breakfast", 9, 0),
-        ("Lunch", 14, 0),
-        ("Snack", 17, 30),
-        ("Dinner", 20, 30),
-    ]
-    static let waterHours = [11, 13, 16, 19]
+    private static let storeKey = "reminderPayload"
 
+    /// Saves the latest list from the page and schedules it.
+    static func update(with payload: [String: Any]) {
+        if let data = try? JSONSerialization.data(withJSONObject: payload) {
+            UserDefaults.standard.set(data, forKey: storeKey)
+        }
+        reschedule()
+    }
+
+    /// Re-applies the saved list (used when the app comes to the foreground).
     static func reschedule() {
+        guard let data = UserDefaults.standard.data(forKey: storeKey),
+              let payload = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return }
+
         let center = UNUserNotificationCenter.current()
         center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
             guard granted else { return }
             center.removeAllPendingNotificationRequests()
 
-            let defaults = UserDefaults.standard
-            if defaults.object(forKey: "reminders") as? Bool == false { return }
-
-            let start = Plan.parse(defaults.string(forKey: "start")) ?? Plan.defaultStart
-            let cal = Calendar.current
-            let now = Date()
-
-            for offset in 0..<7 {
-                guard let date = cal.date(byAdding: .day, value: offset, to: cal.startOfDay(for: now)) else { continue }
-                let number = Plan.dayNumber(for: date, start: start)
-                guard let planDay = Plan.day(number) else { continue }
-
-                for (index, slot) in mealTimes.enumerated() where index < planDay.meals.count {
-                    var comps = cal.dateComponents([.year, .month, .day], from: date)
-                    comps.hour = slot.hour
-                    comps.minute = slot.minute
-                    guard let fire = cal.date(from: comps), fire > now else { continue }
-
-                    let meal = planDay.meals[index]
-                    let content = UNMutableNotificationContent()
-                    content.title = "\(slot.label) time, Monmon \u{2661}"
-                    content.body = "\(meal.name) \u{00B7} \(meal.kcal) kcal"
-                    content.sound = .default
-                    let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
-                    center.add(UNNotificationRequest(identifier: "meal-\(number)-\(index)", content: content, trigger: trigger))
-                }
-            }
-
-            for hour in waterHours {
-                let content = UNMutableNotificationContent()
-                content.title = "Water break"
-                content.body = "Have a glass of water and tap it in Monmon's Life."
-                content.sound = .default
+            var budget = 64
+            let repeats = payload["repeat"] as? [[String: Any]] ?? []
+            for item in repeats where budget > 0 {
+                guard let id = item["id"] as? String,
+                      let hour = item["hour"] as? Int,
+                      let minute = item["minute"] as? Int else { continue }
                 var comps = DateComponents()
                 comps.hour = hour
-                comps.minute = 0
+                comps.minute = minute
+                if let day = item["day"] as? Int { comps.day = day }
                 let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: true)
-                center.add(UNNotificationRequest(identifier: "water-\(hour)", content: content, trigger: trigger))
+                center.add(UNNotificationRequest(identifier: id, content: content(item), trigger: trigger))
+                budget -= 1
+            }
+
+            let formatter = DateFormatter()
+            formatter.calendar = Calendar(identifier: .gregorian)
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = .current
+            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
+            let now = Date()
+            let cal = Calendar.current
+
+            let once = payload["once"] as? [[String: Any]] ?? []
+            for item in once where budget > 0 {
+                guard let id = item["id"] as? String,
+                      let at = item["at"] as? String,
+                      let date = formatter.date(from: at), date > now else { continue }
+                let comps = cal.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+                let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+                center.add(UNNotificationRequest(identifier: id, content: content(item), trigger: trigger))
+                budget -= 1
             }
         }
+    }
+
+    private static func content(_ item: [String: Any]) -> UNMutableNotificationContent {
+        let c = UNMutableNotificationContent()
+        c.title = item["title"] as? String ?? "Monmon's Life"
+        c.body = item["body"] as? String ?? ""
+        c.sound = .default
+        return c
     }
 }

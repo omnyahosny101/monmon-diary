@@ -6,6 +6,7 @@ on:
     paths:
       - "ios/**"
       - "index.html"
+      - "src/**"
       - ".github/workflows/ios.yml"
   workflow_dispatch:
 
