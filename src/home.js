@@ -229,6 +229,7 @@ VIEWS.today = function(el){
   $$('[data-prep]', el).forEach(b => b.onclick = ev => { togglePrep(b.dataset.prep); hearts(ev.clientX, ev.clientY); toast('Done! One step closer \u{1F48D}'); again(); });
   $$('[data-h]', el).forEach(b => b.onclick = ev => { const id = b.dataset.h;
     if (id === 'read' || id === 'listen') return mediaSheet(id, day, again);
+    if (id === 'gym') return gymSheet(day, again);
     setHabit(id, day, !habitDone(id, day), ev); again(); });
   $('#htAdd', el).onclick = () => { const v = $('#htIn', el).value.trim(), f = $('#htFor', el).value; if (!v) return toast('Write the task');
     S.tasks.push({id:uid(), title:v, kind:f === 'personal' ? 'personal' : 'work', job:f === 'personal' ? '' : f, prio:'normal', due:'', time:'', done:false}); save(); again(); };
@@ -386,3 +387,93 @@ VIEWS['plans.wedding'] = function(el){
   $$('[data-wmd]', el).forEach(b => b.onclick = ev => { const m = S.mashawer.find(y => y.id === b.dataset.wmd); m.done = !m.done; m.doneOn = m.done ? t : ''; if (m.done) hearts(ev.clientX, ev.clientY); save(); again(); });
   $$('[data-go]', el).forEach(b => b.onclick = () => { const p = b.dataset.go.split(':'); go(p[0], p[1]); });
 };
+
+/* ============ HOBBIES: new ones ============ */
+const NEW_HOBBIES = [
+  ['bedazzle', 'Bedazzling', '\u{1F48E}', 'Get a rhinestone kit and decorate a phone case or a denim jacket'],
+  ['blocks', 'Block building puzzles', '\u{1F9E9}', 'Pick a 3D block puzzle set to build on a quiet evening'],
+  ['acrylic', 'Acrylic painting', '\u{1F3A8}', 'Get a canvas, brushes and 5 basic colours, then paint one small piece'],
+  ['pole', 'Pole dancing', '\u{1F483}', 'Book a beginner pole class'],
+];
+function hobbyMigrate(){
+  if (S.seed7) return;
+  NEW_HOBBIES.forEach(([id, name, e, next]) => { if (!S.skills.some(s => s.id === id || s.name.toLowerCase() === name.toLowerCase())) S.skills.push({id, kind:'hobby', name, e, progress:0, next, notes:'', sessions:0}); });
+  S.wlog = S.wlog || {};
+  S.seed7 = true;
+}
+
+/* ============ WORKOUT LOG: write exactly what I did ============ */
+// type: s = strength (sets, reps, kg) · c = cardio (minutes, speed, incline) · t = timed hold (sets, seconds)
+const EXERCISES = [
+  ['Running','\u{1F3C3}‍♀\u{FE0F}','c'], ['Treadmill walk, incline','\u{1F6B6}‍♀\u{FE0F}','c'], ['Stair climber','\u{1FA9C}','c'], ['Bike','\u{1F6B4}‍♀\u{FE0F}','c'],
+  ['Leg press','\u{1F9B5}','s'], ['Leg extension','\u{1F9B5}','s'], ['Leg curl','\u{1F9B5}','s'], ['Hip thrust','\u{1F351}','s'], ['Romanian deadlift','\u{1F3CB}\u{FE0F}‍♀\u{FE0F}','s'],
+  ['Hack squat','\u{1F3CB}\u{FE0F}‍♀\u{FE0F}','s'], ['Smith squat','\u{1F3CB}\u{FE0F}‍♀\u{FE0F}','s'], ['Sissy squat','\u{1F9B5}','s'], ['Hip abduction','\u{1F351}','s'], ['Cable kickbacks','\u{1F351}','s'],
+  ['Back extension','\u{1F4AA}','s'], ['Lat pulldown','\u{1F4AA}','s'], ['Seated row','\u{1F4AA}','s'], ['Shoulder press','\u{1F4AA}','s'], ['Plank','\u{1F9D8}‍♀\u{FE0F}','t'],
+];
+const WK_FIELDS = {s:[['sets','Sets'],['reps','Reps'],['kg','Kg']], c:[['min','Minutes'],['speed','Speed'],['inc','Incline']], t:[['sets','Sets'],['sec','Seconds']]};
+const wkType = n => { const x = EXERCISES.find(e => e[0].toLowerCase() === n.toLowerCase()); return x ? x[2] : /lunge|squat|press|curl|raise|thrust|deadlift|extension|kickback|pulldown|fly|dip|bridge/i.test(n) ? 's' : /run|walk|treadmill|bike|cycl|stair|ellip|rope|swim|row machine|cardio/i.test(n) ? 'c' : /plank|hold|wall sit/i.test(n) ? 't' : 's'; };
+const wkEmoji = n => { const x = EXERCISES.find(e => e[0].toLowerCase() === n.toLowerCase()); return x ? x[1] : wkType(n) === 'c' ? '\u{1F3C3}‍♀\u{FE0F}' : '\u{1F4AA}'; };
+function wkLast(name, before){
+  const days = Object.keys(S.wlog || {}).filter(d => d < before).sort().reverse();
+  for (const d of days){ const it = (S.wlog[d].items || []).find(x => x.name.toLowerCase() === name.toLowerCase()); if (it) return it; }
+}
+function wkAdd(day, name, extra){
+  const L = S.wlog[day] = S.wlog[day] || {items:[], note:''}, last = wkLast(name, day) || {};
+  const it = {id:uid(), name, e:wkEmoji(name), type:wkType(name)};
+  WK_FIELDS[it.type].forEach(([f]) => { it[f] = last[f] != null ? last[f] : ''; });
+  Object.assign(it, extra || {}); L.items.push(it);
+  if (!habitDone('gym', day) && S.habits.some(h => h.id === 'gym')) setHabit('gym', day, true);
+  const a = S.daylog[day] = S.daylog[day] || []; if (!a.includes('gym')) a.push('gym');
+  save(); return it;
+}
+function wkLine(it){
+  const v = f => it[f] !== '' && it[f] != null;
+  if (it.type === 'c') return it.name + (v('min') ? ' ' + it.min + ' min' : '') + (v('speed') ? ' @ ' + it.speed : '') + (v('inc') ? ', incline ' + it.inc : '');
+  if (it.type === 't') return it.name + (v('sets') ? ' ' + it.sets + ' ×' : '') + (v('sec') ? ' ' + it.sec + ' s' : '');
+  return it.name + (v('sets') ? ' ' + it.sets + (v('reps') ? '×' + it.reps : ' sets') : v('reps') ? ' ' + it.reps + ' reps' : '') + (v('kg') ? ' @ ' + it.kg + ' kg' : '');
+}
+function workoutHTML(){
+  const day = ui.wkDay || todayStr(), L = (S.wlog || {})[day] || {items:[], note:''}, t = todayStr();
+  const prevDay = Object.keys(S.wlog || {}).filter(d => d < day && S.wlog[d].items && S.wlog[d].items.length).sort().pop();
+  const sets = sum(L.items.filter(x => x.type !== 'c'), x => +x.sets || 0), mins = sum(L.items.filter(x => x.type === 'c'), x => +x.min || 0);
+  const hist = Object.keys(S.wlog || {}).filter(d => d !== day && S.wlog[d].items && S.wlog[d].items.length).sort().reverse().slice(0, 8);
+  return '<div class="card"><div class="card-head"><h2>' + (day === t ? 'Today’s workout' : 'Workout · ' + nice(day)) + '</h2><input class="in" id="wkDay" type="date" value="' + day + '" max="' + t + '" style="width:auto;padding:6px 8px;font-size:13px" aria-label="Workout day"></div>' +
+    '<span class="small muted" style="font-weight:700">Tap what you did, then fill in sets, reps and weight. It saves as you type, like a draft.</span>' +
+    '<div class="chips">' + EXERCISES.map((x, i) => '<button class="chip" data-wkx="' + i + '">' + x[1] + ' ' + x[0] + '</button>').join('') + '</div>' +
+    '<div class="row"><label class="field"><input class="in" id="wkN" placeholder="Another exercise…" aria-label="Exercise name"></label><button class="btn" id="wkAdd">Add</button></div>' +
+    '<div class="row"><button class="btn soft" data-wkt="glute" style="flex:1">+ Glute day</button><button class="btn soft" data-wkt="quad" style="flex:1">+ Quad day</button>' + (prevDay && !L.items.length ? '<button class="btn soft" id="wkCopy" style="flex:1">Repeat ' + nice(prevDay).slice(0, 3) + '</button>' : '') + '</div>' +
+    (L.items.length ? '<div class="list">' + L.items.map(it => '<div class="sc"><span class="em">' + it.e + '</span><div style="min-width:0"><div class="nm">' + esc(it.name) + '</div><div class="fields' + (WK_FIELDS[it.type].length === 2 ? ' f2' : '') + '">' +
+        WK_FIELDS[it.type].map(([f, lab]) => '<label class="field"><span>' + lab + '</span><input class="in num" type="number" inputmode="decimal" min="0" step="any" data-wkf="' + f + '" data-id="' + it.id + '" value="' + esc(it[f] == null ? '' : it[f]) + '"></label>').join('') + '</div></div>' + delBtn('data-wkdel', it.id) + '</div>').join('') + '</div>' +
+      '<p class="small" style="margin:0;font-weight:800;color:var(--mint)">\u{1F4AA} ' + L.items.length + ' exercises' + (sets ? ' · ' + sets + ' sets' : '') + (mins ? ' · ' + mins + ' min cardio' : '') + '</p>'
+      : '<div class="empty">Nothing logged ' + (day === t ? 'yet today' : 'for this day') + '.</div>') +
+    '<label class="field"><span>Notes</span><textarea class="in" id="wkNote" placeholder="How it felt, what to change next time…" style="min-height:52px">' + esc(L.note || '') + '</textarea></label></div>' +
+    (hist.length ? '<div class="card"><h2>Past workouts</h2><div class="list">' + hist.map(d => '<button class="item" data-wkday="' + d + '"><span style="font-size:20px">\u{1F4AA}</span><span class="t">' + nice(d) + '<span class="s" style="color:var(--ink);font-weight:600">' + S.wlog[d].items.map(wkLine).map(esc).join(' · ') + '</span>' + (S.wlog[d].note ? '<span class="s">' + esc(S.wlog[d].note) + '</span>' : '') + '</span><span></span></button>').join('') + '</div></div>' : '');
+}
+function bindWorkout(el, again){
+  const day = ui.wkDay || todayStr();
+  const added = (n, ev) => { if (ev) hearts(ev.clientX, ev.clientY); toast(n + ' added \u{1F4AA}'); again(); };
+  $('#wkDay', el).onchange = e => { ui.wkDay = e.target.value || todayStr(); again(); };
+  $$('[data-wkx]', el).forEach(b => b.onclick = ev => { const x = EXERCISES[+b.dataset.wkx]; wkAdd(day, x[0]); added(x[0], ev); });
+  const addN = ev => { const n = $('#wkN', el).value.trim(); if (!n) return toast('Name the exercise'); wkAdd(day, n); added(n, ev); };
+  $('#wkAdd', el).onclick = addN; $('#wkN', el).onkeydown = e => { if (e.key === 'Enter') addN(); };
+  $$('[data-wkt]', el).forEach(b => b.onclick = ev => { const T = b.dataset.wkt === 'glute' ? GLUTE_DAY : QUAD_DAY;
+    T.forEach(([n, s]) => { const m = /^(\d+)\s*(?:×|x)\s*([\d–-]+)/.exec(s) || /^(\d+) sets/.exec(s); const it = wkAdd(day, n); if (m){ if (it.sets === '') it.sets = +m[1]; if (m[2] && it.reps === '') it.reps = m[2].split(/[–-]/).pop(); } });
+    S.workouts.push({id:uid(), date:day, type:b.dataset.wkt}); save(); added(b.dataset.wkt === 'glute' ? 'Glute day' : 'Quad day', ev); });
+  const cp = $('#wkCopy', el); if (cp) cp.onclick = ev => { const pd = Object.keys(S.wlog).filter(d => d < day && S.wlog[d].items.length).sort().pop();
+    S.wlog[pd].items.forEach(x => { const c = Object.assign({}, x); delete c.id; wkAdd(day, x.name, c); }); added('Last workout', ev); };
+  $$('[data-wkf]', el).forEach(i => i.oninput = () => { const it = S.wlog[day].items.find(x => x.id === i.dataset.id); it[i.dataset.wkf] = i.value === '' ? '' : +i.value; save(); });
+  armDelete(el, 'data-wkdel', id => { S.wlog[day].items = S.wlog[day].items.filter(x => x.id !== id); save(); again(); });
+  $('#wkNote', el).oninput = e => { S.wlog[day] = S.wlog[day] || {items:[], note:''}; S.wlog[day].note = e.target.value; save(); };
+  $$('[data-wkday]', el).forEach(b => b.onclick = () => { ui.wkDay = b.dataset.wkday; again(); window.scrollTo({top:0, behavior:'smooth'}); });
+}
+function gymSheet(day, done){
+  const L = (S.wlog || {})[day], on = habitDone('gym', day);
+  sheet('<div style="text-align:center;font-size:44px">\u{1F3CB}\u{FE0F}‍♀\u{FE0F}</div><h2 class="plain" style="justify-content:center">Gym today</h2>' +
+    (L && L.items.length ? '<div class="list">' + L.items.map(it => '<div class="item"><span>' + it.e + '</span><span class="t">' + esc(wkLine(it)) + '</span><span></span></div>').join('') + '</div>' : '<p class="small muted" style="margin:0;text-align:center;font-weight:700">Write exactly what you did: running, leg press, leg extensions…</p>') +
+    '<button class="btn full" data-wlog>' + (L && L.items.length ? 'Edit my workout' : 'Write my workout') + '</button>' +
+    '<button class="btn soft full" data-wtick>' + (on ? 'Mark gym as not done' : 'Just tick it') + '</button>',
+  (sh, close) => {
+    $('[data-wlog]', sh).onclick = () => { close(); ui.wkDay = day; go('me', 'body'); };
+    $('[data-wtick]', sh).onclick = ev => { setHabit('gym', day, !on, ev); close(); done(); };
+  });
+}

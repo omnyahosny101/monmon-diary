@@ -2,6 +2,7 @@
 lifeMigrate();
 homeMigrate();
 weddingMigrate();
+hobbyMigrate();
 render();
 syncNative();
 document.addEventListener('visibilitychange', () => { if (!document.hidden){ if (nav.tab === 'today') render(); syncNative(); } });

@@ -345,15 +345,15 @@ VIEWS['me.body'] = function(el){
   const ws = weekStart(new Date()), thisWeek = S.workouts.filter(w => parseD(w.date) >= ws).length, runsWeek = S.runs.filter(r => parseD(r.date) >= ws).length;
   const runs = S.runs.slice().sort((a, b) => a.date < b.date ? 1 : -1), bestMin = Math.max(5, ...S.runs.map(r => +r.min || 0)), bestSp = Math.max(6.2, ...S.runs.map(r => +r.speed || 0));
   const lastRun = runs[0];
-  const day = (title, list, type) => '<div class="card"><div class="card-head"><h2>' + title + '</h2><button class="btn" data-wo="' + type + '" style="padding:8px 12px">Done today</button></div><div class="list">' + list.map(x => '<div class="item"><span>\u{1F4AA}</span><span class="t">' + x[0] + '</span><span class="amt muted" style="font-size:12.5px">' + x[1] + '</span></div>').join('') + '</div></div>';
-  el.innerHTML = '<div class="money3"><div class="mbox"><b>' + last.weight + '</b><span>kg on ' + nice(last.date).slice(4) + d('weight', 'down') + '</span></div><div class="mbox"><b>' + last.smm + '</b><span>kg muscle' + d('smm', 'up') + '</span></div><div class="mbox"><b>' + last.pbf + '%</b><span>body fat' + d('pbf', 'down') + '</span></div></div>' +
+  const day = (title, list, type) => '<div class="card"><div class="card-head"><h2>' + title + '</h2><button class="btn" data-wkt="' + type + '" style="padding:8px 12px">Add to log</button></div><div class="list">' + list.map(x => '<div class="item"><span>\u{1F4AA}</span><span class="t">' + x[0] + '</span><span class="amt muted" style="font-size:12.5px">' + x[1] + '</span></div>').join('') + '</div></div>';
+  el.innerHTML = workoutHTML() + '<div class="money3"><div class="mbox"><b>' + last.weight + '</b><span>kg on ' + nice(last.date).slice(4) + d('weight', 'down') + '</span></div><div class="mbox"><b>' + last.smm + '</b><span>kg muscle' + d('smm', 'up') + '</span></div><div class="mbox"><b>' + last.pbf + '%</b><span>body fat' + d('pbf', 'down') + '</span></div></div>' +
     '<div class="card tint"><h2>Where you are</h2><p style="margin:0;font-weight:700">' + (last.fat != null ? 'Fat mass ' + last.fat + ' kg; the healthy range on your scan is 11.1–17.8 kg. ' : '') + (last.visc != null ? 'Visceral fat ' + last.visc + ' (healthy is 1–9). ' : '') + 'Your best result yet: fat down, muscle up. Keep training 5 days a week to protect it.</p></div>' +
     '<div class="card"><h2>InBody history</h2><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Date</th><th class="r">Weight</th><th class="r">Muscle</th><th class="r">Fat %</th><th class="r">Visceral</th></tr></thead><tbody>' +
       scans.map(s => '<tr><td>' + nice(s.date).slice(4) + ' ' + s.date.slice(2, 4) + '</td><td class="r num">' + s.weight + '</td><td class="r num">' + s.smm + '</td><td class="r num">' + s.pbf + '</td><td class="r num">' + (s.visc != null ? s.visc : '–') + '</td></tr>').join('') + '</tbody></table></div>' +
       '<h3 style="margin-top:4px">Add a scan</h3><div class="row"><label class="field"><span>Date</span><input class="in" id="ibD" type="date" value="' + todayStr() + '"></label><label class="field"><span>Weight</span><input class="in num" id="ibW" type="number" step="0.1" inputmode="decimal"></label></div>' +
       '<div class="row"><label class="field"><span>Muscle (SMM)</span><input class="in num" id="ibM" type="number" step="0.1" inputmode="decimal"></label><label class="field"><span>Body fat %</span><input class="in num" id="ibP" type="number" step="0.1" inputmode="decimal"></label></div>' +
       '<div class="row"><label class="field"><span>Fat mass kg</span><input class="in num" id="ibF" type="number" step="0.1" inputmode="decimal"></label><label class="field"><span>Visceral</span><input class="in num" id="ibV" type="number" inputmode="numeric"></label><button class="btn" id="ibAdd">Save</button></div></div>' +
-    '<p class="note">Gym this week: ' + thisWeek + ' of 5 sessions.</p>' +
+    '<p class="note">Gym this week: ' + weekCount('gym', todayStr()) + ' of 5 sessions. Add a whole template to your log with the buttons below.</p>' +
     day('Glute day', GLUTE_DAY, 'glute') + day('Quad day', QUAD_DAY, 'quad');
   const again = () => VIEWS['me.body'](el);
   $('#ibAdd', el).onclick = () => { const w = +$('#ibW', el).value, m = +$('#ibM', el).value, p = +$('#ibP', el).value; if (!(w > 0 && m > 0 && p > 0)) return toast('Add weight, muscle and body fat %');
@@ -361,7 +361,7 @@ VIEWS['me.body'] = function(el){
     const prevS = S.inbody.slice().sort((a, b) => a.date < b.date ? 1 : -1)[0]; S.inbody.push(s); save();
     if (prevS && (p < prevS.pbf || m > prevS.smm)) celebrate({key:'ib-' + s.date, e:'\u{1F4AA}', title:'Your body is changing!', msg:(p < prevS.pbf ? 'Body fat down ' + (prevS.pbf - p).toFixed(1) + ' points. ' : '') + (m > prevS.smm ? 'Muscle up ' + (m - prevS.smm).toFixed(1) + ' kg.' : '')}); else toast('Scan saved');
     again(); };
-  $$('[data-wo]', el).forEach(b => b.onclick = ev => { S.workouts.push({id:uid(), date:todayStr(), type:b.dataset.wo}); save(); setHabit('gym', todayStr(), true, ev); const a = S.daylog[todayStr()] = S.daylog[todayStr()] || []; if (!a.includes('gym')) a.push('gym'); save(); toast((b.dataset.wo === 'glute' ? 'Glute' : 'Quad') + ' day done! \u{1F4AA}'); again(); });
+  bindWorkout(el, again);
 };
 
 /* ---------- ME: settings ---------- */
