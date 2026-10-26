@@ -1,0 +1,466 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0D0B48D6C96B54D7F6FD3688 /* plan.json in Resources */ = {isa = PBXBuildFile; fileRef = 17008C47C78166E0478EEC5B /* plan.json */; };
+		3623A9CE0F5A2AE7E2A7267C /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9375BC4D8805CE1F0412D34 /* WebView.swift */; };
+		418AF869EDFBBE443020A147 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 60BD4F19977D2B04FE83BAAC /* Assets.xcassets */; };
+		51849095F0F640CF6CBE96F9 /* MonmonsLifeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB562F59562B632C8BFA9DAC /* MonmonsLifeApp.swift */; };
+		6A2E39C5376C7CDD979BC5D5 /* PlanData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AE45457B0161BE455AFDF8 /* PlanData.swift */; };
+		856DEE4064EA50A6DB1F3896 /* MonmonWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C2743E30E258D9D287B6C95C /* MonmonWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		94DFC9A03DEBBD89BCFD54DD /* PlanData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AE45457B0161BE455AFDF8 /* PlanData.swift */; };
+		B587BA19B75CCDA5041F6CC3 /* Web in Resources */ = {isa = PBXBuildFile; fileRef = D57EE19CA91231F9FEA6AA8A /* Web */; };
+		C548BEC25B3ACF06979D907A /* plan.json in Resources */ = {isa = PBXBuildFile; fileRef = 17008C47C78166E0478EEC5B /* plan.json */; };
+		F7ACFD922F5A3861D149CE16 /* Reminders.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9CCD5EA40DF2C210F1AE10A /* Reminders.swift */; };
+		FC9C38DA1EBA8FC6283551E7 /* MonmonWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1220289DBE20B592CC3166B8 /* MonmonWidget.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		47DCB5CE3687F73AA4779242 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8DF2715C01EB040C54868F36 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 36F963DD405EE6C90C1F46C6;
+			remoteInfo = MonmonWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		FF29DFB469AAACEDB22B3A34 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				856DEE4064EA50A6DB1F3896 /* MonmonWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		03D3636C3F7F9C17EE454D42 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		1220289DBE20B592CC3166B8 /* MonmonWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonmonWidget.swift; sourceTree = "<group>"; };
+		17008C47C78166E0478EEC5B /* plan.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = plan.json; sourceTree = "<group>"; };
+		23AE45457B0161BE455AFDF8 /* PlanData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanData.swift; sourceTree = "<group>"; };
+		60BD4F19977D2B04FE83BAAC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		69FBC139076E7084BF419596 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		A9375BC4D8805CE1F0412D34 /* WebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebView.swift; sourceTree = "<group>"; };
+		C2743E30E258D9D287B6C95C /* MonmonWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = MonmonWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		C9CCD5EA40DF2C210F1AE10A /* Reminders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reminders.swift; sourceTree = "<group>"; };
+		D57EE19CA91231F9FEA6AA8A /* Web */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Web; sourceTree = SOURCE_ROOT; };
+		EB562F59562B632C8BFA9DAC /* MonmonsLifeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonmonsLifeApp.swift; sourceTree = "<group>"; };
+		F74FE35398EE11690E76AFE9 /* MonmonsLife.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MonmonsLife.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0195A7D71686664FA2439525 = {
+			isa = PBXGroup;
+			children = (
+				D57EE19CA91231F9FEA6AA8A /* Web */,
+				58E9B2D916E37D5B181EE97D /* MonmonsLife */,
+				1F7D58DA318344564E7BDFDB /* MonmonWidget */,
+				6B6573BA338FB99E1716AD67 /* Shared */,
+				4A22AA8B2B7E53292C16E119 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1F7D58DA318344564E7BDFDB /* MonmonWidget */ = {
+			isa = PBXGroup;
+			children = (
+				69FBC139076E7084BF419596 /* Info.plist */,
+				1220289DBE20B592CC3166B8 /* MonmonWidget.swift */,
+			);
+			path = MonmonWidget;
+			sourceTree = "<group>";
+		};
+		4A22AA8B2B7E53292C16E119 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F74FE35398EE11690E76AFE9 /* MonmonsLife.app */,
+				C2743E30E258D9D287B6C95C /* MonmonWidget.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		58E9B2D916E37D5B181EE97D /* MonmonsLife */ = {
+			isa = PBXGroup;
+			children = (
+				60BD4F19977D2B04FE83BAAC /* Assets.xcassets */,
+				03D3636C3F7F9C17EE454D42 /* Info.plist */,
+				EB562F59562B632C8BFA9DAC /* MonmonsLifeApp.swift */,
+				C9CCD5EA40DF2C210F1AE10A /* Reminders.swift */,
+				A9375BC4D8805CE1F0412D34 /* WebView.swift */,
+			);
+			path = MonmonsLife;
+			sourceTree = "<group>";
+		};
+		6B6573BA338FB99E1716AD67 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				17008C47C78166E0478EEC5B /* plan.json */,
+				23AE45457B0161BE455AFDF8 /* PlanData.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		36F963DD405EE6C90C1F46C6 /* MonmonWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F480C08735B0ABCA3BF26635 /* Build configuration list for PBXNativeTarget "MonmonWidget" */;
+			buildPhases = (
+				A103DD586731FD477DC4F373 /* Sources */,
+				C907037022986D9B4C9D9E7F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MonmonWidget;
+			packageProductDependencies = (
+			);
+			productName = MonmonWidget;
+			productReference = C2743E30E258D9D287B6C95C /* MonmonWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		5FA1F00B0FFBD084547D7938 /* MonmonsLife */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 04A4AEF936F4AFDDBC14DF7A /* Build configuration list for PBXNativeTarget "MonmonsLife" */;
+			buildPhases = (
+				EFC1A144A72C6E66E71D0C27 /* Sources */,
+				0730E2E989E5B0E44635530D /* Resources */,
+				FF29DFB469AAACEDB22B3A34 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A187F26FFA8964221D73489C /* PBXTargetDependency */,
+			);
+			name = MonmonsLife;
+			packageProductDependencies = (
+			);
+			productName = MonmonsLife;
+			productReference = F74FE35398EE11690E76AFE9 /* MonmonsLife.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8DF2715C01EB040C54868F36 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					36F963DD405EE6C90C1F46C6 = {
+						ProvisioningStyle = Automatic;
+					};
+					5FA1F00B0FFBD084547D7938 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 92283C70009FD2E4AE96CCB8 /* Build configuration list for PBXProject "MonmonsLife" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 0195A7D71686664FA2439525;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4A22AA8B2B7E53292C16E119 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5FA1F00B0FFBD084547D7938 /* MonmonsLife */,
+				36F963DD405EE6C90C1F46C6 /* MonmonWidget */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0730E2E989E5B0E44635530D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				418AF869EDFBBE443020A147 /* Assets.xcassets in Resources */,
+				B587BA19B75CCDA5041F6CC3 /* Web in Resources */,
+				C548BEC25B3ACF06979D907A /* plan.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C907037022986D9B4C9D9E7F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0D0B48D6C96B54D7F6FD3688 /* plan.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A103DD586731FD477DC4F373 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FC9C38DA1EBA8FC6283551E7 /* MonmonWidget.swift in Sources */,
+				94DFC9A03DEBBD89BCFD54DD /* PlanData.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EFC1A144A72C6E66E71D0C27 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				51849095F0F640CF6CBE96F9 /* MonmonsLifeApp.swift in Sources */,
+				6A2E39C5376C7CDD979BC5D5 /* PlanData.swift in Sources */,
+				F7ACFD922F5A3861D149CE16 /* Reminders.swift in Sources */,
+				3623A9CE0F5A2AE7E2A7267C /* WebView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A187F26FFA8964221D73489C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 36F963DD405EE6C90C1F46C6 /* MonmonWidget */;
+			targetProxy = 47DCB5CE3687F73AA4779242 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		05ADB6807D38AF19103E60FA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = MonmonWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.omnyahosny101.monmonslife.widget;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		228EB3B3C3694C3748ECC01D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = MonmonsLife/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.omnyahosny101.monmonslife;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		574171805BEFB5F45006D2A3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = MonmonsLife/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.omnyahosny101.monmonslife;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5EE50E0E001EBF85C954991A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		78F9A7F692835451EAD1BD0D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = MonmonWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.omnyahosny101.monmonslife.widget;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		E9125A7AB45F3D6E690E752F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		04A4AEF936F4AFDDBC14DF7A /* Build configuration list for PBXNativeTarget "MonmonsLife" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				574171805BEFB5F45006D2A3 /* Debug */,
+				228EB3B3C3694C3748ECC01D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		92283C70009FD2E4AE96CCB8 /* Build configuration list for PBXProject "MonmonsLife" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E9125A7AB45F3D6E690E752F /* Debug */,
+				5EE50E0E001EBF85C954991A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F480C08735B0ABCA3BF26635 /* Build configuration list for PBXNativeTarget "MonmonWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				78F9A7F692835451EAD1BD0D /* Debug */,
+				05ADB6807D38AF19103E60FA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 8DF2715C01EB040C54868F36 /* Project object */;
+}
