@@ -7,7 +7,7 @@ My 30-day meal plan app: daily meals to tick off, calorie ring, water tracker, m
 
 **Inside:** Today (urgent tasks, habits with streaks, sadaqa, reading and podcasts, day log, diary with mood and 3 daily questions, spending, daily insight), Food (meal plan with swaps, my dishes and meal builder, forbidden corner, groceries), Money (overview, budgets, spending, savings jars, sadaqa, receipts, salary, pets), Plans (urgent and normal tasks, mashawer, experiences, self-care month, shopping, vision board), Grow (skills, hobbies), Me (full record of each day, mood calendar, habit customization with rewards, settings and backup).
 
-To change the app, edit the files in `src/` (`app.html`, `app.js`, `content.js`, `nutrition.js`) and run `python3 src/build.py`.
+To change the app, edit the files in `src/` (`app.html`, `app.js`, `content.js`, `wisdom.js`, `facts.js`, `nutrition.js`) and run `python3 src/build.py`.
 
 ## Install the iPhone app (Mac + Xcode)
 

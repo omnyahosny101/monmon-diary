@@ -67,7 +67,7 @@ const DEF = () => ({
     {id:'mo', kind:'hobby', name:'Mosaic', e:'\u{1F3A8}', progress:0, next:'Find a beginner workshop or kit', notes:'', sessions:0},
     {id:'po', kind:'hobby', name:'Pottery', e:'\u{1F3FA}', progress:0, next:'Book a wheel-throwing class', notes:'', sessions:0},
   ],
-  celebrated:{}, splashSeen:'', insightShift:0, savedAt:0
+  celebrated:{}, wisdomShift:0, insightShift:0, savedAt:0
 });
 
 /* ============ storage ============ */
@@ -248,7 +248,6 @@ function render(){
   if (on) seg.scrollLeft = on.offsetLeft - 20;
 }
 $('#openSettings').onclick = () => go('me', 'settings');
-$('#openNote').onclick = () => showSplash(true);
 
 /* ============ shared bits ============ */
 function weekCount(id, dayStr){ const ws = weekStart(parseD(dayStr)); let c = 0; for (let i = 0; i < 7; i++){ const d = new Date(ws); d.setDate(ws.getDate() + i); if (habitDone(id, ymd(d))) c++; } return c; }
@@ -292,20 +291,6 @@ function sheet(html, bind){
 function emoPicker(cur, attr){ return '<div class="emopick">' + EMO.map(e => '<button type="button" ' + attr + '="' + e + '" aria-pressed="' + (cur === e) + '">' + e + '</button>').join('') + '</div>'; }
 function bindEmo(root, attr, onPick){ $$('[' + attr + ']', root).forEach(b => b.onclick = () => { onPick(b.getAttribute(attr)); $$('[' + attr + ']', root).forEach(x => x.setAttribute('aria-pressed', x === b)); }); }
 
-/* ============ splash: daily note + advice ============ */
-function showSplash(force){
-  const t = todayStr();
-  if (!force && (S.splashSeen === t || S.settings.splash === false)) return;
-  if ($('.overlay')) return;
-  S.splashSeen = t; save();
-  const doy = dayOfYear(new Date()), h = new Date().getHours();
-  const hello = h < 5 ? 'Still up, Monmon? \u{1F319}' : h < 12 ? 'Sabah el kheir, Monmon ☀\u{FE0F}' : h < 18 ? 'Hello, gorgeous \u{1F338}' : 'Masa2 el kheir, Monmon \u{1F319}';
-  const ov = document.createElement('div'); ov.className = 'overlay';
-  ov.innerHTML = '<div class="ocard"><p style="color:var(--berry);font-weight:900">' + hello + '</p><div class="quote">“' + esc(NOTES[doy % NOTES.length]) + '”</div><div class="adv"><b>Today’s advice for you</b>' + esc(ADVICE[(doy * 7) % ADVICE.length]) + '</div><button class="btn full" style="background:var(--rose)">Let’s go ♡</button></div>';
-  document.body.appendChild(ov);
-  const close = () => ov.remove(); $('button', ov).onclick = close; ov.onclick = e => { if (e.target === ov) close(); };
-}
-
 /* ============ TODAY ============ */
 function urgentTasks(){ const t = todayStr(), soon = addDays(t, 2); return S.tasks.filter(x => !x.done && (x.prio === 'urgent' || (x.prio === 'high' && x.due && x.due <= soon))).sort((a, b) => ((a.prio === 'urgent' ? 0 : 1) - (b.prio === 'urgent' ? 0 : 1)) || ((a.due || '9') < (b.due || '9') ? -1 : 1)); }
 VIEWS.today = function(el){
@@ -319,7 +304,9 @@ VIEWS.today = function(el){
   const sadT = sum(S.sadaqa.filter(s => s.date === day), s => s.amount);
   const ins = INSIGHTS[(doy + (S.insightShift || 0)) % INSIGHTS.length];
   const todaySpend = S.spend.filter(s => s.date === day);
+  const wz = WISDOM[(doy + (S.wisdomShift || 0)) % WISDOM.length];
   el.innerHTML =
+  '<div class="card wisdom"><span class="src">\u{1F4DA} ' + esc(wz.src) + '</span><p class="idea">' + esc(wz.idea) + '</p><p class="todo"><b>Try this today</b>' + esc(wz.advice) + '</p><button class="linkbtn" id="wzNext" style="align-self:flex-start;background:var(--surface);color:var(--berry)">Another one</button></div>' +
   (urg.length ? '<div class="urgent"><h2>Do these first</h2>' + urg.slice(0, 4).map(x => '<button class="ur" data-udone="' + x.id + '"><span class="tick">' + CHECK + '</span><span><span class="pill" style="background:#fff;color:' + (x.prio === 'urgent' ? 'var(--danger)' : '#a86d00') + '">' + (x.prio === 'urgent' ? '\u{1F6A8} URGENT' : '⚠\u{FE0F} SOON') + '</span>' + esc(x.title) + (x.due ? '<span style="display:block;font-size:12px;opacity:.92">' + (x.due < day ? 'Overdue · ' : '') + nice(x.due) + (x.time ? ' · by ' + x.time : '') + '</span>' : '') + '</span></button>').join('') + '</div>' : '') +
 
   '<div class="card tint"><div class="greet">Your day so far</div>' +
@@ -384,6 +371,7 @@ VIEWS.today = function(el){
   bindSpendDeletes(el, again);
   $$('[data-go]', el).forEach(b => b.onclick = () => { const p = b.dataset.go.split(':'); go(p[0], p[1]); });
   $$('[data-udone]', el).forEach(b => b.onclick = ev => { const x = S.tasks.find(y => y.id === b.dataset.udone); x.done = true; x.doneOn = day; save(); hearts(ev.clientX, ev.clientY); toast('Done! One less thing ♡'); again(); });
+  $('#wzNext', el).onclick = () => { S.wisdomShift = (S.wisdomShift || 0) + 1; save(); again(); };
   $('#insNext', el).onclick = () => { S.insightShift = (S.insightShift || 0) + 1; save(); again(); setTimeout(() => { const i = $('.insight'); if (i) i.scrollIntoView({block:'center'}); }, 0); };
   const nm = $('[data-nextmeal]', el); if (nm) nm.onclick = ev => { toggleMeal(nm.dataset.nextmeal, ev); again(); };
 };
@@ -877,7 +865,7 @@ VIEWS['me.habits'] = function(el){
 VIEWS['me.settings'] = function(el){
   const R = S.settings.rem, B = S.settings.budgets || {};
   const sw = (k, label, sub, obj) => '<button class="toggle" data-sw="' + k + '" data-obj="' + (obj || 'rem') + '" style="justify-content:space-between;width:100%"><span>' + label + '<span class="small muted" style="display:block;font-weight:600">' + sub + '</span></span><span class="sw" role="switch" aria-checked="' + !!(obj === 'settings' ? S.settings[k] !== false : R[k]) + '"></span></button>';
-  el.innerHTML = '<div class="card"><h2>Make it mine</h2>' + sw('celebrate', 'Celebrations', 'Confetti and messages for streaks, savings and wins', 'settings') + sw('splash', 'Daily note when I open the app', 'A quote and advice once a day', 'settings') + '</div>' +
+  el.innerHTML = '<div class="card"><h2>Make it mine</h2>' + sw('celebrate', 'Celebrations', 'Confetti and messages for streaks, savings and wins', 'settings') + '</div>' +
     '<div class="card"><h2>Meal plan</h2><label class="field"><span>Plan start date (Day 1)</span><input class="in" id="stStart" type="date" value="' + esc(S.start) + '"></label></div>' +
     '<div class="card"><h2>Money</h2><label class="field"><span>Monthly investment amount (EGP)</span><input class="in num" id="stInv" type="number" inputmode="decimal" min="0" value="' + esc(S.settings.invest || '') + '" placeholder="0"></label>' +
       '<h3 style="margin-top:4px">Monthly budgets</h3>' + CATS.map(c => '<div class="item"><span style="font-size:18px">' + c.e + '</span><span class="t">' + c.name + '</span><input class="in num" data-bud="' + c.id + '" type="number" inputmode="decimal" min="0" placeholder="No limit" value="' + esc(B[c.id] || '') + '" style="width:110px;text-align:right" aria-label="Budget for ' + c.name + '"></div>').join('') + '</div>' +
@@ -902,6 +890,5 @@ VIEWS['me.settings'] = function(el){
 /* ============ boot ============ */
 render();
 syncNative();
-setTimeout(() => showSplash(false), 350);
-document.addEventListener('visibilitychange', () => { if (!document.hidden){ if (nav.tab === 'today') render(); syncNative(); showSplash(false); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden){ if (nav.tab === 'today') render(); syncNative(); } });
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

@@ -7,7 +7,7 @@ parts = {
     '__DATA__': json.dumps(json.loads((src / 'plan.json').read_text()), ensure_ascii=False),
     '__GROC__': json.dumps(json.loads((src / 'groc.json').read_text()), ensure_ascii=False),
     '__DISHES__': json.dumps(json.loads((src / 'dishes.json').read_text()), ensure_ascii=False),
-    '__CONTENT__': (src / 'content.js').read_text(),
+    '__CONTENT__': (src / 'content.js').read_text() + (src / 'wisdom.js').read_text() + (src / 'facts.js').read_text(),
     '__NUTRITION__': (src / 'nutrition.js').read_text(),
     '__APP_JS__': (src / 'app.js').read_text(),
 }
