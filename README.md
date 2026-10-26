@@ -5,9 +5,9 @@ My 30-day meal plan app: daily meals to tick off, calorie ring, water tracker, m
 - **Web version:** https://omnyahosny101.github.io/monmon-diary
 - **iPhone app:** the `ios` folder. It shows the same app, works offline, sends reminders, and has a home-screen widget with today's meals.
 
-**Inside:** Today (habits, day log, diary with mood, reading and podcasts, spending), Food (30-day meal plan, water, groceries), Money (monthly overview with budgets, spending, Talabat/Noon/Amazon receipts, salary, pets, invest and gold goals), Plans (mashawer, self-care month, work and personal tasks, shopping list, vision board), Me (mood calendar, habit stats, settings, backup).
+**Inside:** Today (urgent tasks, habits with streaks, sadaqa, reading and podcasts, day log, diary with mood and 3 daily questions, spending, daily insight), Food (meal plan with swaps, my dishes and meal builder, forbidden corner, groceries), Money (overview, budgets, spending, savings jars, sadaqa, receipts, salary, pets), Plans (urgent and normal tasks, mashawer, experiences, self-care month, shopping, vision board), Grow (skills, hobbies), Me (full record of each day, mood calendar, habit customization with rewards, settings and backup).
 
-To change the app, edit `src/app.html` and run `python3 src/build.py`.
+To change the app, edit the files in `src/` (`app.html`, `app.js`, `content.js`, `nutrition.js`) and run `python3 src/build.py`.
 
 ## Install the iPhone app (Mac + Xcode)
 
