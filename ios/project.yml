@@ -25,6 +25,7 @@ targets:
       properties:
         CFBundleDisplayName: "Monmon's Life"
         UILaunchScreen: {}
+        UIUserInterfaceStyle: Light
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UIApplicationSupportsIndirectInputEvents: true

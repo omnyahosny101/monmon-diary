@@ -9,6 +9,7 @@ struct MonmonsLifeApp: App {
             WebView()
                 .ignoresSafeArea()
                 .background(Color(red: 1.0, green: 0.95, blue: 0.965))
+                .preferredColorScheme(.light)
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
