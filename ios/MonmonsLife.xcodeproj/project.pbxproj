@@ -250,7 +250,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.omnyahosny101.monmonslife.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.monmon2026.monmonslife.widget;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -266,7 +266,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.omnyahosny101.monmonslife;
+				PRODUCT_BUNDLE_IDENTIFIER = com.monmon2026.monmonslife;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -282,7 +282,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.omnyahosny101.monmonslife;
+				PRODUCT_BUNDLE_IDENTIFIER = com.monmon2026.monmonslife;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -357,7 +357,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.omnyahosny101.monmonslife.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.monmon2026.monmonslife.widget;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
