@@ -215,7 +215,12 @@ Object.assign(AR, {
   "Backup": "نسخة احتياطي", "Everything is saved on this phone. Copy a backup now and then and keep it in Notes.": "كل حاجة متحفظة على الموبايل ده. خدي نسخة كل فترة وحطيها في النوتس.",
   "Copy backup": "انسخي النسخة", "Restore from backup": "رجّعي من نسخة", "Restore": "رجّعي", "Paste your backup here": "الصقي النسخة هنا", "Backup copied. Paste it in Notes.": "النسخة اتنسخت. الصقيها في النوتس.",
   "Select all and copy": "حددي الكل وانسخي", "That backup text isn’t valid": "النسخة دي مش سليمة", "made for Omnya ♡": "معمول لأمنية ♡", "made for Omnya": "معمول لأمنية", "No limit": "من غير حد", "Start date saved": "ميعاد البداية اتحفظ",
-  "Language": "اللغة", "App language": "لغة الأبلكيشن",
+  "Language": "اللغة", "Remind me": "فكّريني", "Change reminder": "غيّري التذكير", "Reminders": "التذكيرات", "My reminders": "تذكيراتي", "Once": "مرة واحدة", "Every week": "كل أسبوع", "Every month": "كل شهر",
+  "What should I remind you about?": "أفكّرك بإيه؟", "Call the clinic, pay the bill…": "أكلم العيادة، أدفع الفاتورة…", "Save reminder": "احفظي التذكير", "Remove reminder": "امسحي التذكير",
+  "Reminders ring in the iPhone app at the time you choose.": "التذكيرات بترن في أبلكيشن الآيفون في الوقت اللي تختاريه.", "Reminder set": "التذكير اتظبط", "Reminder removed": "التذكير اتمسح",
+  "Pick a time that hasn’t passed yet": "اختاري وقت لسه مجاش", "+ New reminder": "+ تذكير جديد", "New reminder": "تذكير جديد", "No reminders yet.": "لسه مفيش تذكيرات.", "Edit": "عدّلي",
+  "Anything you want: a call, a bill, a pill, a message. Tap 🔔 on any task, meshwar or wedding item to get a reminder for it too.": "أي حاجة عايزاها: مكالمة، فاتورة، دوا، رسالة. ودوسي 🔔 على أي تاسك أو مشوار أو حاجة للفرح عشان يفكّرك بيها كمان.",
+  "Your reminder": "تذكيرك", "Your reminder from Monmon’s Life": "تذكيرك من حياة مونمون", "every day": "كل يوم", "every week": "كل أسبوع", "every month": "كل شهر", "App language": "لغة الأبلكيشن",
 
   // ---------- reminders (fixed text) ----------
   "Water break": "بريك مية", "Have a glass of water and tap it in Monmon’s Life.": "اشربي كوباية مية وعلّميها في حياة مونمون.", "Diary time, Monmon ♡": "وقت اليوميات يا مونمون ♡",

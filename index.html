@@ -172,6 +172,10 @@ select.in{min-width:0;max-width:100%}
 .urgent .ur .tick{border-color:rgba(255,255,255,.7)}
 .urgent .card-head h2{margin:0}
 .flag{flex:0 0 auto;width:32px;height:32px;border-radius:999px;border:1.5px dashed var(--line);background:var(--bg);font-size:14px;line-height:1;filter:grayscale(1);opacity:.5;transition:all .2s}
+.ibtns{display:inline-flex;gap:4px;align-items:center;flex:0 0 auto}
+.bell{flex:0 0 auto;width:32px;height:32px;border-radius:999px;border:1.5px dashed var(--line);background:var(--bg);font-size:14px;line-height:1;filter:grayscale(1);opacity:.5;transition:all .2s}
+.bell.on{filter:none;opacity:1;border-style:solid;border-color:var(--gold);background:var(--gold-soft)}
+.urgent .bell{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.6)}
 .flag.on{filter:none;opacity:1;border-style:solid;border-color:var(--danger);background:#ffe3e8;transform:scale(1.05)}
 .urgent .flag.on{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.75)}
 @keyframes pulse{0%,100%{box-shadow:0 14px 28px -14px var(--danger)}50%{box-shadow:0 14px 34px -8px var(--danger)}}
@@ -851,7 +855,12 @@ Object.assign(AR, {
   "Backup": "نسخة احتياطي", "Everything is saved on this phone. Copy a backup now and then and keep it in Notes.": "كل حاجة متحفظة على الموبايل ده. خدي نسخة كل فترة وحطيها في النوتس.",
   "Copy backup": "انسخي النسخة", "Restore from backup": "رجّعي من نسخة", "Restore": "رجّعي", "Paste your backup here": "الصقي النسخة هنا", "Backup copied. Paste it in Notes.": "النسخة اتنسخت. الصقيها في النوتس.",
   "Select all and copy": "حددي الكل وانسخي", "That backup text isn’t valid": "النسخة دي مش سليمة", "made for Omnya ♡": "معمول لأمنية ♡", "made for Omnya": "معمول لأمنية", "No limit": "من غير حد", "Start date saved": "ميعاد البداية اتحفظ",
-  "Language": "اللغة", "App language": "لغة الأبلكيشن",
+  "Language": "اللغة", "Remind me": "فكّريني", "Change reminder": "غيّري التذكير", "Reminders": "التذكيرات", "My reminders": "تذكيراتي", "Once": "مرة واحدة", "Every week": "كل أسبوع", "Every month": "كل شهر",
+  "What should I remind you about?": "أفكّرك بإيه؟", "Call the clinic, pay the bill…": "أكلم العيادة، أدفع الفاتورة…", "Save reminder": "احفظي التذكير", "Remove reminder": "امسحي التذكير",
+  "Reminders ring in the iPhone app at the time you choose.": "التذكيرات بترن في أبلكيشن الآيفون في الوقت اللي تختاريه.", "Reminder set": "التذكير اتظبط", "Reminder removed": "التذكير اتمسح",
+  "Pick a time that hasn’t passed yet": "اختاري وقت لسه مجاش", "+ New reminder": "+ تذكير جديد", "New reminder": "تذكير جديد", "No reminders yet.": "لسه مفيش تذكيرات.", "Edit": "عدّلي",
+  "Anything you want: a call, a bill, a pill, a message. Tap 🔔 on any task, meshwar or wedding item to get a reminder for it too.": "أي حاجة عايزاها: مكالمة، فاتورة، دوا، رسالة. ودوسي 🔔 على أي تاسك أو مشوار أو حاجة للفرح عشان يفكّرك بيها كمان.",
+  "Your reminder": "تذكيرك", "Your reminder from Monmon’s Life": "تذكيرك من حياة مونمون", "every day": "كل يوم", "every week": "كل أسبوع", "every month": "كل شهر", "App language": "لغة الأبلكيشن",
 
   // ---------- reminders (fixed text) ----------
   "Water break": "بريك مية", "Have a glass of water and tap it in Monmon’s Life.": "اشربي كوباية مية وعلّميها في حياة مونمون.", "Diary time, Monmon ♡": "وقت اليوميات يا مونمون ♡",
@@ -2619,6 +2628,7 @@ VIEWS['me.settings'] = function(el){
 
 /* ---------- reminders added to the iPhone schedule ---------- */
 function lifeReminders(R, repeat, push, at){
+  myReminders(repeat, push, at);
   if (R.plans !== false) emergencyReminders(push, at);
   const P = S.profile, hm = s => s.split(':').map(Number);
   if (R.wake !== false && P.wake){ const [h, m] = hm(P.wake); repeat.push({id:'wake', title:'Good morning, Monmon ☀\u{FE0F}', body:'Same time every day. Curtains open, a glass of water, then your day.', hour:h, minute:m});
@@ -2762,7 +2772,8 @@ function mashawerHTML(){
 }
 
 /* ---------- 🚨 emergency flags: tasks, mashawer, wedding prep, shopping, beauty ---------- */
-function flagBtn(key, on){ return '<button class="flag' + (on ? ' on' : '') + '" data-flag="' + key + '" aria-pressed="' + !!on + '" aria-label="' + (on ? 'Remove emergency flag' : 'Flag as emergency') + '">\u{1F6A8}</button>'; }
+function flagBtn(key, on){ return '<span class="ibtns">' + bellBtn(key) + flagOnly(key, on) + '</span>'; }
+function flagOnly(key, on){ return '<button class="flag' + (on ? ' on' : '') + '" data-flag="' + key + '" aria-pressed="' + !!on + '" aria-label="' + (on ? 'Remove emergency flag' : 'Flag as emergency') + '">\u{1F6A8}</button>'; }
 function findFlag(key){
   const [k, id] = key.split(':');
   if (k === 't') return S.tasks.find(x => x.id === id);
@@ -2776,7 +2787,7 @@ function toggleFlag(key){
   let on; if (key[0] === 't'){ x.prio = x.prio === 'urgent' ? 'normal' : 'urgent'; on = x.prio === 'urgent'; } else on = x.flag = !x.flag;
   save(); toast(on ? '\u{1F6A8} Emergency. It’s at the top of Today now.' : 'Flag removed');
 }
-function bindFlags(el, again){ $$('[data-flag]', el).forEach(b => b.onclick = ev => { ev.stopPropagation(); toggleFlag(b.dataset.flag); again(); }); }
+function bindFlags(el, again){ $$('[data-flag]', el).forEach(b => b.onclick = ev => { ev.stopPropagation(); toggleFlag(b.dataset.flag); again(); }); bindBells(el, again); }
 function emergencies(){
   const out = [];
   urgentTasks().forEach(x => out.push({key:'t:' + x.id, e:x.kind === 'work' ? '\u{1F4BC}' : '✅', title:x.title, date:x.due, time:x.time, kind:x.prio === 'urgent' ? (x.job ? jobName(x.job) : 'Task') : '⚠\u{FE0F} Due soon', flag:x.prio === 'urgent', wed:/wedding|زفاف|فرح/i.test(x.title)}));
@@ -3133,11 +3144,75 @@ VIEWS['me.settings'] = function(el){
   el.prepend(card);
   $$('[data-lang]', card).forEach(b => b.onclick = () => { if (b.dataset.lang === L) return; S.settings.lang = b.dataset.lang; save(); location.reload(); });
 };
+
+
+/* ============ MY REMINDERS: a reminder on any task, meshwar, wedding item, or anything ============ */
+// S.myrem: [{id, title, date:'YYYY-MM-DD', time:'HH:MM', repeat:'once'|'daily'|'weekly'|'monthly', ref:'t:id'|''}]
+const REPEATS = [['once', 'Once'], ['daily', 'Every day'], ['weekly', 'Every week'], ['monthly', 'Every month']];
+const remFor = key => (S.myrem || []).find(r => r.ref === key);
+function refDone(ref){ const x = ref && findFlag(ref); return !!(x && x.done); }
+function refTitle(key){ const x = findFlag(key); return x ? (x.title || x.name || '') : ''; }
+function refDate(key){ const x = findFlag(key); return x ? (x.due || x.date || x.planned || '') : ''; }
+function bellBtn(key){ const r = remFor(key); return '<button class="bell' + (r ? ' on' : '') + '" data-bell="' + key + '" aria-label="' + (r ? 'Change reminder' : 'Remind me') + '">\u{1F514}</button>'; }
+function remWhen(r){
+  const rep = {daily:'every day', weekly:'every week', monthly:'every month'}[r.repeat];
+  return (r.repeat === 'daily' ? '' : nice(r.date) + ' · ') + r.time + (rep ? ' · ' + rep : '');
+}
+function remSheet(opts, done){
+  const r = opts.id ? S.myrem.find(x => x.id === opts.id) : (opts.ref ? remFor(opts.ref) : null);
+  const title = r ? r.title : (opts.title || ''), date = r ? r.date : (opts.date && opts.date >= todayStr() ? opts.date : todayStr()), time = r ? r.time : (opts.time || '09:00'), rep = r ? r.repeat : 'once';
+  sheet('<div style="text-align:center;font-size:44px">\u{1F514}</div><h2 class="plain" style="justify-content:center">Remind me</h2>' +
+    (opts.ref ? '<p style="margin:0;text-align:center;font-weight:800">' + esc(tr(title)) + '</p>' : '<label class="field"><span>What should I remind you about?</span><input class="in" data-rt value="' + esc(title) + '" placeholder="Call the clinic, pay the bill…"></label>') +
+    '<div class="row"><label class="field"><span>Day</span><input class="in" type="date" data-rd value="' + date + '"></label><label class="field"><span>Time</span><input class="in" type="time" data-rh value="' + time + '"></label></div>' +
+    '<div class="chips" data-rr>' + REPEATS.map(([k, l]) => '<button class="chip' + (k === rep ? ' on' : '') + '" data-rep="' + k + '">' + l + '</button>').join('') + '</div>' +
+    '<button class="btn full" data-rsave>Save reminder</button>' + (r ? '<button class="btn soft full" data-rdel>Remove reminder</button>' : '') +
+    '<p class="small muted" style="margin:0;text-align:center;font-weight:700">Reminders ring in the iPhone app at the time you choose.</p>',
+  (sh, close) => {
+    let repeat = rep;
+    $$('[data-rep]', sh).forEach(b => b.onclick = () => { repeat = b.dataset.rep; $$('[data-rep]', sh).forEach(x => x.classList.toggle('on', x === b)); });
+    $('[data-rsave]', sh).onclick = () => {
+      const t = opts.ref ? title : $('[data-rt]', sh).value.trim(); if (!t) return toast('What should I remind you about?');
+      const d = $('[data-rd]', sh).value || todayStr(), h = $('[data-rh]', sh).value || '09:00';
+      if (repeat === 'once' && new Date(d + 'T' + h) < new Date()) return toast('Pick a time that hasn’t passed yet');
+      S.myrem = S.myrem || [];
+      if (r) Object.assign(r, {title:t, date:d, time:h, repeat}); else S.myrem.push({id:uid(), title:t, date:d, time:h, repeat, ref:opts.ref || ''});
+      save(); close(); toast('Reminder set \u{1F514}'); done();
+    };
+    const del = $('[data-rdel]', sh); if (del) del.onclick = () => { S.myrem = S.myrem.filter(x => x !== r); save(); close(); toast('Reminder removed'); done(); };
+  });
+}
+function bindBells(el, again){ $$('[data-bell]', el).forEach(b => b.onclick = ev => { ev.stopPropagation(); const k = b.dataset.bell; remSheet({ref:k, title:refTitle(k), date:refDate(k)}, again); }); }
+function myReminders(repeat, push, at){
+  const now = new Date();
+  (S.myrem || []).forEach(r => {
+    if (refDone(r.ref)) return;
+    const [h, m] = r.time.split(':').map(Number), d = parseD(r.date), title = '\u{1F514} ' + r.title, body = r.ref ? 'Your reminder' : 'Your reminder from Monmon’s Life';
+    if (r.repeat === 'daily') repeat.push({id:'my-' + r.id, title, body, hour:h, minute:m});
+    else if (r.repeat === 'weekly') repeat.push({id:'my-' + r.id, title, body, weekday:d.getDay() + 1, hour:h, minute:m});
+    else if (r.repeat === 'monthly') repeat.push({id:'my-' + r.id, title, body, day:d.getDate(), hour:h, minute:m});
+    else push('my-' + r.id, title, body, at(d, h, m));
+  });
+}
+function remMigrate(){ S.myrem = Array.isArray(S.myrem) ? S.myrem : []; }
+const plansTab = TABS.find(t => t.id === 'plans'); if (plansTab && !plansTab.subs.some(x => x[0] === 'rem')) plansTab.subs.splice(1, 0, ['rem', 'Reminders']);
+VIEWS['plans.rem'] = function(el){
+  const now = new Date(), active = (S.myrem || []).filter(r => r.repeat !== 'once' || new Date(r.date + 'T' + r.time) >= now).filter(r => !refDone(r.ref))
+    .sort((a, b) => (a.repeat === 'once' ? a.date + a.time : '0' + a.time) < (b.repeat === 'once' ? b.date + b.time : '0' + b.time) ? -1 : 1);
+  el.innerHTML = '<div class="card tint"><h2>My reminders \u{1F514}</h2><span class="small muted" style="font-weight:700">Anything you want: a call, a bill, a pill, a message. Tap \u{1F514} on any task, meshwar or wedding item to get a reminder for it too.</span>' +
+    '<button class="btn full" id="remNew">+ New reminder</button></div>' +
+    '<div class="card"><h2>Coming up</h2><div class="list">' + (active.length ? active.map(r => '<div class="item"><span style="font-size:20px">\u{1F514}</span><span class="t">' + esc(tr(r.title)) + '<span class="s">' + remWhen(r) + '</span></span><span class="ibtns"><button class="linkbtn" data-redit="' + r.id + '">Edit</button>' + delBtn('data-rmdel', r.id) + '</span></div>').join('') : '<div class="empty">No reminders yet.</div>') + '</div>' +
+    '<p class="small muted" style="margin:0">Reminders ring in the iPhone app at the time you choose.</p></div>';
+  const again = () => VIEWS['plans.rem'](el);
+  $('#remNew', el).onclick = () => remSheet({}, again);
+  $$('[data-redit]', el).forEach(b => b.onclick = () => { const r = S.myrem.find(x => x.id === b.dataset.redit); remSheet({id:r.id, ref:r.ref}, again); });
+  armDelete(el, 'data-rmdel', id => { S.myrem = S.myrem.filter(r => r.id !== id); save(); toast('Reminder removed'); again(); });
+};
 /* ============ boot ============ */
 lifeMigrate();
 homeMigrate();
 weddingMigrate();
 hobbyMigrate();
+remMigrate();
 applyLang();
 render();
 syncNative();

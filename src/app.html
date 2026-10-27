@@ -172,6 +172,10 @@ select.in{min-width:0;max-width:100%}
 .urgent .ur .tick{border-color:rgba(255,255,255,.7)}
 .urgent .card-head h2{margin:0}
 .flag{flex:0 0 auto;width:32px;height:32px;border-radius:999px;border:1.5px dashed var(--line);background:var(--bg);font-size:14px;line-height:1;filter:grayscale(1);opacity:.5;transition:all .2s}
+.ibtns{display:inline-flex;gap:4px;align-items:center;flex:0 0 auto}
+.bell{flex:0 0 auto;width:32px;height:32px;border-radius:999px;border:1.5px dashed var(--line);background:var(--bg);font-size:14px;line-height:1;filter:grayscale(1);opacity:.5;transition:all .2s}
+.bell.on{filter:none;opacity:1;border-style:solid;border-color:var(--gold);background:var(--gold-soft)}
+.urgent .bell{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.6)}
 .flag.on{filter:none;opacity:1;border-style:solid;border-color:var(--danger);background:#ffe3e8;transform:scale(1.05)}
 .urgent .flag.on{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.75)}
 @keyframes pulse{0%,100%{box-shadow:0 14px 28px -14px var(--danger)}50%{box-shadow:0 14px 34px -8px var(--danger)}}

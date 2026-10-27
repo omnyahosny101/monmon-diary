@@ -3,6 +3,7 @@ lifeMigrate();
 homeMigrate();
 weddingMigrate();
 hobbyMigrate();
+remMigrate();
 applyLang();
 render();
 syncNative();
