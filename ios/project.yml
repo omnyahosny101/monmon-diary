@@ -26,6 +26,8 @@ targets:
         CFBundleDisplayName: "Monmon's Life"
         UILaunchScreen: {}
         UIUserInterfaceStyle: Light
+        NSCameraUsageDescription: To take photos of your food, outings and diary.
+        NSPhotoLibraryUsageDescription: To add photos of your food, outings and diary.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UIApplicationSupportsIndirectInputEvents: true

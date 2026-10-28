@@ -447,7 +447,7 @@ VIEWS['food.meals'] = function(el){
     '<div><div class="statrow"><span>Protein</span><span>' + Math.round(eP) + ' / ' + pP + ' g</span></div><div class="bar"><i style="width:' + Math.min(100, eP / pP * 100) + '%"></i></div></div>' +
     '<button class="toggle" id="gymBtn"><span class="sw" role="switch" aria-checked="' + gym + '"></span><span>Gym day</span></button></div></div></div>' +
     '<div class="card"><div class="card-head"><h2>Water</h2><span class="num muted">' + w + ' / 8 glasses</span></div><div class="cups">' + Array.from({length:8}, (_, i) => '<button class="cup' + (i < w ? ' on' : '') + '" data-c="' + (i + 1) + '" aria-label="Glass ' + (i + 1) + '"></button>').join('') + '</div></div>' +
-    meals.map((m, i) => '<div class="meal' + (S.checks[keys[i]] ? ' eaten' : '') + '"><span class="ic">' + (MICONS[m.type] || MICONS.Gym) + '</span><span class="txt"><span class="lbl">' + m.type + (m.type !== 'Pre-gym' ? ' <button class="swap" data-swap="' + i + '">' + (m.swapped ? 'Swapped · change' : '⇄ Swap') + '</button>' : '') + '</span><div class="nm">' + esc(m.name) + '</div><div class="mac">' + m.kcal + ' kcal · ' + m.protein + ' g protein</div></span><button class="check" data-k="' + keys[i] + '" aria-label="Mark eaten">' + CHECK + '</button></div>').join('') +
+    meals.map((m, i) => '<div class="meal' + (S.checks[keys[i]] ? ' eaten' : '') + '"><span class="ic">' + (MICONS[m.type] || MICONS.Gym) + '</span><span class="txt"><span class="lbl">' + m.type + (m.type !== 'Pre-gym' ? ' <button class="swap" data-swap="' + i + '">' + (m.swapped ? 'Swapped · change' : '⇄ Swap') + '</button>' : '') + '</span><div class="nm">' + esc(m.name) + '</div><div class="mac">' + m.kcal + ' kcal · ' + m.protein + ' g protein</div>' + photoStrip('meal:' + dateS + '-' + i) + '</span><button class="check" data-k="' + keys[i] + '" aria-label="Mark eaten">' + CHECK + '</button></div>').join('') +
     extras.map((x, i) => '<div class="meal" style="background:color-mix(in srgb,var(--danger) 8%,var(--surface))"><span class="ic" style="font-size:24px;background:transparent">' + x.e + '</span><span class="txt"><span class="lbl">' + (x.type || 'Treat') + '</span><div class="nm">' + esc(x.name) + '</div><div class="mac">' + x.kcal + ' kcal · ' + x.protein + ' g protein</div></span>' + delBtn('data-xdel', i) + '</div>').join('') +
     '<button class="btn soft full" id="mAddFood">+ Add something I ate</button><p class="note">Tap the circle when you’ve eaten a meal. Tap Swap to eat something else from your dishes.</p>';
   const again = () => VIEWS['food.meals'](el);
@@ -699,7 +699,7 @@ VIEWS['plans.mashawer'] = function(el){
 };
 VIEWS['plans.exp'] = function(el){
   const up = S.exp.filter(x => !x.done), done = S.exp.filter(x => x.done), pickWho = [];
-  const row = x => '<div class="item' + (x.done ? ' done' : '') + '"><button class="tick' + (x.done ? ' on' : '') + '" data-xdone="' + x.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + esc(x.title) + (x.with && x.with.length ? '<span class="s who">with ' + esc(x.with.join(', ')) + '</span>' : '') + '<span class="s">' + (x.date ? nice(x.date) : 'Someday') + (x.where ? ' · ' + esc(x.where) : '') + '</span>' + (x.memory ? '<span class="s" style="color:var(--ink);font-weight:600">\u{1F4AD} ' + esc(x.memory) + '</span>' : '') + '</span>' + delBtn('data-xdel', x.id) + '</div>';
+  const row = x => '<div class="item' + (x.done ? ' done' : '') + '"><button class="tick' + (x.done ? ' on' : '') + '" data-xdone="' + x.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + esc(x.title) + (x.with && x.with.length ? '<span class="s who">with ' + esc(x.with.join(', ')) + '</span>' : '') + '<span class="s">' + (x.date ? nice(x.date) : 'Someday') + (x.where ? ' · ' + esc(x.where) : '') + '</span>' + (x.memory ? '<span class="s" style="color:var(--ink);font-weight:600">\u{1F4AD} ' + esc(x.memory) + '</span>' : '') + photoStrip('exp:' + x.id, false) + '</span>' + delBtn('data-xdel', x.id) + '</div>';
   el.innerHTML = '<div class="card tint"><div class="greet">New experiences ✨</div><span class="small muted" style="font-weight:700">Places to go and things to try, and who to share them with.</span></div>' +
     '<div class="card"><h2>Add an experience</h2><div class="chips">' + EXP_IDEAS.map(i => '<button class="chip" data-idea="' + esc(i) + '">' + esc(i) + '</button>').join('') + '</div>' +
       '<label class="field"><span>What</span><input class="in" id="xT" placeholder="Try ice skating, visit a new museum…"></label>' +
@@ -714,7 +714,7 @@ VIEWS['plans.exp'] = function(el){
   $('#xAdd', el).onclick = () => { const t = $('#xT', el).value.trim(); if (!t) return toast('What do you want to experience?'); S.exp.push({id:uid(), title:t, where:$('#xW', el).value.trim(), date:$('#xD', el).value, with:pickWho.slice(), done:false, memory:''}); save(); toast('Added ✨'); again(); };
   $$('[data-xdone]', el).forEach(b => b.onclick = () => { const x = S.exp.find(y => y.id === b.dataset.xdone);
     if (x.done){ x.done = false; x.doneOn = ''; save(); return again(); }
-    sheet('<h2>You did it: ' + esc(x.title) + '!</h2><label class="field"><span>A little memory to keep</span><textarea class="in" data-mem placeholder="How was it? What made it special?"></textarea></label><button class="btn full" data-ok>Save the memory</button>', (sh, close) => {
+    sheet('<h2>You did it: ' + esc(x.title) + '!</h2><label class="field"><span>A little memory to keep</span><textarea class="in" data-mem placeholder="How was it? What made it special?"></textarea></label><h3>\u{1F4F7} Photos</h3>' + photoStrip('exp:' + x.id) + '<button class="btn full" data-ok>Save the memory</button>', (sh, close) => {
       $('[data-ok]', sh).onclick = () => { x.done = true; x.doneOn = todayStr(); x.memory = $('[data-mem]', sh).value.trim(); save(); close(); celebrate({key:'exp-' + x.id, e:'\u{1F308}', title:'New experience unlocked!', msg:x.title + (x.with && x.with.length ? ' with ' + x.with.join(', ') : '') + '. Life is for living, and you’re living it.'}); again(); };
     }); });
   armDelete(el, 'data-xdel', id => { S.exp = S.exp.filter(x => x.id !== id); save(); again(); });
@@ -816,6 +816,7 @@ VIEWS['me.days'] = function(el){
   const answered = Object.keys(qa).filter(q => qa[q]);
   const sec = (title, body) => '<div style="display:flex;flex-direction:column;gap:6px"><h3>' + title + '</h3>' + body + '</div>';
   const parts = [];
+  if (photosOf('diary:' + d).length) parts.push('<div style="display:flex;flex-direction:column;gap:6px"><h3>Photos</h3>' + photoStrip('diary:' + d) + '</div>');
   if (logs.length) parts.push(sec('What I did', '<div class="chips">' + logs.map(id => { const x = DAYLOG.find(y => y.id === id); return x ? '<span class="chip on" style="cursor:default">' + x.e + ' ' + x.name + '</span>' : ''; }).join('') + '</div>'));
   if (habits.length) parts.push(sec('Habits', '<div style="font-size:22px;letter-spacing:4px">' + habits.map(h => h.e).join('') + '</div>'));
   if (meals.length || extras.length) parts.push(sec('Ate', '<div class="list">' + meals.map(m => '<div class="item"><span>\u{1F37D}\u{FE0F}</span><span class="t">' + esc(m.name) + '</span><span class="amt muted" style="font-size:12px">' + m.kcal + '</span></div>').join('') + extras.map(x => '<div class="item"><span>' + x.e + '</span><span class="t">' + esc(x.name) + '</span><span class="amt muted" style="font-size:12px">' + x.kcal + '</span></div>').join('') + '</div>'));
@@ -837,7 +838,7 @@ VIEWS['me.days'] = function(el){
 VIEWS['me.diary'] = function(el){
   const k = ui.diaryMonth, first = parseD(k + '-01'), last = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
   const lead = (first.getDay() + 6) % 7, t = todayStr();
-  let cells = ''; ['M','T','W','T','F','S','S'].forEach(x => cells += '<div class="cday blank muted" style="font-weight:900">' + x + '</div>');
+  let cells = ''; (isAr() ? ['ن','ث','ر','خ','ج','س','ح'] : ['M','T','W','T','F','S','S']).forEach(x => cells += '<div class="cday blank muted" style="font-weight:900">' + x + '</div>');
   for (let i = 0; i < lead; i++) cells += '<div class="cday blank"></div>';
   for (let d = 1; d <= last; d++){ const key = k + '-' + pad(d), m = S.diary[key] && S.diary[key].mood; cells += '<button class="cday' + (key === t ? ' today' : '') + '" data-day="' + key + '" aria-label="' + nice(key) + '">' + (m ? '<span class="e">' + MOODS[m - 1].e + '</span>' : '<span class="muted">' + d + '</span>') + '</button>'; }
   const entries = Object.keys(S.diary).filter(d => d.slice(0, 7) === k && (S.diary[d].summary || S.diary[d].feelings || S.diary[d].mood)).sort().reverse();

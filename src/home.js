@@ -103,7 +103,7 @@ function mediaSheet(kind, day, done){
 function tasksHTML(){
   const t = todayStr(), order = {urgent:0, high:1};
   const sort = (a, b) => ((order[a.prio] ?? 2) - (order[b.prio] ?? 2)) || ((a.due || '9') < (b.due || '9') ? -1 : 1);
-  const row = x => '<div class="item"><button class="tick" data-htdone="' + x.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (x.job ? '<span class="pill">' + esc(jobName(x.job)) + '</span>' : '') + (x.prio && x.prio !== 'normal' ? '<span class="pill ' + PRIO[x.prio].c + '">' + PRIO[x.prio].l + '</span>' : '') + esc(x.title) + (x.due ? '<span class="s" style="' + (x.due < t ? 'color:var(--danger);font-weight:900' : '') + '">' + (x.due < t ? 'Overdue · ' : 'Due ') + nice(x.due) + (x.time ? ' · by ' + x.time : '') + '</span>' : '') + '</span><span class="ibtns">' + editBtn('task', x.id) + flagBtn('t:' + x.id, x.prio === 'urgent') + '</span></div>';
+  const row = x => '<div class="item"><button class="tick" data-htdone="' + x.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (x.job ? '<span class="pill">' + esc(jobName(x.job)) + '</span>' : '') + (x.prio && x.prio !== 'normal' ? '<span class="pill ' + PRIO[x.prio].c + '">' + PRIO[x.prio].l + '</span>' : '') + esc(x.title) + photoStrip('task:' + x.id, false) + (x.due ? '<span class="s" style="' + (x.due < t ? 'color:var(--danger);font-weight:900' : '') + '">' + (x.due < t ? 'Overdue · ' : 'Due ') + nice(x.due) + (x.time ? ' · by ' + x.time : '') + '</span>' : '') + '</span><span class="ibtns">' + editBtn('task', x.id) + flagBtn('t:' + x.id, x.prio === 'urgent') + '</span></div>';
   const w = S.tasks.filter(x => !x.done && x.kind === 'work').sort(sort), p = S.tasks.filter(x => !x.done && x.kind !== 'work').sort(sort);
   return '<div class="card"><div class="card-head"><h2>Tasks</h2><button class="linkbtn" data-go="plans:tasks">All tasks</button></div>' +
     '<div class="row"><label class="field" style="flex:2 1 150px"><input class="in" id="htIn" placeholder="Add a task…" aria-label="New task"></label><label class="field" style="flex:1 1 100px"><select class="in" id="htFor" aria-label="For"><option value="personal">Personal</option>' + S.jobs.map(j => '<option value="' + j.id + '">' + esc(j.name) + '</option>').join('') + '</select></label><button class="btn" id="htAdd">Add</button></div>' +
@@ -180,44 +180,53 @@ function shopHTML(){
 
 /* ---------- the home view ---------- */
 VIEWS.today = function(el){
-  const day = todayStr(), doy = dayOfYear(new Date());
+  const T0 = todayStr(), day = ui.homeDay && ui.homeDay < T0 ? ui.homeDay : T0, past = day !== T0, doy = dayOfYear(parseD(day));
   const n = planDayNum(new Date()), inPlan = n >= 1 && n <= 30;
   const diary = S.diary[day] || {}, logs = S.daylog[day] || [], qa = S.qa[day] || {};
   const qs = [0, 1, 2].map(i => (doy * 3 + i) % QUESTIONS.length);
-  const urg = urgentTasks(), ins = INSIGHTS[(doy + (S.insightShift || 0)) % INSIGHTS.length], wz = WISDOM[(doy + (S.wisdomShift || 0)) % WISDOM.length];
+  const urg = urgentTasks(), ins = INSIGHTS[(doy + (S.insightShift || 0)) % INSIGHTS.length], WL = wisdomList(), wz = WL[(dayOfYear(new Date()) + (S.wisdomShift || 0)) % WL.length];
   const todaySpend = S.spend.filter(s => s.date === day);
   const coming = [];
   S.exp.filter(x => !x.done && x.date && x.date >= day).forEach(x => coming.push({d:x.date, e:'✨', title:x.title, when:nice(x.date) + (x.with && x.with.length ? ' · with ' + x.with.join(', ') : '')}));
   coming.sort((a, b) => a.d < b.d ? -1 : 1);
   el.innerHTML =
     emergencyHTML() +
+    cycleHomeHTML() +
     weddingTrackerHTML() +
     '<div class="card wisdom"><span class="src">\u{1F4DA} ' + esc(wz.src) + '</span><p class="idea">' + esc(wz.idea) + '</p><p class="todo"><b>Try this today</b>' + esc(wz.advice) + '</p><button class="linkbtn" id="wzNext" style="align-self:flex-start;background:var(--surface);color:var(--berry)">Another one</button></div>' +
     mashawerHTML() +
     tasksHTML() +
-    '<div class="card"><h2>What did I do today?</h2><div class="chips">' + DAYLOG.map(x => '<button class="chip' + (logs.includes(x.id) ? ' on' : '') + '" data-l="' + x.id + '">' + x.e + ' ' + x.name + '</button>').join('') + '</div></div>' +
-    '<div class="card"><div class="card-head"><h2>Spent today</h2><span class="amt">' + money(spentOn(day)) + '</span></div>' +
+    '<div class="card daybar' + (past ? ' past' : '') + '"><div class="card-head"><h2>' + (past ? 'Logging a past day' : 'Log my day') + '</h2>' + (past ? '<button class="linkbtn" id="hdToday">Back to today</button>' : '') + '</div>' +
+      '<div class="monthnav"><button data-hd="-1" aria-label="Previous day">‹</button><b>' + (past ? nice(day) : 'Today') + '</b><button data-hd="1" aria-label="Next day"' + (past ? '' : ' disabled') + '>›</button></div>' +
+      '<label class="field"><span>Pick any previous day</span><input class="in" id="hdPick" type="date" max="' + T0 + '" value="' + day + '"></label></div>' +
+    '<div class="card"><div class="card-head"><h2>' + (past ? 'Spent that day' : 'Spent today') + '</h2><span class="amt">' + money(spentOn(day)) + '</span></div>' +
       '<div class="row"><label class="field" style="flex:1 1 90px"><span>Amount</span><input class="in num" id="qAmt" type="number" inputmode="decimal" min="0" placeholder="0"></label>' +
       '<label class="field" style="flex:2 1 150px"><span>Category</span><select class="in" id="qCat">' + CATS.map(c => '<option value="' + c.id + '">' + c.e + ' ' + c.name + '</option>').join('') + '</select></label></div>' +
       '<div class="row"><label class="field"><span>Note</span><input class="in" id="qNote" placeholder="What was it?"></label><label class="field" style="flex:1 1 120px"><span>Day</span><input class="in" id="qDate" type="date" value="' + day + '"></label></div><button class="btn full" id="qAdd">Add</button>' +
-      '<div class="list">' + (todaySpend.length ? todaySpend.map(spendRow).join('') : '<div class="empty">Nothing spent yet today.</div>') + '</div></div>' +
-    habitsHTML(day) +
+      '<div class="list">' + (todaySpend.length ? todaySpend.map(spendRow).join('') : '<div class="empty">' + (past ? 'Nothing spent that day.' : 'Nothing spent yet today.') + '</div>') + '</div></div>' +
+    '<div class="card"><h2>' + (past ? 'What did I do that day?' : 'What did I do today?') + '</h2><div class="chips">' + DAYLOG.map(x => '<button class="chip' + (logs.includes(x.id) ? ' on' : '') + '" data-l="' + x.id + '">' + x.e + ' ' + x.name + '</button>').join('') + '</div></div>' +
     '<div class="card"><div class="card-head"><h2>Dear diary</h2><span class="small muted">' + nice(day) + '</span></div>' +
       '<div class="moods">' + MOODS.map((m, i) => '<button class="mood' + (diary.mood === i + 1 ? ' on' : '') + '" data-mood="' + (i + 1) + '" aria-label="' + m.t + '">' + m.e + '<span>' + m.t + '</span></button>').join('') + '</div>' +
       '<h3>Today’s 3 questions</h3>' + qs.map(q => '<label class="field"><span class="qlab">' + esc(QUESTIONS[q]) + '</span><textarea class="in" data-q="' + q + '" placeholder="My answer…" style="min-height:50px">' + esc(qa[q] || '') + '</textarea></label>').join('') +
       '<label class="field"><span>What I did</span><textarea class="in" id="dSum" placeholder="A little summary of my day…">' + esc(diary.summary || '') + '</textarea></label>' +
       '<label class="field"><span>How I felt</span><textarea class="in" id="dFeel" placeholder="My feelings today…">' + esc(diary.feelings || '') + '</textarea></label>' +
       '<label class="field"><span>Quick notes and drafts</span><textarea class="in" id="dNote" placeholder="Anything to remember about today…">' + esc(S.notes[day] || '') + '</textarea></label>' +
+      '<h3>\u{1F4F7} Photos</h3>' + photoStrip('diary:' + day) +
       '<button class="linkbtn" data-go="me:days" style="align-self:flex-start">See my whole day ›</button></div>' +
+    habitsHTML(day) +
+    frHomeHTML() +
     beautyHTML() +
     shopHTML() +
     lifeTodayTop() +
     lifeTodayMid() +
     (coming.length ? '<div class="card"><div class="card-head"><h2>Coming up</h2><button class="linkbtn" data-go="plans:exp">Experiences</button></div><div class="list">' + coming.slice(0, 4).map(c => '<div class="item"><span style="font-size:20px">' + c.e + '</span><span class="t">' + esc(c.title) + '<span class="s">' + c.when + '</span></span><span></span></div>').join('') + '</div></div>' : '') +
     (inPlan ? '<div class="card"><div class="card-head"><h2>Next meal</h2><button class="linkbtn" data-go="food">Food</button></div>' + nextMealHTML(n) + '</div>' : '') +
-    '<div class="card insight"><span class="tag">Did you know · ' + ins[0] + '</span><p>' + esc(ins[1]) + '</p><button class="linkbtn" id="insNext" style="align-self:flex-start;background:var(--surface);color:var(--lilac)">Another one</button></div>';
+    lessonCardHTML();
 
   const again = () => VIEWS.today(el);
+  $$('[data-hd]', el).forEach(b => b.onclick = () => { const nd = addDays(day, +b.dataset.hd); ui.homeDay = nd >= T0 ? '' : nd; again(); });
+  $('#hdPick', el).onchange = e => { const v = e.target.value; ui.homeDay = v && v < T0 ? v : ''; again(); };
+  const hdt = $('#hdToday', el); if (hdt) hdt.onclick = () => { ui.homeDay = ''; again(); };
   bindFlags(el, again);
   $$('[data-emdone]', el).forEach(b => b.onclick = ev => { const key = b.dataset.emdone;
     if (key[0] === 't'){ const x = findFlag(key); x.done = true; x.doneOn = day; save(); } else togglePrep(key);
@@ -253,7 +262,9 @@ VIEWS.today = function(el){
   $$('[data-udone]', el).forEach(b => b.onclick = ev => { const x = S.tasks.find(y => y.id === b.dataset.udone); x.done = true; x.doneOn = day; save(); hearts(ev.clientX, ev.clientY); toast('Done! One less thing ♡'); again(); });
   $('#wzNext', el).onclick = () => { S.wisdomShift = (S.wisdomShift || 0) + 1; save(); again(); };
   bindLifeToday(el, again);
-  $('#insNext', el).onclick = () => { S.insightShift = (S.insightShift || 0) + 1; save(); again(); setTimeout(() => { const i = $('.insight'); if (i) i.scrollIntoView({block:'center'}); }, 0); };
+  const inb = $('#insNext', el); if (inb) inb.onclick = () => { S.insightShift = (S.insightShift || 0) + 1; save(); again(); };
+  bindLessonCard(el, again);
+  $$('[data-frquiz]', el).forEach(b => b.onclick = () => frQuiz(+b.dataset.frquiz, false, again));
   const nm = $('[data-nextmeal]', el); if (nm) nm.onclick = ev => { toggleMeal(nm.dataset.nextmeal, ev); again(); };
 };
 
@@ -608,13 +619,14 @@ function bindInvest(el, again){
 const FOOD_TYPES = [['Breakfast', '\u{1F373}'], ['Lunch', '\u{1F372}'], ['Snack', '\u{1F34E}'], ['Dinner', '\u{1F957}'], ['Other', '\u{1F37D}\u{FE0F}']];
 function foodChoices(){ const seen = new Set(), out = []; allDishes().forEach(d => { if (!seen.has(d.name)){ seen.add(d.name); out.push(d); } }); return out; }
 function addFoodSheet(date, x, done){
-  const list = foodChoices(), type = x ? x.type || 'Other' : 'Other';
+  const list = foodChoices(), type = x ? x.type || 'Other' : 'Other', fid = x ? x.id : uid();
   sheet('<div style="text-align:center;font-size:44px">\u{1F37D}\u{FE0F}</div><h2 class="plain" style="justify-content:center">' + (x ? 'Edit what I ate' : 'What did I eat?') + '</h2>' +
     '<label class="field"><span>Day</span><input class="in" data-fd type="date" value="' + date + '"></label>' +
     '<div class="chips" data-ft>' + FOOD_TYPES.map(([t, e]) => '<button class="chip' + (t === type ? ' on' : '') + '" data-ftype="' + t + '">' + e + ' ' + t + '</button>').join('') + '</div>' +
     (x ? '' : '<label class="field"><span>Pick from my dishes</span><select class="in" data-fpick><option value="">Type it myself</option>' + list.map((d, i) => '<option value="' + i + '">' + esc(d.name) + ' · ' + d.kcal + ' kcal</option>').join('') + '</select></label>') +
     '<label class="field"><span>Food</span><input class="in" data-fn value="' + esc(x ? x.name : '') + '" placeholder="Koshari, sandwich, latte…"></label>' +
     '<div class="row"><label class="field"><span>Calories (kcal)</span><input class="in num" data-fk type="number" inputmode="decimal" min="0" value="' + (x ? x.kcal : '') + '"></label><label class="field"><span>Protein (g)</span><input class="in num" data-fp type="number" inputmode="decimal" min="0" value="' + (x ? x.protein : '') + '"></label></div>' +
+    '<h3>\u{1F4F7} Photo</h3>' + photoStrip('food:' + fid) +
     (x ? '' : '<button class="toggle" data-fsave><span class="sw" role="switch" aria-checked="false"></span><span>Also save it to My dishes</span></button>') +
     '<button class="btn full" data-fok>Save</button>' + (x ? '<button class="btn soft full" data-fdel>Delete</button>' : ''),
   (sh, close) => {
@@ -627,7 +639,7 @@ function addFoodSheet(date, x, done){
       const name = $('[data-fn]', sh).value.trim(); if (!name) return toast('What did you eat?');
       const d = $('[data-fd]', sh).value || date, kcal = Math.round(+$('[data-fk]', sh).value || 0), protein = Math.round(+$('[data-fp]', sh).value || 0), e = FOOD_TYPES.find(f => f[0] === t)[1];
       if (x){ S.extras[date] = (S.extras[date] || []).filter(y => y !== x); Object.assign(x, {name, kcal, protein, type:t, e}); (S.extras[d] = S.extras[d] || []).push(x); }
-      else (S.extras[d] = S.extras[d] || []).push({id:uid(), name, e, kcal, protein, type:t});
+      else (S.extras[d] = S.extras[d] || []).push({id:fid, name, e, kcal, protein, type:t});
       if (keep && !allDishes().some(y => y.name.toLowerCase() === name.toLowerCase())) S.dishes.push({id:uid(), custom:true, type:t === 'Other' ? 'Any' : t, name, kcal, protein});
       ui.logDay = d; save(); close(); toast(x ? 'Saved ♡' : (keep ? 'Logged and saved to My dishes ♡' : 'Logged ♡')); done();
     };
@@ -648,7 +660,7 @@ VIEWS['food.log'] = function(el){
       '<button class="btn full" id="logAdd">+ Add something I ate</button></div>' +
     '<div class="card"><h2>What I ate</h2><div class="list">' +
       (planned.length ? planned.map(m => '<div class="item"><span style="font-size:20px">✅</span><span class="t">' + esc(m.name) + '<span class="s">' + m.type + ' · ' + m.kcal + ' kcal · ' + m.protein + ' g</span></span><span></span></div>').join('') : '') +
-      (extras.length ? extras.map(x => '<div class="item"><span style="font-size:20px">' + (x.e || '\u{1F37D}\u{FE0F}') + '</span><span class="t">' + esc(x.name) + '<span class="s">' + (x.type || 'Treat') + ' · ' + x.kcal + ' kcal · ' + x.protein + ' g</span></span>' + delBtn('data-fldel', d + '|' + x.id) + '</div>').join('') : '') +
+      (extras.length ? extras.map(x => '<div class="item"><span style="font-size:20px">' + (x.e || '\u{1F37D}\u{FE0F}') + '</span><span class="t">' + esc(x.name) + '<span class="s">' + (x.type || 'Treat') + ' · ' + x.kcal + ' kcal · ' + x.protein + ' g</span>' + photoStrip('food:' + x.id, false) + '</span>' + delBtn('data-fldel', d + '|' + x.id) + '</div>').join('') : '') +
       (!planned.length && !extras.length ? '<div class="empty">Nothing logged for this day yet.</div>' : '') + '</div>' +
       (inPlan ? '<button class="linkbtn" id="logPlan" style="align-self:flex-start">Tick plan meals for Day ' + n + '</button>' : '') + '</div>' +
     '<div class="card"><h2>Last 7 days</h2><div class="list">' + week.map(([x, k]) => '<button class="item" data-lpick="' + x + '"><span style="font-size:18px">' + (k ? '\u{1F37D}\u{FE0F}' : '·') + '</span><span class="t">' + (x === t ? 'Today' : nice(x)) + '</span><span class="amt">' + fmt(k) + ' kcal</span></button>').join('') + '</div></div>';
@@ -697,7 +709,7 @@ function openEdit(key){
       if (type === 'check') return '<button class="toggle" data-ef="' + f + '" data-et="check"><span class="sw" role="switch" aria-checked="' + !!v + '"></span><span>' + label + '</span></button>';
       if (type === 'select') return '<label class="field"><span>' + label + '</span><select class="in" data-ef="' + f + '">' + opts.map(([ov, ol]) => '<option value="' + esc(ov) + '"' + (String(v) === String(ov) ? ' selected' : '') + '>' + esc(ol) + '</option>').join('') + '</select></label>';
       return '<label class="field"><span>' + label + '</span><input class="in' + (type === 'number' ? ' num' : '') + '" data-ef="' + f + '" type="' + type + '"' + (type === 'number' ? ' inputmode="decimal" min="0"' : '') + ' value="' + esc(type === 'text' ? tr(String(v)) : v) + '"></label>';
-    }).join('') + '<button class="btn full" data-esave>Save</button>',
+    }).join('') + (['task', 'mesh', 'exp'].includes(kind) ? '<h3>\u{1F4F7} Photos</h3>' + photoStrip(kind + ':' + id) : '') + '<button class="btn full" data-esave>Save</button>',
   (sh, close) => {
     $$('[data-et="check"]', sh).forEach(b => b.onclick = () => { const s = $('.sw', b); s.setAttribute('aria-checked', s.getAttribute('aria-checked') !== 'true'); });
     $('[data-esave]', sh).onclick = () => {
@@ -712,3 +724,249 @@ function openEdit(key){
   });
 }
 document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-edit]'); if (!b) return; ev.preventDefault(); ev.stopPropagation(); openEdit(b.dataset.edit); }, true);
+
+/* ============ PERIOD TRACKER ============ */
+// S.cycle = {days:{'YYYY-MM-DD':flow}, sym:{'YYYY-MM-DD':[ids]}, notes:{}}
+const FLOWS = [['spot', 'Spotting', '\u{1F338}'], ['light', 'Light', '\u{1F4A7}'], ['medium', 'Medium', '\u{1FA78}'], ['heavy', 'Heavy', '\u{2764}\u{FE0F}']];
+const SYMPTOMS = [['cramps', 'Cramps', '\u{1F616}'], ['head', 'Headache', '\u{1F915}'], ['bloat', 'Bloating', '\u{1F388}'], ['back', 'Back pain', '\u{1F9CD}‍♀\u{FE0F}'], ['acne', 'Acne', '\u{1F534}'],
+  ['crave', 'Cravings', '\u{1F36B}'], ['tired', 'Tired', '\u{1F634}'], ['mood', 'Mood swings', '\u{1F3AD}'], ['breast', 'Tender breasts', '\u{1F49E}']];
+function cycleMigrate(){ S.cycle = S.cycle && typeof S.cycle === 'object' ? S.cycle : {}; S.cycle.days = S.cycle.days || {}; S.cycle.sym = S.cycle.sym || {}; S.cycle.notes = S.cycle.notes || {}; }
+function periods(){
+  const ds = Object.keys(S.cycle.days).filter(d => S.cycle.days[d] && S.cycle.days[d] !== 'spot').sort(), out = [];
+  ds.forEach(d => { const last = out[out.length - 1]; if (last && daysBetween(last.end, d) <= 2) last.end = d; else out.push({start:d, end:d}); });
+  out.forEach(p => p.len = daysBetween(p.start, p.end) + 1); return out;
+}
+function cycleStats(){
+  const P = periods(), gaps = [];
+  for (let i = 1; i < P.length; i++){ const g = daysBetween(P[i - 1].start, P[i].start); if (g >= 18 && g <= 45) gaps.push(g); }
+  const recent = gaps.slice(-6), cyc = recent.length ? Math.round(sum(recent, x => x) / recent.length) : 28;
+  const lens = P.slice(-6).map(p => p.len), plen = lens.length ? Math.round(sum(lens, x => x) / lens.length) : 5;
+  const last = P[P.length - 1], t = todayStr();
+  let next = last ? addDays(last.start, cyc) : '';
+  while (next && next < t && !(last && last.end >= t)) next = addDays(next, cyc);   // a missed log: roll forward
+  const inPeriod = last && t >= last.start && daysBetween(last.end, t) <= 0;
+  const cycleDay = last ? daysBetween(last.start, t) + 1 : 0;
+  return {P, cyc, plen, last, next, inPeriod, cycleDay, guess:recent.length < 2};
+}
+function predictedDays(st, fromK, toK){
+  const set = {}; if (!st.next) return set;
+  for (let s = st.next, i = 0; i < 6 && s <= toK + '-31'; i++, s = addDays(s, st.cyc)){
+    for (let j = 0; j < st.plen; j++) set[addDays(s, j)] = 'p';
+    const ov = addDays(s, -14); for (let j = -5; j <= 1; j++) if (!set[addDays(ov, j)]) set[addDays(ov, j)] = j === 0 ? 'o' : 'f';
+  }
+  return set;
+}
+function cycleHomeHTML(){
+  if (!S.cycle || (!Object.keys(S.cycle.days).length)) return '';
+  const st = cycleStats(), t = todayStr(), until = st.next ? daysBetween(t, st.next) : null;
+  if (!st.inPeriod && (until == null || until > 3)) return '';
+  return '<button class="card cyc" data-go="me:cycle"><span style="font-size:30px">\u{1FA78}</span><span style="min-width:0;text-align:start"><b style="display:block">' + (st.inPeriod ? 'Period · day ' + st.cycleDay : (until <= 0 ? 'Period expected today' : 'Period in ' + until + ' days')) + '</b><span class="small" style="font-weight:700">' + (st.inPeriod ? 'Tap to log flow and how you feel' : 'Keep pads, painkillers and a hot water bottle ready') + '</span></span></button>';
+}
+VIEWS['me.cycle'] = function(el){
+  const st = cycleStats(), t = todayStr(), sel = ui.cycDay || t, k = ui.cycMonth || t.slice(0, 7);
+  const first = parseD(k + '-01'), lastD = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate(), lead = first.getDay();
+  const pred = predictedDays(st, k, k), flow = S.cycle.days[sel] || '', sym = S.cycle.sym[sel] || [];
+  const W = S.profile.wedding, wedHit = W && st.next ? (() => { const pp = predictedDays(st, t.slice(0, 7), W.slice(0, 7)); for (let j = -2; j <= 0; j++) if (pp[addDays(W, j)] === 'p') return true; return false; })() : false;
+  let cells = (isAr() ? ['ح','ن','ث','ر','خ','ج','س'] : ['S','M','T','W','T','F','S']).map(x => '<div class="cday blank muted" style="font-weight:900">' + x + '</div>').join('');
+  for (let i = 0; i < lead; i++) cells += '<div class="cday blank"></div>';
+  for (let d = 1; d <= lastD; d++){ const key = k + '-' + pad(d), f = S.cycle.days[key], pr = pred[key];
+    cells += '<button class="cday cy' + (f && f !== 'spot' ? ' on' : f === 'spot' ? ' spot' : pr === 'p' ? ' pred' : pr === 'o' ? ' ovu' : pr === 'f' ? ' fert' : '') + (key === t ? ' today' : '') + (key === sel ? ' sel' : '') + '" data-cd="' + key + '"><span>' + d + '</span></button>'; }
+  const status = st.inPeriod ? 'Day ' + st.cycleDay + ' of your period' : st.last ? (st.next ? (daysBetween(t, st.next) <= 0 ? 'Your period is expected today' : 'Next period in ' + daysBetween(t, st.next) + ' days') : '') : 'Log your last period to start';
+  el.innerHTML = '<div class="card cyc" style="flex-direction:column;align-items:stretch;text-align:center"><div style="font-size:40px">\u{1FA78}</div><div class="greet">' + status + '</div>' +
+      (st.next ? '<span class="small" style="font-weight:800">Expected ' + nice(st.next) + ' · cycle about ' + st.cyc + ' days · period about ' + st.plen + ' days' + (st.guess ? ' (a guess until you log 2 periods)' : '') + '</span>' : '') +
+      '<div class="row" style="justify-content:center"><button class="btn" id="cyStart">My period started today</button>' + (st.inPeriod ? '<button class="btn soft" id="cyEnd">It ended today</button>' : '') + '</div></div>' +
+    (wedHit ? '<div class="card" style="border-color:var(--gold);background:var(--gold-soft)"><h2>\u{1F48D} Heads-up for the wedding</h2><p style="margin:0;font-weight:700">Your period may come around 31 December. If you want to plan around it, talk to your gynaecologist a few weeks before.</p></div>' : '') +
+    '<div class="monthnav"><button data-cm="-1" aria-label="Previous month">‹</button><b>' + MONTHS_L[first.getMonth()] + ' ' + first.getFullYear() + '</b><button data-cm="1" aria-label="Next month">›</button></div>' +
+    '<div class="card"><div class="cal">' + cells + '</div><div class="chips" style="justify-content:center;font-size:12px"><span class="chip lg on-p">Period</span><span class="chip lg pr">Expected</span><span class="chip lg fe">Fertile (estimate)</span></div></div>' +
+    '<div class="card"><div class="card-head"><h2>' + (sel === t ? 'Today' : nice(sel)) + '</h2><input class="in" id="cySel" type="date" value="' + sel + '" style="width:auto;padding:6px 8px;font-size:13px" aria-label="Day"></div>' +
+      '<h3>Flow</h3><div class="chips"><button class="chip' + (!flow ? ' on' : '') + '" data-fl="">None</button>' + FLOWS.map(([id, l, e]) => '<button class="chip' + (flow === id ? ' on' : '') + '" data-fl="' + id + '">' + e + ' ' + l + '</button>').join('') + '</div>' +
+      '<h3>How I feel</h3><div class="chips">' + SYMPTOMS.map(([id, l, e]) => '<button class="chip' + (sym.includes(id) ? ' on' : '') + '" data-sy="' + id + '">' + e + ' ' + l + '</button>').join('') + '</div>' +
+      '<label class="field"><span>Note</span><textarea class="in" id="cyNote" placeholder="Anything to remember…" style="min-height:50px">' + esc(S.cycle.notes[sel] || '') + '</textarea></label></div>' +
+    (st.P.length ? '<div class="card"><h2>My periods</h2><div class="list">' + st.P.slice().reverse().slice(0, 8).map((p, i, a) => { const prev = a[i + 1]; return '<div class="item"><span style="font-size:18px">\u{1FA78}</span><span class="t">' + nice(p.start) + (p.end !== p.start ? ' – ' + nice(p.end) : '') + '<span class="s">' + p.len + ' days' + (prev ? ' · cycle ' + daysBetween(prev.start, p.start) + ' days' : '') + '</span></span><span></span></div>'; }).join('') + '</div></div>' : '') +
+    '<p class="note">Predictions are estimates from your own logs, not medical advice. A reminder comes 2 days before.</p>';
+  const again = () => VIEWS['me.cycle'](el);
+  $$('[data-cd]', el).forEach(b => b.onclick = () => { ui.cycDay = b.dataset.cd; again(); });
+  $$('[data-cm]', el).forEach(b => b.onclick = () => { const d = parseD(k + '-01'); d.setMonth(d.getMonth() + +b.dataset.cm); ui.cycMonth = ym(d); again(); });
+  $('#cySel', el).onchange = e => { ui.cycDay = e.target.value || t; ui.cycMonth = ui.cycDay.slice(0, 7); again(); };
+  $$('[data-fl]', el).forEach(b => b.onclick = () => { if (b.dataset.fl) S.cycle.days[sel] = b.dataset.fl; else delete S.cycle.days[sel]; save(); again(); });
+  $$('[data-sy]', el).forEach(b => b.onclick = () => { const a = S.cycle.sym[sel] = S.cycle.sym[sel] || [], i = a.indexOf(b.dataset.sy); if (i >= 0) a.splice(i, 1); else a.push(b.dataset.sy); save(); b.classList.toggle('on'); });
+  $('#cyNote', el).oninput = e => { S.cycle.notes[sel] = e.target.value; save(); };
+  $('#cyStart', el).onclick = () => { S.cycle.days[t] = S.cycle.days[t] && S.cycle.days[t] !== 'spot' ? S.cycle.days[t] : 'medium'; ui.cycDay = t; save(); toast('Logged. Be gentle with yourself today ♡'); again(); };
+  const ce = $('#cyEnd', el); if (ce) ce.onclick = () => { const L = st.last; for (let d = L.start; d <= t; d = addDays(d, 1)) if (!S.cycle.days[d]) S.cycle.days[d] = 'light'; save(); toast('Saved ♡'); again(); };
+};
+const meTab = TABS.find(x => x.id === 'me'); if (meTab && !meTab.subs.some(x => x[0] === 'cycle')) meTab.subs.splice(4, 0, ['cycle', 'Period']);
+function cycleReminders(push, at){
+  if (!S.cycle || !Object.keys(S.cycle.days).length) return;
+  const st = cycleStats(); if (!st.next || st.inPeriod) return;
+  push('cyc-2', '\u{1FA78} Period in 2 days', 'Keep pads, painkillers and a hot water bottle ready. Be kind to yourself ♡', at(parseD(addDays(st.next, -2)), 10, 0));
+  push('cyc-0', '\u{1FA78} Period expected today', 'Log it in Monmon’s Life when it starts.', at(parseD(st.next), 10, 0));
+}
+
+/* ============ PHOTOS: food, diary, outings, tasks ============
+   Each photo is shrunk to about 1080px, kept on the phone in IndexedDB, and a copy goes to the iPhone app's own files.
+   S.photos = {key: [photoId, …]} where key is like 'diary:2026-11-02', 'task:<id>', 'exp:<id>', 'mesh:<id>', 'food:<id>', 'meal:<date>-<i>'. */
+const PHDB = (() => {
+  let dbp = null;
+  const open = () => dbp || (dbp = new Promise((res, rej) => { const r = indexedDB.open('monmon-photos', 1); r.onupgradeneeded = () => r.result.createObjectStore('p'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }));
+  const run = (mode, fn) => open().then(db => new Promise((res, rej) => { const t = db.transaction('p', mode), q = fn(t.objectStore('p')); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }));
+  return {put:(id, d) => run('readwrite', s => s.put(d, id)), get:id => run('readonly', s => s.get(id)), del:id => run('readwrite', s => s.delete(id))};
+})();
+const phWait = {};
+window.__photoIn = (id, data) => { if (data) PHDB.put(id, data).catch(() => {}); (phWait[id] || []).forEach(f => f(data || null)); delete phWait[id]; };
+function photoData(id){
+  return PHDB.get(id).catch(() => null).then(d => {
+    if (d) return d;
+    const n = native(); if (!n) return null;
+    return new Promise(res => { (phWait[id] = phWait[id] || []).push(res); try { n.postMessage({type:'getPhoto', id}); } catch(e){ res(null); } setTimeout(() => res(null), 4000); });
+  });
+}
+function shrink(file){
+  return new Promise((res, rej) => { const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => { const m = 1080, r = Math.min(1, m / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * r); c.height = Math.round(im.height * r);
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', 0.72)); };
+    im.onerror = () => { URL.revokeObjectURL(url); rej(new Error('image')); }; im.src = url; });
+}
+const photosOf = key => (S.photos && S.photos[key]) || [];
+function photoStrip(key, add = true){
+  const ids = photosOf(key);
+  if (!add && !ids.length) return '';
+  return '<div class="phs" data-phkey="' + key + '">' + ids.map(id => '<button class="ph" data-phv="' + id + '" data-phk="' + key + '" aria-label="Photo"><img data-phid="' + id + '" alt=""></button>').join('') +
+    (add ? '<label class="phadd" aria-label="Add photo">\u{1F4F7}<span>' + (ids.length ? '+' : 'Add photo') + '</span><input type="file" accept="image/*" multiple data-phin="' + key + '" hidden></label>' : '') + '</div>';
+}
+function refreshStrips(key){ document.querySelectorAll('.phs[data-phkey="' + key + '"]').forEach(s => { const add = !!s.querySelector('.phadd'); s.outerHTML = photoStrip(key, add) || '<div class="phs" data-phkey="' + key + '"></div>'; }); fillPhotos(document); }
+function fillPhotos(root){ (root || document).querySelectorAll('img[data-phid]:not([src])').forEach(img => { img.setAttribute('src', ''); photoData(img.dataset.phid).then(d => { if (d) img.src = d; else img.closest('.ph') && img.closest('.ph').classList.add('missing'); }); }); }
+let phTick = 0;
+new MutationObserver(() => { if (phTick) return; phTick = requestAnimationFrame(() => { phTick = 0; fillPhotos(document); }); }).observe(document.body, {childList:true, subtree:true});
+document.addEventListener('change', async ev => {
+  const inp = ev.target.closest && ev.target.closest('input[data-phin]'); if (!inp || !inp.files || !inp.files.length) return;
+  const key = inp.dataset.phin, files = [...inp.files]; toast('Adding photo…');
+  S.photos = S.photos || {}; const list = S.photos[key] = S.photos[key] || [];
+  for (const f of files){ try { const d = await shrink(f), id = 'ph' + uid(); await PHDB.put(id, d); list.push(id); const n = native(); if (n) try { n.postMessage({type:'photo', id, data:d}); } catch(e){} } catch(e){ toast('That photo couldn’t be added'); } }
+  save(); refreshStrips(key); toast('Photo saved \u{1F4F7}');
+}, true);
+document.addEventListener('click', ev => {
+  const b = ev.target.closest && ev.target.closest('[data-phv]'); if (!b) return; ev.preventDefault(); ev.stopPropagation();
+  const id = b.dataset.phv, key = b.dataset.phk, v = document.createElement('div'); v.className = 'phview';
+  v.innerHTML = '<img alt=""><div class="row" style="justify-content:center"><button class="btn soft" data-phdel>Delete photo</button><button class="btn" data-phclose>Close</button></div>';
+  document.body.appendChild(v); photoData(id).then(d => { if (d) $('img', v).src = d; });
+  v.onclick = e => { if (e.target === v || e.target.closest('[data-phclose]')) v.remove(); };
+  $('[data-phdel]', v).onclick = () => { S.photos[key] = photosOf(key).filter(x => x !== id); PHDB.del(id).catch(() => {}); const n = native(); if (n) try { n.postMessage({type:'delPhoto', id}); } catch(e){} save(); v.remove(); refreshStrips(key); toast('Photo deleted'); };
+}, true);
+function photoMigrate(){ S.photos = S.photos && typeof S.photos === 'object' ? S.photos : {}; }
+
+/* ============ DAILY WISDOM (242) AND DAILY LESSON (201 + facts) ============ */
+const wisdomList = () => isAr() ? WISDOM.concat(WISDOM_AR) : WISDOM;
+const LESSON_START = '2026-10-28';
+function lessonIndex(){ const all = LESSONS.length + INSIGHTS.length; return ((daysBetween(LESSON_START, todayStr()) + (S.lessonShift || 0)) % all + all) % all; }
+function lessonCardHTML(){
+  if (!isAr()){ const doy = dayOfYear(new Date()), ins = INSIGHTS[(doy + (S.insightShift || 0)) % INSIGHTS.length];
+    return '<div class="card insight"><span class="tag">Did you know · ' + ins[0] + '</span><p>' + esc(ins[1]) + '</p><button class="linkbtn" id="insNext" style="align-self:flex-start;background:var(--surface);color:var(--lilac)">Another one</button></div>'; }
+  const i = lessonIndex();
+  if (i >= LESSONS.length){ const ins = INSIGHTS[i - LESSONS.length];
+    return '<div class="card insight"><span class="tag">Did you know · ' + ins[0] + '</span><p>' + esc(ins[1]) + '</p><div class="row"><button class="linkbtn" data-ls="-1">‹ اللي قبله</button><button class="linkbtn" data-ls="1">اللي بعده ›</button></div></div>'; }
+  const L = LESSONS[i], F = LESSON_FIELDS.find(f => f[0] === L.f), inField = LESSONS.filter(x => x.f === L.f), n = inField.indexOf(L) + 1;
+  return '<div class="card insight lesson" data-notr><span class="tag">' + F[1] + ' درس النهارده · ' + F[2] + ' · ' + n + ' من ' + inField.length + '</span><h2 class="plain">' + esc(L.t) + '</h2><p>' + esc(L.x) + '</p>' +
+    (L.ex ? '<p class="todo"><b>مثال</b>' + esc(L.ex) + '</p>' : '') +
+    '<div class="row"><button class="linkbtn" data-ls="-1">‹ اللي قبله</button><button class="linkbtn" data-ls="1">اللي بعده ›</button><button class="linkbtn" data-go="grow:learn">كل الدروس</button></div></div>';
+}
+function bindLessonCard(el, again){
+  $$('[data-ls]', el).forEach(b => b.onclick = () => { S.lessonShift = (S.lessonShift || 0) + +b.dataset.ls; save(); again(); setTimeout(() => { const c = $('.insight', el); if (c) c.scrollIntoView({block:'center'}); }, 0); });
+}
+const growTab = TABS.find(t => t.id === 'grow');
+if (growTab){ if (!growTab.subs.some(x => x[0] === 'fr')) growTab.subs.unshift(['fr', 'French']); if (!growTab.subs.some(x => x[0] === 'learn')) growTab.subs.splice(1, 0, ['learn', 'Learn']); }
+VIEWS['grow.learn'] = function(el){
+  const f = ui.learnField || LESSONS[Math.min(lessonIndex(), LESSONS.length - 1)].f, list = LESSONS.filter(x => x.f === f), cur = LESSONS[lessonIndex()];
+  el.innerHTML = '<div class="card tint"><div class="greet">' + (isAr() ? 'اتعلّمي كل يوم حاجة' : 'A lesson a day') + ' \u{1F4DA}</div><span class="small muted" style="font-weight:700">' + (isAr() ? 'أساسيات 10 مجالات، درس ورا درس. درس النهارده بيظهر تحت في الصفحة الرئيسية.' : 'Foundations of 10 fields, one lesson a day, in Egyptian Arabic.') + '</span></div>' +
+    '<div class="chips">' + LESSON_FIELDS.map(F => '<button class="chip' + (F[0] === f ? ' on' : '') + '" data-lf="' + F[0] + '">' + F[1] + ' ' + F[2] + ' <span class="cnt">' + LESSONS.filter(x => x.f === F[0]).length + '</span></button>').join('') + '</div>' +
+    list.map((L, i) => '<div class="card lesson' + (L === cur ? ' now' : '') + '" data-notr><span class="small muted" style="font-weight:900">' + (i + 1) + ' / ' + list.length + (L === cur ? ' · درس النهارده' : '') + '</span><h2 class="plain">' + esc(L.t) + '</h2><p style="margin:0">' + esc(L.x) + '</p>' + (L.ex ? '<p class="todo" style="margin:0"><b>مثال</b> ' + esc(L.ex) + '</p>' : '') + '</div>').join('');
+  $$('[data-lf]', el).forEach(b => b.onclick = () => { ui.learnField = b.dataset.lf; VIEWS['grow.learn'](el); });
+};
+
+/* ============ FRENCH A1 IN TWO MONTHS ============ */
+// S.fr = {done:{n:date}, best:{n:score}, last:n}
+function frMigrate(){
+  S.fr = S.fr && typeof S.fr === 'object' ? S.fr : {done:{}, best:{}};
+  S.fr.done = S.fr.done || {}; S.fr.best = S.fr.best || {};
+  if (!S.seedFr){ if (!S.habits.some(h => h.id === 'french')) S.habits.push({id:'french', name:'French lesson', e:'\u{1F1EB}\u{1F1F7}', freq:'daily', target:1, reward:'A croissant date when you finish a week'}); S.seedFr = true; }
+}
+function frToday(){ return Math.min(FR.length, Math.max(1, daysBetween(FR_START, todayStr()) + 1)); }
+const frClean = t => t.replace(/\([^)]*\)/g, '').replace(/[…]/g, '').replace(/ \/ /g, ', ').trim();
+function say(text){
+  try {
+    const s = window.speechSynthesis; if (!s) return toast('Sound isn’t available here');
+    s.cancel(); const u = new SpeechSynthesisUtterance(frClean(text)); u.lang = 'fr-FR'; u.rate = 0.85;
+    const v = s.getVoices().find(x => /^fr(-|_)FR/i.test(x.lang)) || s.getVoices().find(x => /^fr/i.test(x.lang)); if (v) u.voice = v;
+    s.speak(u);
+  } catch(e){ toast('Sound isn’t available here'); }
+}
+try { if (window.speechSynthesis) speechSynthesis.getVoices(); } catch(e){}
+document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-say]'); if (!b) return; ev.preventDefault(); ev.stopPropagation(); say(b.dataset.say); }, true);
+function frWordRow(w){ return '<div class="frw"><button class="say" data-say="' + esc(w[0]) + '" aria-label="Listen">\u{1F50A}</button><span class="t" data-notr><b lang="fr" dir="ltr">' + esc(w[0]) + '</b><span class="s">' + esc(w[1]) + (w[2] ? ' · <span class="pr">' + esc(w[2]) + '</span>' : '') + '</span></span></div>'; }
+function frLessonHTML(n){
+  const L = FR[n - 1], done = S.fr.done[n], best = S.fr.best[n];
+  return '<div class="card frcard"><div class="card-head"><h2>' + (isAr() ? 'درس ' : 'Lesson ') + n + '</h2><span class="small muted" style="font-weight:800">' + nice(addDays(FR_START, n - 1)) + '</span></div><div class="greet" data-notr>' + esc(L.t) + '</div>' +
+    '<h3>' + (isAr() ? 'الكلمات' : 'Words') + '</h3><div class="list">' + L.w.map(frWordRow).join('') + '</div>' +
+    '<h3>' + (isAr() ? 'جُمل' : 'Phrases') + '</h3><div class="list">' + L.p.map(p => frWordRow([p[0], p[1]])).join('') + '</div>' +
+    '<div class="frnote" data-notr><b>\u{1F4A1} ' + (isAr() ? 'القاعدة' : 'Tip') + '</b><p>' + esc(L.n) + '</p></div>' +
+    '<div class="row"><button class="btn" data-frquiz="' + n + '" style="flex:1">\u{1F4DD} ' + (isAr() ? 'كويز الدرس' : 'Lesson quiz') + (best != null ? ' · ' + best + '/5' : '') + '</button>' +
+    (done ? '<span class="pill" style="align-self:center">✓ ' + (isAr() ? 'خلص' : 'Done') + '</span>' : '<button class="btn soft" data-frdone="' + n + '" style="flex:1">✓ ' + (isAr() ? 'خلصت الدرس' : 'I finished it') + '</button>') + '</div></div>';
+}
+function frQuizSet(n, review){
+  const pool = review ? FR.slice(0, n).flatMap(l => l.w) : FR[n - 1].w, qs = [], rnd = a => a[Math.floor(Math.random() * a.length)];
+  const shuffle = a => a.map(x => [Math.random(), x]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+  if (!review && FR[n - 1].q) FR[n - 1].q.forEach(q => qs.push({q:q[0], opts:q[1].slice(), ok:q[2], fr:true}));
+  const all = FR.flatMap(l => l.w), want = review ? 8 : 5;
+  let guard = 0;
+  while (qs.length < want && guard++ < 50){
+    const w = rnd(pool), kind = ['fa', 'af', 'listen'][Math.floor(Math.random() * 3)];
+    const others = shuffle(all.filter(x => x[0] !== w[0] && x[1] !== w[1])).slice(0, 2);
+    if (qs.some(q => q.key === w[0])) continue;
+    if (kind === 'fa') qs.push({key:w[0], q:(isAr() ? 'يعني إيه "' : 'What does "') + w[0] + '"?', opts:[w[1], others[0][1], others[1][1]], ok:0});
+    else if (kind === 'af') qs.push({key:w[0], q:(isAr() ? 'إزاي تقولي "' : 'How do you say "') + w[1] + '"?', opts:[w[0], others[0][0], others[1][0]], ok:0, fr:true});
+    else qs.push({key:w[0], q:(isAr() ? 'اسمعي واختاري الكلمة' : 'Listen and pick the word'), listen:w[0], opts:[w[0], others[0][0], others[1][0]], ok:0, fr:true});
+  }
+  return qs.slice(0, want).map(q => { const order = shuffle([0, 1, 2].slice(0, q.opts.length)); return Object.assign({}, q, {opts:order.map(i => q.opts[i]), ok:order.indexOf(q.ok)}); });
+}
+function frQuiz(n, review, done){
+  const qs = frQuizSet(n, review); let i = 0, score = 0;
+  const show = sh => {
+    const q = qs[i], box = $('[data-qbox]', sh);
+    if (!q){ const of = qs.length, pct = score / of;
+      if (!review){ S.fr.best[n] = Math.max(S.fr.best[n] || 0, Math.round(score / of * 5)); if (pct >= 0.6 && !S.fr.done[n]){ S.fr.done[n] = todayStr(); if (S.habits.some(h => h.id === 'french')) setHabit('french', todayStr(), true); } save(); }
+      box.innerHTML = '<div style="text-align:center;font-size:48px">' + (pct >= 0.8 ? '\u{1F389}' : pct >= 0.6 ? '\u{1F44F}' : '\u{1F4AA}') + '</div><div class="greet" style="text-align:center">' + score + ' / ' + of + '</div><p style="text-align:center;margin:0;font-weight:700">' +
+        (pct >= 0.8 ? (isAr() ? 'Bravo ! أنتِ نجمة.' : 'Bravo! You’re a star.') : pct >= 0.6 ? (isAr() ? 'Très bien ! كمّلي كده.' : 'Très bien! Keep going.') : (isAr() ? 'راجعي الدرس تاني وجربي كمان مرة.' : 'Review the lesson and try again.')) + '</p>';
+      return; }
+    box.innerHTML = '<span class="small muted" style="font-weight:900">' + (i + 1) + ' / ' + qs.length + '</span><div class="greet" style="font-size:19px" data-notr>' + esc(q.q) + '</div>' + (q.listen ? '<button class="btn soft" data-say="' + esc(q.listen) + '">\u{1F50A} ' + (isAr() ? 'اسمعي' : 'Listen') + '</button>' : '') +
+      '<div class="list">' + q.opts.map((o, k) => '<button class="qopt" data-k="' + k + '" data-notr' + (q.fr ? ' lang="fr" dir="ltr"' : '') + '>' + esc(o) + '</button>').join('') + '</div>';
+    if (q.listen) setTimeout(() => say(q.listen), 250);
+    $$('[data-k]', box).forEach(b => b.onclick = () => { const k = +b.dataset.k; if (k === q.ok) score++;
+      $$('[data-k]', box).forEach(x => { x.disabled = true; if (+x.dataset.k === q.ok) x.classList.add('right'); else if (x === b) x.classList.add('wrong'); });
+      if (q.fr || q.key) say(q.fr ? q.opts[q.ok] : q.key); setTimeout(() => { i++; show(sh); }, 1100); });
+  };
+  sheet('<div style="text-align:center;font-size:36px">\u{1F1EB}\u{1F1F7}</div><h2 class="plain" style="justify-content:center">' + (review ? (isAr() ? 'كويز مراجعة على كل اللي فات' : 'Review quiz') : (isAr() ? 'كويز درس ' : 'Quiz · lesson ') + n) + '</h2><div data-qbox style="display:flex;flex-direction:column;gap:10px"></div>',
+    (sh, close) => { show(sh); const c = $('[data-close]', sh); if (c) c.addEventListener('click', () => done && done()); });
+}
+VIEWS['grow.fr'] = function(el){
+  const today = frToday(), sel = ui.frLesson || today, doneN = Object.keys(S.fr.done).length, started = todayStr() >= FR_START;
+  let strip = ''; for (let n = 1; n <= FR.length; n++) strip += '<button class="dpill' + (n === sel ? ' sel' : '') + (n === today && started ? ' today' : '') + (S.fr.done[n] ? ' done' : '') + '" data-frn="' + n + '"><span class="dn">' + (isAr() ? 'درس' : 'L') + '</span><span class="dd">' + n + '</span><span class="dot"></span></button>';
+  el.innerHTML = '<div class="card tint frhero"><div class="greet">\u{1F1EB}\u{1F1F7} ' + (isAr() ? 'فرنساوي A1 في شهرين' : 'French A1 in two months') + '</div>' +
+      '<span class="small" style="font-weight:800">' + (started ? (isAr() ? 'النهارده درس ' + today + ' من ' + FR.length : 'Today: lesson ' + today + ' of ' + FR.length) : (isAr() ? 'الكورس بيبدأ 1 نوفمبر، وتقدري تبدئي بدري.' : 'Starts 1 November; you can start early.')) + ' · ' + doneN + ' ' + (isAr() ? 'درس خلص' : 'done') + '</span>' +
+      '<div class="bar good"><i style="width:' + (doneN / FR.length * 100) + '%"></i></div>' +
+      '<div class="row"><button class="btn soft" id="frReview" style="flex:1">\u{1F501} ' + (isAr() ? 'كويز مراجعة' : 'Review quiz') + '</button></div>' +
+      '<span class="small muted" style="font-weight:700">' + (isAr() ? 'دوسي 🔊 تسمعي النطق بصوت الآيفون الفرنساوي، من غير نت ومن غير مساحة.' : 'Tap 🔊 to hear it with the iPhone’s French voice.') + '</span></div>' +
+    '<div class="strip" id="frStrip">' + strip + '</div>' + frLessonHTML(sel);
+  const again = () => VIEWS['grow.fr'](el);
+  $$('[data-frn]', el).forEach(b => b.onclick = () => { ui.frLesson = +b.dataset.frn; again(); });
+  $$('[data-frquiz]', el).forEach(b => b.onclick = () => frQuiz(+b.dataset.frquiz, false, again));
+  $$('[data-frdone]', el).forEach(b => b.onclick = ev => { S.fr.done[b.dataset.frdone] = todayStr(); if (S.habits.some(h => h.id === 'french')) setHabit('french', todayStr(), true, ev); save(); toast('Bravo ! ✓'); again(); });
+  $('#frReview', el).onclick = () => frQuiz(Math.max(sel, Math.max(1, ...Object.keys(S.fr.done).map(Number))), true, again);
+  const cur = $('#frStrip', el).children[sel - 1]; if (cur) requestAnimationFrame(() => cur.scrollIntoView({inline:'center', block:'nearest'}));
+};
+function frHomeHTML(){
+  const n = frToday(), L = FR[n - 1], done = S.fr.done[n], started = todayStr() >= FR_START;
+  return '<div class="card frhome"><div class="card-head"><h2>\u{1F1EB}\u{1F1F7} ' + (isAr() ? 'فرنساوي النهارده' : 'French today') + '</h2><span class="num" style="font-weight:700">' + n + ' / ' + FR.length + '</span></div>' +
+    '<span class="small" style="font-weight:800">' + (started ? '' : (isAr() ? 'بيبدأ 1 نوفمبر · ' : 'Starts 1 Nov · ')) + (isAr() ? 'درس ' : 'Lesson ') + n + ': <span data-notr>' + esc(L.t) + '</span>' + (done ? ' ✓' : '') + '</span>' +
+    '<div class="list">' + L.w.slice(0, 3).map(frWordRow).join('') + '</div>' +
+    '<div class="row"><button class="btn" data-go="grow:fr" style="flex:1">' + (isAr() ? 'افتحي الدرس' : 'Open lesson') + '</button><button class="btn soft" data-frquiz="' + n + '" style="flex:1">\u{1F4DD} ' + (isAr() ? 'كويز النهارده' : 'Today’s quiz') + '</button></div></div>';
+}
+function frReminders(repeat){ if (S.settings.rem && S.settings.rem.plans === false) return; repeat.push({id:'fr-daily', title:'\u{1F1EB}\u{1F1F7} Bonjour, Monmon !', body:'15 minutes of French today: one lesson and a short quiz.', hour:19, minute:30}); }
