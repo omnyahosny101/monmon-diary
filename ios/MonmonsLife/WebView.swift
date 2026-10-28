@@ -1,6 +1,8 @@
 import SwiftUI
 import WebKit
 import WidgetKit
+import AVFoundation
+import Speech
 
 /// Shows Monmon's Life. It opens the live website so every update arrives by itself,
 /// and falls back to the copy bundled inside the app when there's no internet.
@@ -100,6 +102,25 @@ struct WebView: UIViewRepresentable {
                    let args = String(data: json, encoding: .utf8) {
                     webView?.evaluateJavaScript("window.__photoIn && window.__photoIn.apply(null, \(args));")
                 }
+            case "caps":
+                VoiceBox.shared.webView = webView
+                VoiceBox.shared.send("__capsIn", VoiceBox.shared.caps())
+            case "speak":
+                VoiceBox.shared.webView = webView
+                VoiceBox.shared.speak(body["text"] as? String ?? "",
+                                      lang: body["lang"] as? String ?? "fr-FR",
+                                      rate: (body["rate"] as? NSNumber)?.doubleValue ?? 0.45,
+                                      voiceId: body["voice"] as? String ?? "",
+                                      id: body["id"] as? String ?? "")
+            case "stopSpeak":
+                VoiceBox.shared.stopSpeaking()
+            case "listen":
+                VoiceBox.shared.webView = webView
+                VoiceBox.shared.listen(lang: body["lang"] as? String ?? "fr-FR")
+            case "stopListen":
+                VoiceBox.shared.stopListening()
+            case "playMine":
+                VoiceBox.shared.playMine()
             default:
                 if let state = body["state"] as? String, let data = state.data(using: .utf8) {
                     try? data.write(to: WebView.stateFile, options: .atomic)
@@ -118,5 +139,184 @@ struct WebView: UIViewRepresentable {
         private func safe(_ id: String) -> Bool {
             !id.isEmpty && id.count < 64 && id.allSatisfy { $0.isLetter || $0.isNumber }
         }
+    }
+}
+
+/// The iPhone's own voices, including the clearer Enhanced and Premium ones downloaded in
+/// Settings › Accessibility › Spoken Content › Voices (web pages can't use those), plus
+/// listening to Monmon's French with speech recognition and recording it so she can hear herself.
+final class VoiceBox: NSObject, AVSpeechSynthesizerDelegate {
+    static let shared = VoiceBox()
+    weak var webView: WKWebView?
+
+    private let synth = AVSpeechSynthesizer()
+    private var spoken: [ObjectIdentifier: String] = [:]
+    private let engine = AVAudioEngine()
+    private var request: SFSpeechAudioBufferRecognitionRequest?
+    private var task: SFSpeechRecognitionTask?
+    private var file: AVAudioFile?
+    private var player: AVAudioPlayer?
+    private var token = 0
+    private var sentFinal = false
+    private var tapped = false
+    private static var mine: URL { FileManager.default.temporaryDirectory.appendingPathComponent("my-voice.caf") }
+
+    override init() {
+        super.init()
+        synth.delegate = self
+    }
+
+    // MARK: voices
+    private static func usable(_ v: AVSpeechSynthesisVoice) -> Bool { !v.voiceTraits.contains(.isNoveltyVoice) }
+
+    static func voices(_ prefix: String) -> [[String: Any]] {
+        AVSpeechSynthesisVoice.speechVoices()
+            .filter { $0.language.hasPrefix(prefix) && usable($0) }
+            .sorted { $0.quality.rawValue > $1.quality.rawValue }
+            .map { ["id": $0.identifier, "name": $0.name, "lang": $0.language, "q": $0.quality.rawValue] }
+    }
+
+    private func best(_ lang: String) -> AVSpeechSynthesisVoice? {
+        let all = AVSpeechSynthesisVoice.speechVoices().filter { Self.usable($0) }
+        let exact = all.filter { $0.language == lang }
+        let near = all.filter { $0.language.hasPrefix(String(lang.prefix(2))) }
+        let pool = exact.isEmpty ? near : exact
+        return pool.max { $0.quality.rawValue < $1.quality.rawValue } ?? AVSpeechSynthesisVoice(language: lang)
+    }
+
+    func caps() -> [String: Any] {
+        ["speak": true,
+         "listen": SFSpeechRecognizer(locale: Locale(identifier: "fr-FR")) != nil,
+         "voices": Self.voices("fr"),
+         "ar": Self.voices("ar")]
+    }
+
+    // MARK: speaking
+    func speak(_ text: String, lang: String, rate: Double, voiceId: String, id: String) {
+        if engine.isRunning { stopListening() }
+        let session = AVAudioSession.sharedInstance()
+        // .playback so the voice is loud and clear even when the phone is on silent
+        try? session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
+        try? session.setActive(true)
+        if synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
+        let u = AVSpeechUtterance(string: text)
+        u.voice = (voiceId.isEmpty ? nil : AVSpeechSynthesisVoice(identifier: voiceId)) ?? best(lang)
+        u.rate = Float(min(Double(AVSpeechUtteranceMaximumSpeechRate), max(Double(AVSpeechUtteranceMinimumSpeechRate), rate)))
+        u.postUtteranceDelay = 0.05
+        if !id.isEmpty { spoken[ObjectIdentifier(u)] = id }
+        synth.speak(u)
+    }
+
+    func stopSpeaking() {
+        if synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
+    }
+
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) { finished(utterance) }
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) { finished(utterance) }
+
+    private func finished(_ u: AVSpeechUtterance) {
+        DispatchQueue.main.async {
+            guard let id = self.spoken.removeValue(forKey: ObjectIdentifier(u)) else { return }
+            self.send("__spoke", id)
+        }
+    }
+
+    // MARK: listening
+    func listen(lang: String) {
+        SFSpeechRecognizer.requestAuthorization { status in
+            DispatchQueue.main.async {
+                guard status == .authorized else { return self.heard(["err": "speech"]) }
+                AVAudioApplication.requestRecordPermission { granted in
+                    DispatchQueue.main.async {
+                        if granted { self.begin(lang) } else { self.heard(["err": "mic"]) }
+                    }
+                }
+            }
+        }
+    }
+
+    private func begin(_ lang: String) {
+        stopSpeaking()
+        stopListening()
+        guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: lang)), recognizer.isAvailable else {
+            return heard(["err": "unavailable"])
+        }
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .duckOthers])
+            try session.setActive(true, options: .notifyOthersOnDeactivation)
+
+            let req = SFSpeechAudioBufferRecognitionRequest()
+            req.shouldReportPartialResults = true
+            request = req
+
+            let input = engine.inputNode
+            let format = input.outputFormat(forBus: 0)
+            try? FileManager.default.removeItem(at: Self.mine)
+            file = try? AVAudioFile(forWriting: Self.mine, settings: format.settings)
+            input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
+                req.append(buffer)
+                try? self?.file?.write(from: buffer)
+            }
+            tapped = true
+            engine.prepare()
+            try engine.start()
+
+            token += 1
+            sentFinal = false
+            let mine = token
+            task = recognizer.recognitionTask(with: req) { [weak self] result, error in
+                DispatchQueue.main.async {
+                    guard let self = self, mine == self.token, !self.sentFinal else { return }
+                    let isFinal = result?.isFinal == true || error != nil
+                    let text = result?.bestTranscription.formattedString ?? ""
+                    if isFinal {
+                        self.sentFinal = true
+                        self.stopListening()
+                    }
+                    self.heard(["text": text, "final": isFinal])
+                }
+            }
+            heard(["started": true])
+            // stop by itself after 7 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 7) { [weak self] in
+                guard let self = self, mine == self.token, self.engine.isRunning else { return }
+                self.stopListening()
+            }
+        } catch {
+            stopListening()
+            heard(["err": "audio"])
+        }
+    }
+
+    func stopListening() {
+        if engine.isRunning { engine.stop() }
+        if tapped {
+            engine.inputNode.removeTap(onBus: 0)
+            tapped = false
+        }
+        request?.endAudio()
+        request = nil
+        file = nil
+    }
+
+    func playMine() {
+        stopListening()
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .default)
+        try? session.setActive(true)
+        player = try? AVAudioPlayer(contentsOf: Self.mine)
+        player?.volume = 1
+        player?.play()
+    }
+
+    // MARK: talking back to the page
+    private func heard(_ info: [String: Any]) { send("__heard", info) }
+
+    func send(_ fn: String, _ value: Any) {
+        guard let data = try? JSONSerialization.data(withJSONObject: [value]),
+              let json = String(data: data, encoding: .utf8) else { return }
+        let code = "window.\(fn) && window.\(fn).apply(null, \(json));"
+        DispatchQueue.main.async { self.webView?.evaluateJavaScript(code) }
     }
 }

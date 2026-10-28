@@ -5,9 +5,9 @@ My 30-day meal plan app: daily meals to tick off, calorie ring, water tracker, m
 - **Web version:** https://omnyahosny101.github.io/monmon-diary
 - **iPhone app:** the `ios` folder. It shows the same app, works offline, sends reminders, and has a home-screen widget with today's meals.
 
-**Inside:** Today (urgent tasks, habits with streaks, sadaqa, reading and podcasts, day log, diary with mood and 3 daily questions, spending, daily insight), Food (meal plan with swaps, my dishes and meal builder, forbidden corner, groceries), Money (overview, budgets, spending, savings jars, sadaqa, receipts, salary, pets), Plans (urgent and normal tasks, mashawer, experiences, self-care month, shopping, vision board), Grow (skills, hobbies), Me (full record of each day, mood calendar, habit customization with rewards, settings and backup).
+**Inside:** Today (urgent tasks, habits with streaks, sadaqa, reading and podcasts, day log, diary with mood and 3 daily questions, spending, daily insight), Food (meal plan with swaps, my dishes and meal builder, forbidden corner, groceries), Money (overview, budgets, spending, savings jars, sadaqa, receipts, salary, pets), Plans (urgent and normal tasks, mashawer, experiences, self-care month, shopping, vision board), Grow (French A1 course with spaced review, speaking practice and a listening drill; a book reader with a 15-day plan, dark mode, highlights and notes; daily lessons; "Ask Claude later" inbox; skills, hobbies), Me (full record of each day, mood calendar, habit customization with rewards, settings and backup).
 
-To change the app, edit the files in `src/` (`app.html`, `app.js`, `life.js`, `boot.js`, `content.js`, `wisdom.js`, `facts.js`, `nutrition.js`, `home.js`, `i18n.js`, `ar_*.js`, `learn*.js`, `wisdom_ar*.js`, `french*.js`) and run `python3 src/build.py`.
+To change the app, edit the files in `src/` (`app.html`, `app.js`, `life.js`, `boot.js`, `content.js`, `wisdom.js`, `facts.js`, `nutrition.js`, `home.js`, `i18n.js`, `ar_*.js`, `learn*.js`, `wisdom_ar*.js`, `french*.js`, `fr_plus.js`, `read.js`, `books.js`) and run `python3 src/build.py`. Book texts live in `books/` and load only when a book is opened.
 
 ## Install the iPhone app (Mac + Xcode)
 

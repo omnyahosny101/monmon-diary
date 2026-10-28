@@ -402,6 +402,7 @@ function lifeReminders(R, repeat, push, at){
   myReminders(repeat, push, at);
   cycleReminders(push, at);
   frReminders(repeat);
+  if (typeof readReminders === 'function') readReminders(repeat);
   if (R.plans !== false) emergencyReminders(push, at);
   const P = S.profile, hm = s => s.split(':').map(Number);
   if (R.wake !== false && P.wake){ const [h, m] = hm(P.wake); repeat.push({id:'wake', title:'Good morning, Monmon ☀\u{FE0F}', body:'Same time every day. Curtains open, a glass of water, then your day.', hour:h, minute:m});

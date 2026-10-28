@@ -218,6 +218,7 @@ Object.assign(AR, {
   "Language": "اللغة", "Log my day": "سجّلي يومك", "Logging a past day": "بتسجّلي ليوم فات", "Back to today": "ارجعي للنهارده", "Pick any previous day": "اختاري أي يوم فات",
   "What did I do that day?": "عملت إيه اليوم ده؟", "Spent that day": "صرفت كام اليوم ده؟", "Nothing spent that day.": "مفيش مصاريف اليوم ده.",
   "Photos": "الصور", "Photo": "صورة", "Add photo": "ضيفي صورة", "Adding photo…": "بنضيف الصورة…", "Photo saved": "الصورة اتحفظت", "That photo couldn’t be added": "الصورة دي مقدرتش تتضاف", "Delete photo": "امسحي الصورة", "Photo deleted": "الصورة اتمسحت",
+  "Reading": "القراية", "Ask Claude": "اسألي كلود", "Ask Claude later": "اسألي كلود بعدين", "Chapters": "الفصول", "My highlights": "علاماتي", "Text settings": "شكل الخط", "Highlight": "علّمي", "Colour": "لون", "Smaller": "أصغر", "Bigger": "أكبر", "Close": "اقفلي",
   "French": "فرنساوي", "Learn": "اتعلّمي", "French lesson": "درس الفرنساوي", "A croissant date when you finish a week": "خروجة كرواسون لما تخلصي أسبوع", "Listen": "اسمعي", "Sound isn’t available here": "الصوت مش متاح هنا",
   "15 minutes of French today: one lesson and a short quiz.": "15 دقيقة فرنساوي النهارده: درس وكويز صغير.",
   "Period": "الدورة", "Period expected today": "الدورة متوقعة النهارده", "Tap to log flow and how you feel": "دوسي وسجّلي النزول وحاسة بإيه", "Keep pads, painkillers and a hot water bottle ready": "جهزي الفوط والمسكن وقربة المية السخنة",

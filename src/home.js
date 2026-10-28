@@ -891,17 +891,10 @@ function frMigrate(){
 }
 function frToday(){ return Math.min(FR.length, Math.max(1, daysBetween(FR_START, todayStr()) + 1)); }
 const frClean = t => t.replace(/\([^)]*\)/g, '').replace(/[…]/g, '').replace(/ \/ /g, ', ').trim();
-function say(text){
-  try {
-    const s = window.speechSynthesis; if (!s) return toast('Sound isn’t available here');
-    s.cancel(); const u = new SpeechSynthesisUtterance(frClean(text)); u.lang = 'fr-FR'; u.rate = 0.85;
-    const v = s.getVoices().find(x => /^fr(-|_)FR/i.test(x.lang)) || s.getVoices().find(x => /^fr/i.test(x.lang)); if (v) u.voice = v;
-    s.speak(u);
-  } catch(e){ toast('Sound isn’t available here'); }
-}
+function say(text, slow){ return sayFr(text, slow); }
 try { if (window.speechSynthesis) speechSynthesis.getVoices(); } catch(e){}
 document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-say]'); if (!b) return; ev.preventDefault(); ev.stopPropagation(); say(b.dataset.say); }, true);
-function frWordRow(w){ return '<div class="frw"><button class="say" data-say="' + esc(w[0]) + '" aria-label="Listen">\u{1F50A}</button><span class="t" data-notr><b lang="fr" dir="ltr">' + esc(w[0]) + '</b><span class="s">' + esc(w[1]) + (w[2] ? ' · <span class="pr">' + esc(w[2]) + '</span>' : '') + '</span></span></div>'; }
+function frWordRow(w){ return '<div class="frw"><button class="say" data-say="' + esc(w[0]) + '" aria-label="Listen">\u{1F50A}</button><span class="t" data-notr><b lang="fr" dir="ltr">' + esc(w[0]) + '</b><span class="s">' + esc(w[1]) + (w[2] ? ' · <span class="pr">' + esc(w[2]) + '</span>' : '') + '</span></span>' + (typeof askBtn === 'function' ? askBtn('fr', 'فرنساوي', w[0] + ' = ' + w[1], true) : '') + '</div>'; }
 function frLessonHTML(n){
   const L = FR[n - 1], done = S.fr.done[n], best = S.fr.best[n];
   return '<div class="card frcard"><div class="card-head"><h2>' + (isAr() ? 'درس ' : 'Lesson ') + n + '</h2><span class="small muted" style="font-weight:800">' + nice(addDays(FR_START, n - 1)) + '</span></div><div class="greet" data-notr>' + esc(L.t) + '</div>' +

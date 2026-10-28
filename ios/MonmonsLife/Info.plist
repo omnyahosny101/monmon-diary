@@ -4,6 +4,10 @@
 <dict>
 	<key>NSCameraUsageDescription</key>
 	<string>To take photos of your food, outings and diary.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>To hear you say French words and play your voice back.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>To check how you pronounce French words.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>To add photos of your food, outings and diary.</string>
 	<key>UIUserInterfaceStyle</key>

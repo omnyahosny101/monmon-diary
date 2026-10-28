@@ -8,6 +8,8 @@ novMigrate();
 cycleMigrate();
 photoMigrate();
 frMigrate();
+frPlusMigrate();
+bookMigrate();
 applyLang();
 render();
 syncNative();
