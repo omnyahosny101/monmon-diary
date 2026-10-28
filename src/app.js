@@ -270,7 +270,8 @@ function setHabit(id, day, on, ev){
   const daily = S.habits.filter(x => x.freq === 'daily');
   if (daily.length && daily.every(x => habitDone(x.id, day))) celebrate({key:'all-' + day, e:'\u{1F451}', title:'All daily habits done!', msg:'Every single one, today. You’re glowing, queen.'});
 }
-function delBtn(attr, id){ return '<button class="del" ' + attr + '="' + id + '" aria-label="Delete">×</button>'; }
+function delBtn(attr, id){ const k = typeof EDIT_KINDS !== 'undefined' && EDIT_KINDS[attr] && !(attr === 'data-xdel' && /^\d+$/.test(String(id))) ? EDIT_KINDS[attr] : '';
+  const d = '<button class="del" ' + attr + '="' + id + '" aria-label="Delete">×</button>'; return k ? '<span class="ibtns">' + editBtn(k, id) + d + '</span>' : d; }
 function armDelete(el, attr, onDel){
   $$('[' + attr + ']', el).forEach(b => { let armed = false;
     b.onclick = ev => { ev.stopPropagation(); if (!armed){ armed = true; b.textContent = 'Delete?'; b.classList.add('armed'); setTimeout(() => { armed = false; b.textContent = '×'; b.classList.remove('armed'); }, 2500); return; } onDel(b.getAttribute(attr)); };
@@ -447,13 +448,14 @@ VIEWS['food.meals'] = function(el){
     '<button class="toggle" id="gymBtn"><span class="sw" role="switch" aria-checked="' + gym + '"></span><span>Gym day</span></button></div></div></div>' +
     '<div class="card"><div class="card-head"><h2>Water</h2><span class="num muted">' + w + ' / 8 glasses</span></div><div class="cups">' + Array.from({length:8}, (_, i) => '<button class="cup' + (i < w ? ' on' : '') + '" data-c="' + (i + 1) + '" aria-label="Glass ' + (i + 1) + '"></button>').join('') + '</div></div>' +
     meals.map((m, i) => '<div class="meal' + (S.checks[keys[i]] ? ' eaten' : '') + '"><span class="ic">' + (MICONS[m.type] || MICONS.Gym) + '</span><span class="txt"><span class="lbl">' + m.type + (m.type !== 'Pre-gym' ? ' <button class="swap" data-swap="' + i + '">' + (m.swapped ? 'Swapped · change' : '⇄ Swap') + '</button>' : '') + '</span><div class="nm">' + esc(m.name) + '</div><div class="mac">' + m.kcal + ' kcal · ' + m.protein + ' g protein</div></span><button class="check" data-k="' + keys[i] + '" aria-label="Mark eaten">' + CHECK + '</button></div>').join('') +
-    extras.map((x, i) => '<div class="meal" style="background:color-mix(in srgb,var(--danger) 8%,var(--surface))"><span class="ic" style="font-size:24px;background:transparent">' + x.e + '</span><span class="txt"><span class="lbl">Treat</span><div class="nm">' + esc(x.name) + '</div><div class="mac">' + x.kcal + ' kcal · ' + x.protein + ' g protein</div></span>' + delBtn('data-xdel', i) + '</div>').join('') +
-    '<p class="note">Tap the circle when you’ve eaten a meal. Tap Swap to eat something else from your dishes.</p>';
+    extras.map((x, i) => '<div class="meal" style="background:color-mix(in srgb,var(--danger) 8%,var(--surface))"><span class="ic" style="font-size:24px;background:transparent">' + x.e + '</span><span class="txt"><span class="lbl">' + (x.type || 'Treat') + '</span><div class="nm">' + esc(x.name) + '</div><div class="mac">' + x.kcal + ' kcal · ' + x.protein + ' g protein</div></span>' + delBtn('data-xdel', i) + '</div>').join('') +
+    '<button class="btn soft full" id="mAddFood">+ Add something I ate</button><p class="note">Tap the circle when you’ve eaten a meal. Tap Swap to eat something else from your dishes.</p>';
   const again = () => VIEWS['food.meals'](el);
   $$('[data-d]', el).forEach(b => b.onclick = () => { ui.foodDay = +b.dataset.d; again(); });
   $$('[data-k]', el).forEach(b => b.onclick = ev => { toggleMeal(b.dataset.k, ev); again(); });
   $$('[data-c]', el).forEach(b => b.onclick = () => { const i = +b.dataset.c; S.water[sel] = w === i ? i - 1 : i; save(); if (S.water[sel] === 8) celebrate({key:'water-' + sel + '-' + S.start, e:'\u{1F4A7}', title:'8 glasses!', msg:'Fully hydrated. Glowing skin incoming.'}); again(); });
   armDelete(el, 'data-xdel', i => { extras.splice(+i, 1); save(); again(); });
+  $('#mAddFood', el).onclick = () => addFoodSheet(dateS, null, again);
   $('#gymBtn', el).onclick = () => { if (S.gym[sel]) delete S.gym[sel]; else S.gym[sel] = true; save(); again(); };
   $$('[data-swap]', el).forEach(b => b.onclick = () => swapSheet(sel, +b.dataset.swap, again));
   const strp = $('#strip', el), cur = strp.children[sel - 1]; if (cur) requestAnimationFrame(() => cur.scrollIntoView({inline:'center', block:'nearest'}));
@@ -584,7 +586,7 @@ function spendForm(o){
 function bindSpendForm(el, o, again){
   $('#fAdd', el).onclick = () => { const amt = +$('#fAmt', el).value; if (!(amt > 0)) return toast('Enter an amount');
     const e = {id:uid(), date:$('#fDate', el).value || todayStr(), amount:amt, cat:o.cat || ($('#fCat', el) ? $('#fCat', el).value : 'other'), note:$('#fNote', el).value.trim()};
-    if (o.store) e.store = $('#fStore', el).value; S.spend.push(e); save(); toast('Saved ' + money(amt)); again(); };
+    if (o.store) e.store = $('#fStore', el).value; S.spend.push(e); ui.moneyMonth = e.date.slice(0, 7); save(); toast('Saved ' + money(amt) + (e.date !== todayStr() ? ' · ' + nice(e.date) : '')); again(); };
 }
 VIEWS['money.spend'] = function(el){
   const k = ui.moneyMonth, list = S.spend.filter(s => inMonth(s, k)).sort((a, b) => a.date < b.date ? 1 : -1);

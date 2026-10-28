@@ -347,6 +347,37 @@ canvas.confetti{position:fixed;inset:0;width:100%;height:100%;z-index:1;pointer-
 .tab svg{width:21px;height:21px}
 .tab[aria-selected="true"]{background:var(--acc);color:#fff}
 
+/* edit pencil */
+.edit{flex:0 0 auto;width:30px;height:30px;border-radius:999px;background:color-mix(in srgb,var(--sky) 14%,var(--surface));font-size:13px;line-height:1;display:grid;place-items:center}
+.edit:active{transform:scale(.92)}
+/* more colour: each card gets its own pastel wash, dot and border */
+#body>.card:not(.tint):not(.wisdom):not(.insight):not(.wedtrack):not(.wed):not(.night):nth-of-type(6n+1){--cc:var(--rose)}
+#body>.card:not(.tint):not(.wisdom):not(.insight):not(.wedtrack):not(.wed):not(.night):nth-of-type(6n+2){--cc:var(--lilac)}
+#body>.card:not(.tint):not(.wisdom):not(.insight):not(.wedtrack):not(.wed):not(.night):nth-of-type(6n+3){--cc:var(--mint)}
+#body>.card:not(.tint):not(.wisdom):not(.insight):not(.wedtrack):not(.wed):not(.night):nth-of-type(6n+4){--cc:var(--coral)}
+#body>.card:not(.tint):not(.wisdom):not(.insight):not(.wedtrack):not(.wed):not(.night):nth-of-type(6n+5){--cc:var(--sky)}
+#body>.card:not(.tint):not(.wisdom):not(.insight):not(.wedtrack):not(.wed):not(.night):nth-of-type(6n+6){--cc:var(--gold)}
+#body>.card[style*="--cc"],#body>.card:not(.tint):not(.wisdom):not(.insight):not(.wedtrack):not(.wed):not(.night){background:linear-gradient(165deg,var(--surface) 58%,color-mix(in srgb,var(--cc,var(--acc)) 13%,var(--surface)));border-color:color-mix(in srgb,var(--cc,var(--acc)) 30%,var(--line))}
+#body>.card:not(.tint):not(.wisdom):not(.insight) h2::before{background:var(--cc,var(--acc));width:10px;height:10px;box-shadow:0 0 0 4px color-mix(in srgb,var(--cc,var(--acc)) 18%,transparent)}
+.card.tint{background:linear-gradient(150deg,color-mix(in srgb,var(--acc) 16%,var(--surface)),color-mix(in srgb,var(--gold) 14%,var(--surface)))}
+.btn:not(.soft){background:linear-gradient(135deg,var(--acc),color-mix(in srgb,var(--acc) 55%,var(--coral)));box-shadow:0 8px 18px -10px var(--acc)}
+.mbox:nth-child(3n+1){background:linear-gradient(160deg,var(--surface),var(--rose-soft))}
+.mbox:nth-child(3n+2){background:linear-gradient(160deg,var(--surface),var(--lilac-soft))}
+.mbox:nth-child(3n+3){background:linear-gradient(160deg,var(--surface),var(--mint-soft))}
+.chips .chip:not(.on):nth-child(6n+1){background:var(--rose-soft);border-color:transparent}
+.chips .chip:not(.on):nth-child(6n+2){background:var(--lilac-soft);border-color:transparent}
+.chips .chip:not(.on):nth-child(6n+3){background:var(--mint-soft);border-color:transparent}
+.chips .chip:not(.on):nth-child(6n+4){background:var(--coral-soft);border-color:transparent}
+.chips .chip:not(.on):nth-child(6n+5){background:var(--sky-soft);border-color:transparent}
+.chips .chip:not(.on):nth-child(6n+6){background:var(--gold-soft);border-color:transparent}
+.tab:nth-child(1):not([aria-selected="true"]){color:var(--rose)}
+.tab:nth-child(2):not([aria-selected="true"]){color:var(--coral)}
+.tab:nth-child(3):not([aria-selected="true"]){color:var(--mint)}
+.tab:nth-child(4):not([aria-selected="true"]){color:var(--lilac)}
+.tab:nth-child(5):not([aria-selected="true"]){color:var(--sky)}
+.tab:nth-child(6):not([aria-selected="true"]){color:var(--berry)}
+.bar.good i{background:linear-gradient(90deg,var(--mint),var(--sky),var(--lilac))}
+.seg button[aria-pressed="true"]{background:linear-gradient(135deg,var(--acc),color-mix(in srgb,var(--acc) 55%,var(--coral)))}
 /* right-to-left (Arabic) */
 [dir=rtl] .pill{margin-right:0;margin-left:4px}
 [dir=rtl] .habit .fire{margin-left:0;margin-right:auto}

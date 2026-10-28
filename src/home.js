@@ -103,7 +103,7 @@ function mediaSheet(kind, day, done){
 function tasksHTML(){
   const t = todayStr(), order = {urgent:0, high:1};
   const sort = (a, b) => ((order[a.prio] ?? 2) - (order[b.prio] ?? 2)) || ((a.due || '9') < (b.due || '9') ? -1 : 1);
-  const row = x => '<div class="item"><button class="tick" data-htdone="' + x.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (x.job ? '<span class="pill">' + esc(jobName(x.job)) + '</span>' : '') + (x.prio && x.prio !== 'normal' ? '<span class="pill ' + PRIO[x.prio].c + '">' + PRIO[x.prio].l + '</span>' : '') + esc(x.title) + (x.due ? '<span class="s" style="' + (x.due < t ? 'color:var(--danger);font-weight:900' : '') + '">' + (x.due < t ? 'Overdue · ' : 'Due ') + nice(x.due) + (x.time ? ' · by ' + x.time : '') + '</span>' : '') + '</span>' + flagBtn('t:' + x.id, x.prio === 'urgent') + '</div>';
+  const row = x => '<div class="item"><button class="tick" data-htdone="' + x.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (x.job ? '<span class="pill">' + esc(jobName(x.job)) + '</span>' : '') + (x.prio && x.prio !== 'normal' ? '<span class="pill ' + PRIO[x.prio].c + '">' + PRIO[x.prio].l + '</span>' : '') + esc(x.title) + (x.due ? '<span class="s" style="' + (x.due < t ? 'color:var(--danger);font-weight:900' : '') + '">' + (x.due < t ? 'Overdue · ' : 'Due ') + nice(x.due) + (x.time ? ' · by ' + x.time : '') + '</span>' : '') + '</span><span class="ibtns">' + editBtn('task', x.id) + flagBtn('t:' + x.id, x.prio === 'urgent') + '</span></div>';
   const w = S.tasks.filter(x => !x.done && x.kind === 'work').sort(sort), p = S.tasks.filter(x => !x.done && x.kind !== 'work').sort(sort);
   return '<div class="card"><div class="card-head"><h2>Tasks</h2><button class="linkbtn" data-go="plans:tasks">All tasks</button></div>' +
     '<div class="row"><label class="field" style="flex:2 1 150px"><input class="in" id="htIn" placeholder="Add a task…" aria-label="New task"></label><label class="field" style="flex:1 1 100px"><select class="in" id="htFor" aria-label="For"><option value="personal">Personal</option>' + S.jobs.map(j => '<option value="' + j.id + '">' + esc(j.name) + '</option>').join('') + '</select></label><button class="btn" id="htAdd">Add</button></div>' +
@@ -115,7 +115,7 @@ function mashawerHTML(){
   return '<div class="card"><div class="card-head"><h2>Mashawer</h2><button class="linkbtn" data-go="plans:mashawer">All</button></div>' +
     '<div class="row"><label class="field" style="flex:2 1 140px"><input class="in" id="hmIn" placeholder="Where to?" aria-label="Where"></label><label class="field" style="flex:1 1 120px"><input class="in" id="hmDate" type="date" value="' + t + '" aria-label="Day"></label></div>' +
     '<div class="row"><button class="chip" id="hmWed" aria-pressed="false">\u{1F48D} Wedding prep</button><span style="flex:1"></span><button class="btn" id="hmAdd">Add</button></div>' +
-    '<div class="list">' + (up.length ? up.slice(0, 5).map(m => '<div class="item"><button class="tick" data-hmdone="' + m.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (m.wedding ? '<span class="pill wedpill">\u{1F48D} Wedding prep</span>' : '') + esc(m.name) + '<span class="s">' + (m.date ? (m.date < t ? 'Missed · ' : '') + nice(m.date) : 'No date') + (m.time ? ' · ' + m.time : '') + '</span></span>' + flagBtn('m:' + m.id, m.flag) + '</div>').join('') : '<div class="empty">No mashawer planned.</div>') + '</div></div>';
+    '<div class="list">' + (up.length ? up.slice(0, 5).map(m => '<div class="item"><button class="tick" data-hmdone="' + m.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (m.wedding ? '<span class="pill wedpill">\u{1F48D} Wedding prep</span>' : '') + esc(m.name) + '<span class="s">' + (m.date ? (m.date < t ? 'Missed · ' : '') + nice(m.date) : 'No date') + (m.time ? ' · ' + m.time : '') + '</span></span><span class="ibtns">' + editBtn('mesh', m.id) + flagBtn('m:' + m.id, m.flag) + '</span></div>').join('') : '<div class="empty">No mashawer planned.</div>') + '</div></div>';
 }
 
 /* ---------- 🚨 emergency flags: tasks, mashawer, wedding prep, shopping, beauty ---------- */
@@ -165,13 +165,13 @@ function beautyHTML(){
   const t = todayStr(), now = new Date(), next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const sec = k => { const L = (S.selfcare[k] || []).slice().sort((a, b) => (a.planned || '9') < (b.planned || '9') ? -1 : 1); if (!L.length) return '';
     return '<h3>' + MONTHS_L[+k.slice(5) - 1] + ' · ' + L.filter(s => s.done).length + '/' + L.length + ' done</h3><div class="list">' + L.map(s => '<div class="item' + (s.done ? ' done' : '') + '"><button class="tick' + (s.done ? ' on' : '') + '" data-bt="' + s.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + s.e + ' ' + esc(s.name) + (s.wedding ? ' \u{1F48D}' : '') +
-      '<span class="s">' + (s.done ? 'Done ' + nice(s.done) : s.planned ? (s.planned < t ? 'Was due ' : '') + nice(s.planned) : 'No date yet') + (s.price ? ' · ' + money(s.price) : '') + '</span></span>' + flagBtn('s:' + s.id, s.flag) + '</div>').join('') + '</div>'; };
+      '<span class="s">' + (s.done ? 'Done ' + nice(s.done) : s.planned ? (s.planned < t ? 'Was due ' : '') + nice(s.planned) : 'No date yet') + (s.price ? ' · ' + money(s.price) : '') + '</span></span><span class="ibtns">' + editBtn('sc', s.id) + flagBtn('s:' + s.id, s.flag) + '</span></div>').join('') + '</div>'; };
   const body = sec(ym(now)) + sec(ym(next));
   return '<div class="card"><div class="card-head"><h2>Beauty and pampering</h2><button class="linkbtn" data-go="plans:wedding">All months</button></div>' + (body || '<div class="empty">No sessions planned. Plan them in Plans › Self-care.</div>') + '</div>';
 }
 function shopHTML(){
   const L = S.wedding.shopping || [], open = L.filter(x => !x.done), got = L.filter(x => x.done);
-  const row = x => '<div class="item' + (x.done ? ' done' : '') + '"><button class="tick' + (x.done ? ' on' : '') + '" data-hs="' + x.id + '" aria-label="Bought">' + CHECK + '</button><span class="t">' + x.e + ' ' + esc(x.title) + '</span>' + flagBtn('w:' + x.id, x.flag) + '</div>';
+  const row = x => '<div class="item' + (x.done ? ' done' : '') + '"><button class="tick' + (x.done ? ' on' : '') + '" data-hs="' + x.id + '" aria-label="Bought">' + CHECK + '</button><span class="t">' + x.e + ' ' + esc(x.title) + '</span><span class="ibtns">' + editBtn('wshop', x.id) + flagBtn('w:' + x.id, x.flag) + '</span></div>';
   return '<div class="card"><div class="card-head"><h2>Shopping list</h2><span class="num muted">' + got.length + '/' + L.length + ' bought</span></div>' +
     '<div class="row"><label class="field"><input class="in" id="hsIn" placeholder="Add something to buy…" aria-label="New item"></label><button class="btn" id="hsAdd">Add</button></div>' +
     '<div class="list">' + (open.length ? open.map(row).join('') : '<div class="empty">Everything is bought \u{1F389}</div>') + got.map(row).join('') + '</div>' +
@@ -199,7 +199,7 @@ VIEWS.today = function(el){
     '<div class="card"><div class="card-head"><h2>Spent today</h2><span class="amt">' + money(spentOn(day)) + '</span></div>' +
       '<div class="row"><label class="field" style="flex:1 1 90px"><span>Amount</span><input class="in num" id="qAmt" type="number" inputmode="decimal" min="0" placeholder="0"></label>' +
       '<label class="field" style="flex:2 1 150px"><span>Category</span><select class="in" id="qCat">' + CATS.map(c => '<option value="' + c.id + '">' + c.e + ' ' + c.name + '</option>').join('') + '</select></label></div>' +
-      '<div class="row"><label class="field"><span>Note</span><input class="in" id="qNote" placeholder="What was it?"></label><button class="btn" id="qAdd">Add</button></div>' +
+      '<div class="row"><label class="field"><span>Note</span><input class="in" id="qNote" placeholder="What was it?"></label><label class="field" style="flex:1 1 120px"><span>Day</span><input class="in" id="qDate" type="date" value="' + day + '"></label></div><button class="btn full" id="qAdd">Add</button>' +
       '<div class="list">' + (todaySpend.length ? todaySpend.map(spendRow).join('') : '<div class="empty">Nothing spent yet today.</div>') + '</div></div>' +
     habitsHTML(day) +
     '<div class="card"><div class="card-head"><h2>Dear diary</h2><span class="small muted">' + nice(day) + '</span></div>' +
@@ -247,7 +247,7 @@ VIEWS.today = function(el){
   $('#dFeel', el).oninput = e => dSet('feelings', e.target.value);
   $('#dNote', el).oninput = e => { S.notes[day] = e.target.value; save(); };
   $$('[data-q]', el).forEach(t => t.oninput = () => { S.qa[day] = S.qa[day] || {}; S.qa[day][t.dataset.q] = t.value; save(); });
-  $('#qAdd', el).onclick = () => { const amt = +$('#qAmt', el).value; if (!(amt > 0)) return toast('Enter an amount'); S.spend.push({id:uid(), date:day, amount:amt, cat:$('#qCat', el).value, note:$('#qNote', el).value.trim()}); save(); toast('Added ' + money(amt)); again(); };
+  $('#qAdd', el).onclick = () => { const amt = +$('#qAmt', el).value; if (!(amt > 0)) return toast('Enter an amount'); const qd = $('#qDate', el).value || day; S.spend.push({id:uid(), date:qd, amount:amt, cat:$('#qCat', el).value, note:$('#qNote', el).value.trim()}); save(); toast('Added ' + money(amt) + (qd !== day ? ' · ' + nice(qd) : '')); again(); };
   bindSpendDeletes(el, again);
   $$('[data-go]', el).forEach(b => b.onclick = () => { const p = b.dataset.go.split(':'); go(p[0], p[1]); });
   $$('[data-udone]', el).forEach(b => b.onclick = ev => { const x = S.tasks.find(y => y.id === b.dataset.udone); x.done = true; x.doneOn = day; save(); hearts(ev.clientX, ev.clientY); toast('Done! One less thing ♡'); again(); });
@@ -554,3 +554,161 @@ VIEWS['plans.rem'] = function(el){
   $$('[data-redit]', el).forEach(b => b.onclick = () => { const r = S.myrem.find(x => x.id === b.dataset.redit); remSheet({id:r.id, ref:r.ref}, again); });
   armDelete(el, 'data-rmdel', id => { S.myrem = S.myrem.filter(r => r.id !== id); save(); toast('Reminder removed'); again(); });
 };
+
+/* ============ NOVEMBER FRESH START, INVESTMENTS, FOOD LOG, EDIT ANYTHING ============ */
+function novMigrate(){
+  if (!S.seed8){
+    S.spend = S.spend.filter(s => s.date >= '2026-11-01');                 // October spending forgotten
+    S.sadaqa = S.sadaqa.filter(x => x.date >= '2026-11-01');
+    Object.keys(S.extras || {}).forEach(d => { S.extras[d] = (S.extras[d] || []).map(x => x.id ? x : Object.assign({id:uid()}, x)); });
+    S.seed8 = true;
+  }
+  S.invest = Array.isArray(S.invest) ? S.invest : [];
+  if (ym(new Date()) < '2026-11' && ui.moneyMonth < '2026-11') ui.moneyMonth = '2026-11';
+}
+
+/* ---------- Thndr and gold: log the real amount ---------- */
+const INV = {thndr:{e:'\u{1F4C8}', name:'Thndr'}, gold:{e:'✨', name:'Gold'}};
+function investHTML(k){
+  const L = S.invest.filter(x => inMonth(x, k)).sort((a, b) => a.date < b.date ? 1 : -1);
+  const row = kind => { const m = sum(L.filter(x => x.kind === kind), x => x.amount), g = sum(L.filter(x => x.kind === kind), x => +x.grams || 0);
+    return '<div class="item"><span style="font-size:22px">' + INV[kind].e + '</span><span class="t">' + INV[kind].name + '<span class="s">' + (m ? money(m) + (g ? ' · ' + g + ' g' : '') + ' this month' : 'Nothing added this month') + '</span></span><button class="btn" data-invadd="' + kind + '" style="padding:8px 14px">+ Add</button></div>'; };
+  return row('thndr') + row('gold') +
+    (L.length ? L.map(x => '<div class="item"><span style="font-size:18px">' + INV[x.kind].e + '</span><span class="t">' + money(x.amount) + (x.grams ? ' · ' + x.grams + ' g' : '') + '<span class="s">' + nice(x.date) + (x.note ? ' · ' + esc(x.note) : '') + '</span></span>' + delBtn('data-invdel', x.id) + '</div>').join('') : '');
+}
+function investSheet(kind, x, done){
+  const isGold = kind === 'gold';
+  sheet('<div style="text-align:center;font-size:44px">' + INV[kind].e + '</div><h2 class="plain" style="justify-content:center">' + (isGold ? 'Gold I bought' : 'Money I put in Thndr') + '</h2>' +
+    '<div class="row"><label class="field"><span>Amount (EGP)</span><input class="in num" data-ia type="number" inputmode="decimal" min="0" value="' + (x ? x.amount : '') + '"></label><label class="field"><span>Date</span><input class="in" data-id type="date" value="' + (x ? x.date : (ui.moneyMonth && ui.moneyMonth !== ym(new Date()) ? ui.moneyMonth + '-01' : todayStr())) + '"></label></div>' +
+    (isGold ? '<label class="field"><span>Grams (optional)</span><input class="in num" data-ig type="number" inputmode="decimal" min="0" step="any" value="' + (x && x.grams ? x.grams : '') + '"></label>' : '') +
+    '<label class="field"><span>Note</span><input class="in" data-in value="' + esc(x ? x.note || '' : '') + '" placeholder="' + (isGold ? '21 karat ring, coin…' : 'Fund name, stocks…') + '"></label>' +
+    '<button class="btn full" data-is>Save</button>' + (x ? '<button class="btn soft full" data-ix>Delete</button>' : ''),
+  (sh, close) => {
+    $('[data-is]', sh).onclick = () => {
+      const a = +$('[data-ia]', sh).value; if (!(a > 0)) return toast('Enter the amount');
+      const d = $('[data-id]', sh).value || todayStr(), g = isGold ? (+$('[data-ig]', sh).value || 0) : 0, note = $('[data-in]', sh).value.trim();
+      const diff = a - (x ? +x.amount : 0);
+      if (x) Object.assign(x, {amount:a, date:d, grams:g, note}); else S.invest.push({id:uid(), kind, amount:a, date:d, grams:g, note});
+      S.worth[kind] = (+S.worth[kind] || 0) + diff; S.worth.asOf = todayStr();
+      const mk = d.slice(0, 7), inv = S.investDone[mk] = S.investDone[mk] || {}; inv[kind === 'thndr' ? 'invest' : 'gold'] = true;
+      save(); close();
+      if (!x) celebrate({key:'inv-' + kind + '-' + mk, e:INV[kind].e, title:isGold ? 'Gold bought!' : 'Invested this month!', msg:'Financial freedom in your thirties is built exactly like this.'}); else toast('Saved ♡');
+      done();
+    };
+    const xb = $('[data-ix]', sh); if (xb) xb.onclick = () => { removeInvest(x.id); close(); done(); };
+  });
+}
+function removeInvest(id){ const x = S.invest.find(y => y.id === id); if (!x) return; S.worth[x.kind] = (+S.worth[x.kind] || 0) - x.amount; S.worth.asOf = todayStr(); S.invest = S.invest.filter(y => y !== x); save(); toast('Removed'); }
+function bindInvest(el, again){
+  $$('[data-invadd]', el).forEach(b => b.onclick = () => investSheet(b.dataset.invadd, null, again));
+  armDelete(el, 'data-invdel', id => { removeInvest(id); again(); });
+}
+
+/* ---------- food: log anything I ate, on any day ---------- */
+const FOOD_TYPES = [['Breakfast', '\u{1F373}'], ['Lunch', '\u{1F372}'], ['Snack', '\u{1F34E}'], ['Dinner', '\u{1F957}'], ['Other', '\u{1F37D}\u{FE0F}']];
+function foodChoices(){ const seen = new Set(), out = []; allDishes().forEach(d => { if (!seen.has(d.name)){ seen.add(d.name); out.push(d); } }); return out; }
+function addFoodSheet(date, x, done){
+  const list = foodChoices(), type = x ? x.type || 'Other' : 'Other';
+  sheet('<div style="text-align:center;font-size:44px">\u{1F37D}\u{FE0F}</div><h2 class="plain" style="justify-content:center">' + (x ? 'Edit what I ate' : 'What did I eat?') + '</h2>' +
+    '<label class="field"><span>Day</span><input class="in" data-fd type="date" value="' + date + '"></label>' +
+    '<div class="chips" data-ft>' + FOOD_TYPES.map(([t, e]) => '<button class="chip' + (t === type ? ' on' : '') + '" data-ftype="' + t + '">' + e + ' ' + t + '</button>').join('') + '</div>' +
+    (x ? '' : '<label class="field"><span>Pick from my dishes</span><select class="in" data-fpick><option value="">Type it myself</option>' + list.map((d, i) => '<option value="' + i + '">' + esc(d.name) + ' · ' + d.kcal + ' kcal</option>').join('') + '</select></label>') +
+    '<label class="field"><span>Food</span><input class="in" data-fn value="' + esc(x ? x.name : '') + '" placeholder="Koshari, sandwich, latte…"></label>' +
+    '<div class="row"><label class="field"><span>Calories (kcal)</span><input class="in num" data-fk type="number" inputmode="decimal" min="0" value="' + (x ? x.kcal : '') + '"></label><label class="field"><span>Protein (g)</span><input class="in num" data-fp type="number" inputmode="decimal" min="0" value="' + (x ? x.protein : '') + '"></label></div>' +
+    (x ? '' : '<button class="toggle" data-fsave><span class="sw" role="switch" aria-checked="false"></span><span>Also save it to My dishes</span></button>') +
+    '<button class="btn full" data-fok>Save</button>' + (x ? '<button class="btn soft full" data-fdel>Delete</button>' : ''),
+  (sh, close) => {
+    let t = type, keep = false;
+    $$('[data-ftype]', sh).forEach(b => b.onclick = () => { t = b.dataset.ftype; $$('[data-ftype]', sh).forEach(y => y.classList.toggle('on', y === b)); });
+    const pk = $('[data-fpick]', sh); if (pk) pk.onchange = () => { const d = list[+pk.value]; if (!d) return; $('[data-fn]', sh).value = tr(d.name); $('[data-fk]', sh).value = d.kcal; $('[data-fp]', sh).value = d.protein;
+      const ty = FOOD_TYPES.find(f => f[0] === d.type); if (ty){ t = ty[0]; $$('[data-ftype]', sh).forEach(y => y.classList.toggle('on', y.dataset.ftype === t)); } };
+    const ks = $('[data-fsave]', sh); if (ks) ks.onclick = () => { keep = !keep; $('.sw', ks).setAttribute('aria-checked', keep); };
+    $('[data-fok]', sh).onclick = () => {
+      const name = $('[data-fn]', sh).value.trim(); if (!name) return toast('What did you eat?');
+      const d = $('[data-fd]', sh).value || date, kcal = Math.round(+$('[data-fk]', sh).value || 0), protein = Math.round(+$('[data-fp]', sh).value || 0), e = FOOD_TYPES.find(f => f[0] === t)[1];
+      if (x){ S.extras[date] = (S.extras[date] || []).filter(y => y !== x); Object.assign(x, {name, kcal, protein, type:t, e}); (S.extras[d] = S.extras[d] || []).push(x); }
+      else (S.extras[d] = S.extras[d] || []).push({id:uid(), name, e, kcal, protein, type:t});
+      if (keep && !allDishes().some(y => y.name.toLowerCase() === name.toLowerCase())) S.dishes.push({id:uid(), custom:true, type:t === 'Other' ? 'Any' : t, name, kcal, protein});
+      ui.logDay = d; save(); close(); toast(x ? 'Saved ♡' : (keep ? 'Logged and saved to My dishes ♡' : 'Logged ♡')); done();
+    };
+    const del = $('[data-fdel]', sh); if (del) del.onclick = () => { S.extras[date] = (S.extras[date] || []).filter(y => y !== x); save(); close(); toast('Removed'); done(); };
+  });
+}
+const foodTab = TABS.find(t => t.id === 'food'); if (foodTab && !foodTab.subs.some(x => x[0] === 'log')) foodTab.subs.splice(1, 0, ['log', 'My log']);
+VIEWS['food.log'] = function(el){
+  const d = ui.logDay || todayStr(), t = todayStr(), n = planDayNum(parseD(d)), inPlan = n >= 1 && n <= 30;
+  const planned = inPlan ? mealsFor(n).map((m, i) => Object.assign({k:n + '-' + i}, m)).filter(m => S.checks[m.k]) : [];
+  const extras = S.extras[d] || [], kcal = sum(planned, m => m.kcal) + sum(extras, x => x.kcal), prot = sum(planned, m => m.protein) + sum(extras, x => x.protein), goal = 1700;
+  const week = Array.from({length:7}, (_, i) => addDays(t, -i)).map(x => { const nn = planDayNum(parseD(x)), pl = nn >= 1 && nn <= 30 ? mealsFor(nn).filter((m, i) => S.checks[nn + '-' + i]) : [];
+    return [x, sum(pl, m => m.kcal) + sum(S.extras[x] || [], y => y.kcal)]; });
+  el.innerHTML = '<div class="monthnav"><button data-ld="-1" aria-label="Previous day">‹</button><b>' + (d === t ? 'Today' : nice(d)) + '</b><button data-ld="1" aria-label="Next day">›</button></div>' +
+    '<div class="card tint"><div class="statrow" style="color:var(--ink)"><span>Calories</span><span class="num">' + fmt(kcal) + ' / ' + fmt(goal) + ' kcal</span></div><div class="bar' + (kcal > goal ? ' over' : ' good') + '"><i style="width:' + Math.min(100, kcal / goal * 100) + '%"></i></div>' +
+      '<div class="statrow" style="color:var(--ink)"><span>Protein</span><span class="num">' + Math.round(prot) + ' g</span></div>' +
+      '<label class="field"><span>Pick any day</span><input class="in" id="logDay" type="date" value="' + d + '"></label>' +
+      '<button class="btn full" id="logAdd">+ Add something I ate</button></div>' +
+    '<div class="card"><h2>What I ate</h2><div class="list">' +
+      (planned.length ? planned.map(m => '<div class="item"><span style="font-size:20px">✅</span><span class="t">' + esc(m.name) + '<span class="s">' + m.type + ' · ' + m.kcal + ' kcal · ' + m.protein + ' g</span></span><span></span></div>').join('') : '') +
+      (extras.length ? extras.map(x => '<div class="item"><span style="font-size:20px">' + (x.e || '\u{1F37D}\u{FE0F}') + '</span><span class="t">' + esc(x.name) + '<span class="s">' + (x.type || 'Treat') + ' · ' + x.kcal + ' kcal · ' + x.protein + ' g</span></span>' + delBtn('data-fldel', d + '|' + x.id) + '</div>').join('') : '') +
+      (!planned.length && !extras.length ? '<div class="empty">Nothing logged for this day yet.</div>' : '') + '</div>' +
+      (inPlan ? '<button class="linkbtn" id="logPlan" style="align-self:flex-start">Tick plan meals for Day ' + n + '</button>' : '') + '</div>' +
+    '<div class="card"><h2>Last 7 days</h2><div class="list">' + week.map(([x, k]) => '<button class="item" data-lpick="' + x + '"><span style="font-size:18px">' + (k ? '\u{1F37D}\u{FE0F}' : '·') + '</span><span class="t">' + (x === t ? 'Today' : nice(x)) + '</span><span class="amt">' + fmt(k) + ' kcal</span></button>').join('') + '</div></div>';
+  const again = () => VIEWS['food.log'](el);
+  $$('[data-ld]', el).forEach(b => b.onclick = () => { ui.logDay = addDays(d, +b.dataset.ld); again(); });
+  $('#logDay', el).onchange = e => { ui.logDay = e.target.value || t; again(); };
+  $('#logAdd', el).onclick = () => addFoodSheet(d, null, again);
+  const lp = $('#logPlan', el); if (lp) lp.onclick = () => { ui.foodDay = n; go('food', 'meals'); };
+  $$('[data-lpick]', el).forEach(b => b.onclick = () => { ui.logDay = b.dataset.lpick; again(); window.scrollTo({top:0, behavior:'smooth'}); });
+  armDelete(el, 'data-fldel', key => { const [dd, id] = key.split('|'); S.extras[dd] = (S.extras[dd] || []).filter(x => x.id !== id); save(); again(); });
+};
+
+/* ---------- edit any entry ---------- */
+const EDIT_KINDS = {'data-tdel':'task', 'data-mdel':'mesh', 'data-sdel':'spend', 'data-xdel':'exp', 'data-shdel':'shop', 'data-wcdel':'check', 'data-wshdel':'wshop',
+  'data-sddel':'sadaqa', 'data-idel':'income', 'data-ddel':'dish', 'data-jdel':'jar', 'data-fldel':'food', 'data-invdel':'invest'};
+const editBtn = (kind, id) => '<button class="edit" data-edit="' + kind + ':' + id + '" aria-label="Edit">✏\u{FE0F}</button>';
+const byId = (arr, id) => (arr || []).find(x => x.id === id);
+const EDITS = {
+  task:{find:id => byId(S.tasks, id), title:'Edit task', fields:() => [['title', 'text', 'Task'], ['due', 'date', 'Due'], ['time', 'time', 'By'],
+    ['prio', 'select', 'Priority', [['normal', 'Normal'], ['high', '⚠\u{FE0F} Important'], ['urgent', '\u{1F6A8} Urgent']]], ['job', 'select', 'For', [['', 'Personal']].concat(S.jobs.map(j => [j.id, j.name]))]],
+    after:x => { x.kind = x.job ? 'work' : 'personal'; }},
+  mesh:{find:id => byId(S.mashawer, id), title:'Edit meshwar', fields:() => [['name', 'text', 'Where'], ['date', 'date', 'Day'], ['time', 'time', 'Time'], ['note', 'text', 'Note'], ['wedding', 'check', '\u{1F48D} Wedding preparation'], ['remind', 'check', 'Remind me a day before']]},
+  spend:{find:id => byId(S.spend, id), title:'Edit spending', fields:() => [['amount', 'number', 'Amount (EGP)'], ['date', 'date', 'Date'], ['cat', 'select', 'Category', CATS.map(c => [c.id, c.e + ' ' + c.name])], ['note', 'text', 'Note']],
+    after:x => { S.sadaqa.forEach(s => { if (s.spendId === x.id){ s.amount = x.amount; s.date = x.date; } }); ui.moneyMonth = x.date.slice(0, 7); }},
+  exp:{find:id => byId(S.exp, id), title:'Edit experience', fields:() => [['title', 'text', 'What'], ['where', 'text', 'Where'], ['date', 'date', 'When']]},
+  shop:{find:id => byId(S.shop, id), title:'Edit item', fields:() => [['name', 'text', 'Item']]},
+  check:{find:id => byId(S.wedding.checklist, id), title:'Edit', fields:() => [['e', 'text', 'Emoji'], ['title', 'text', 'Wedding preparation'], ['date', 'date', 'Day']]},
+  wshop:{find:id => byId(S.wedding.shopping, id), title:'Edit', fields:() => [['e', 'text', 'Emoji'], ['title', 'text', 'Item']]},
+  sadaqa:{find:id => byId(S.sadaqa, id), title:'Edit sadaqa', fields:() => [['amount', 'number', 'Amount (EGP)'], ['date', 'date', 'Date'], ['note', 'text', 'Note']],
+    after:x => { const s = byId(S.spend, x.spendId); if (s){ s.amount = x.amount; s.date = x.date; } }},
+  income:{find:id => byId(S.income, id), title:'Edit income', fields:() => [['amount', 'number', 'Amount (EGP)'], ['date', 'date', 'Date'], ['job', 'select', 'From', S.jobs.map(j => [j.id, j.name]).concat([['other', 'Other']])]]},
+  dish:{find:id => byId(S.dishes, id), title:'Edit dish', fields:() => [['name', 'text', 'Name'], ['type', 'select', 'Meal', [['Breakfast', 'Breakfast'], ['Lunch', 'Lunch'], ['Snack', 'Snack'], ['Dinner', 'Dinner'], ['Any', 'Any']]], ['kcal', 'number', 'Calories (kcal)'], ['protein', 'number', 'Protein (g)']]},
+  jar:{find:id => byId(S.jars, id), title:'Edit jar', fields:() => [['e', 'text', 'Emoji'], ['name', 'text', 'Name'], ['target', 'number', 'Target (EGP)']]},
+  sc:{find:id => { for (const k in S.selfcare){ const x = byId(S.selfcare[k], id); if (x) return x; } }, title:'Edit session', fields:() => [['e', 'text', 'Emoji'], ['name', 'text', 'Service'], ['price', 'number', 'Price (EGP)'], ['planned', 'date', 'Planned'], ['done', 'date', 'Done on']],
+    after:x => { logPaid(x, x.wedding ? 'wedding' : 'selfcare'); scHabit(x);
+      for (const k in S.selfcare){ if (S.selfcare[k].includes(x) && x.planned && x.planned.slice(0, 7) !== k){ S.selfcare[k] = S.selfcare[k].filter(y => y !== x); (S.selfcare[x.planned.slice(0, 7)] = S.selfcare[x.planned.slice(0, 7)] || []).push(x); break; } } }},
+};
+function openEdit(key){
+  const i = key.indexOf(':'), kind = key.slice(0, i), id = key.slice(i + 1);
+  if (kind === 'food'){ const [d, fid] = id.split('|'), x = byId(S.extras[d], fid); if (x) addFoodSheet(d, x, render); return; }
+  if (kind === 'invest'){ const x = byId(S.invest, id); if (x) investSheet(x.kind, x, render); return; }
+  const E = EDITS[kind], x = E && E.find(id); if (!x) return;
+  const F = E.fields();
+  sheet('<h2 class="plain" style="justify-content:center">✏\u{FE0F} ' + E.title + '</h2>' + F.map(([f, type, label, opts]) => {
+      const v = x[f] == null ? '' : x[f];
+      if (type === 'check') return '<button class="toggle" data-ef="' + f + '" data-et="check"><span class="sw" role="switch" aria-checked="' + !!v + '"></span><span>' + label + '</span></button>';
+      if (type === 'select') return '<label class="field"><span>' + label + '</span><select class="in" data-ef="' + f + '">' + opts.map(([ov, ol]) => '<option value="' + esc(ov) + '"' + (String(v) === String(ov) ? ' selected' : '') + '>' + esc(ol) + '</option>').join('') + '</select></label>';
+      return '<label class="field"><span>' + label + '</span><input class="in' + (type === 'number' ? ' num' : '') + '" data-ef="' + f + '" type="' + type + '"' + (type === 'number' ? ' inputmode="decimal" min="0"' : '') + ' value="' + esc(type === 'text' ? tr(String(v)) : v) + '"></label>';
+    }).join('') + '<button class="btn full" data-esave>Save</button>',
+  (sh, close) => {
+    $$('[data-et="check"]', sh).forEach(b => b.onclick = () => { const s = $('.sw', b); s.setAttribute('aria-checked', s.getAttribute('aria-checked') !== 'true'); });
+    $('[data-esave]', sh).onclick = () => {
+      F.forEach(([f, type]) => { const inp = $('[data-ef="' + f + '"]', sh);
+        if (type === 'check') x[f] = $('.sw', inp).getAttribute('aria-checked') === 'true';
+        else if (type === 'number') x[f] = inp.value === '' ? '' : +inp.value;
+        else if (type === 'text'){ const nv = inp.value.trim(); if (nv !== tr(String(x[f] == null ? '' : x[f]))) x[f] = nv; }
+        else x[f] = inp.value; });
+      if (E.after) E.after(x);
+      save(); close(); toast('Saved ♡'); render();
+    };
+  });
+}
+document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-edit]'); if (!b) return; ev.preventDefault(); ev.stopPropagation(); openEdit(b.dataset.edit); }, true);

@@ -4,6 +4,7 @@ homeMigrate();
 weddingMigrate();
 hobbyMigrate();
 remMigrate();
+novMigrate();
 applyLang();
 render();
 syncNative();

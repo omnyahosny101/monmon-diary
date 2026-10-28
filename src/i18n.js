@@ -41,7 +41,7 @@ function trCore(t){
 }
 function rxChain(t){
   let r = t;
-  for (const [rx, rep] of AR_RX){ if (!/[A-Za-z]{2}/.test(r)) break; if (rx.test(r)) r = r.replace(rx, rep); }
+  for (const [rx, rep] of AR_RX){ if (!/[A-Za-z]/.test(r)) break; if (rx.test(r)) r = r.replace(rx, rep); }
   return /[A-Za-z]{2}/.test(r) ? trWords(r) : r;
 }
 function trWords(t){

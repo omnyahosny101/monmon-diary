@@ -141,7 +141,7 @@ function bindLifeToday(el, again){
 VIEWS['money.overview'] = function(el){
   const k = ui.moneyMonth, list = S.spend.filter(s => inMonth(s, k));
   const spent = sum(list, s => s.amount), inc = sum(incomeIn(k), i => i.amount);
-  const saved = sum(S.jars.flatMap(j => j.deposits.filter(d => inMonth(d, k))), d => d.amount);
+  const saved = sum(S.jars.flatMap(j => j.deposits.filter(d => inMonth(d, k))), d => d.amount) + sum((S.invest || []).filter(x => inMonth(x, k)), x => x.amount);
   const by = {}; list.forEach(s => by[s.cat] = (by[s.cat] || 0) + (+s.amount || 0));
   const B = S.settings.budgets || {}, budTotal = sum(Object.keys(B), c => B[c]);
   const budSpent = sum(Object.keys(B).filter(c => +B[c] > 0), c => by[c] || 0);
@@ -154,8 +154,7 @@ VIEWS['money.overview'] = function(el){
     '<div class="money3"><div class="mbox"><b>' + fmt(inc) + '</b><span>income</span></div><div class="mbox"><b>' + fmt(spent) + '</b><span>spent</span></div><div class="mbox"><b style="color:' + (inc - spent - saved < 0 ? 'var(--warn)' : 'var(--mint)') + '">' + fmt(inc - spent - saved) + '</b><span>left after saving</span></div></div>' +
     (budTotal ? '<div class="card"><div class="statrow" style="color:var(--ink)"><span>Monthly budget</span><span class="num">' + fmt(budSpent) + ' / ' + fmt(budTotal) + '</span></div><div class="bar' + (budSpent > budTotal ? ' over' : ' good') + '"><i style="width:' + Math.min(100, budSpent / budTotal * 100) + '%"></i></div></div>' : '') +
     '<div class="card tint"><h2>Money goals</h2>' +
-      '<button class="item" data-inv="invest"><span class="tick' + (inv.invest ? ' on' : '') + '">' + CHECK + '</span><span class="t">Invest ' + (S.settings.invest ? money(S.settings.invest) : 'this month') + '<span class="s">Thndr, reminder on the 1st</span></span><span style="font-size:20px">\u{1F4C8}</span></button>' +
-      '<button class="item" data-inv="gold"><span class="tick' + (inv.gold ? ' on' : '') + '">' + CHECK + '</span><span class="t">Buy gold<span class="s">Reminder on the 1st</span></span><span style="font-size:20px">✨</span></button>' +
+      investHTML(k) +
       '<button class="item" data-sub2="savings"><span style="font-size:20px">\u{1FAD9}</span><span class="t">Saved into jars this month<span class="s">Emergency fund, car, wedding</span></span><span class="amt">' + fmt(saved) + '</span></button></div>' +
     '<div class="card"><div class="card-head"><h2>valU payoff</h2><span class="amt">' + (left ? money(left) + ' left' : 'Paid off \u{1F389}') + '</span></div><div class="bar good"><i style="width:' + paidPct + '%"></i></div>' +
       (left ? '<div class="row"><span class="small muted" style="font-weight:700;flex:1">' + S.valu.paid.length + ' of 3 installments paid · no new valU purchases</span><button class="btn" id="vPay">Pay ' + fmt(Math.min(left, S.valu.monthly)) + '</button></div>' : '<span class="small muted" style="font-weight:700">Debt-free. That ' + fmt(S.valu.monthly) + ' a month can go to your car fund now.</span>') + '</div>' +
@@ -169,9 +168,7 @@ VIEWS['money.overview'] = function(el){
       '<p class="small muted" style="margin:0">Sadaqa, pets and gifts are protected: they’re values, never spending to cut.</p></div>';
   const again = () => VIEWS['money.overview'](el);
   bindMonthNav(el, 'moneyMonth', again);
-  $$('[data-inv]', el).forEach(b => b.onclick = () => { const x = S.investDone[k] = S.investDone[k] || {}; x[b.dataset.inv] = !x[b.dataset.inv]; save();
-    if (x[b.dataset.inv]) celebrate({key:'inv-' + b.dataset.inv + '-' + k, e:b.dataset.inv === 'gold' ? '✨' : '\u{1F4B0}', title:b.dataset.inv === 'gold' ? 'Gold bought!' : 'Invested this month!', msg:'Financial freedom in your thirties is built exactly like this.'});
-    again(); });
+  bindInvest(el, again);
   $$('[data-sub2]', el).forEach(b => b.onclick = () => go('money', b.dataset.sub2));
   const vp = $('#vPay', el); if (vp) vp.onclick = () => { const a = Math.min(valuLeft(), S.valu.monthly), sid = uid();
     S.spend.push({id:sid, date:todayStr(), amount:a, cat:'valu', note:'valU installment'}); S.valu.paid.push({id:uid(), date:todayStr(), amount:a, spendId:sid}); save();
