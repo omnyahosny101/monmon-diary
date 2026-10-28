@@ -6,6 +6,7 @@ hobbyMigrate();
 remMigrate();
 novMigrate();
 cycleMigrate();
+cycleImportFlo();
 photoMigrate();
 frMigrate();
 frPlusMigrate();

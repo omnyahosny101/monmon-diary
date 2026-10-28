@@ -484,6 +484,7 @@ mark.hl.noted::after{content:"💬";font-size:.7em;margin-right:2px;vertical-ali
 .reader.bare .rd-nar{bottom:calc(env(safe-area-inset-bottom,0px) + 12px)}
 .reader.narr .rd-sel{bottom:calc(env(safe-area-inset-bottom,0px) + 168px)}
 .reader.narr .rd-scroll{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 180px)}
+.cyq{display:flex;flex-direction:column;gap:6px;align-items:center;padding:10px;border-radius:16px;background:rgba(255,255,255,.6)}
 /* ask claude */
 .askb{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:900;padding:6px 11px;border-radius:999px;background:linear-gradient(135deg,#fff0c9,#ffe0ec);color:#a5487a;flex:0 0 auto}
 .askb.sm{width:34px;height:34px;padding:0;justify-content:center;font-size:15px;border-radius:50%}
@@ -4264,6 +4265,9 @@ const FLOWS = [['spot', 'Spotting', '\u{1F338}'], ['light', 'Light', '\u{1F4A7}'
 const SYMPTOMS = [['cramps', 'Cramps', '\u{1F616}'], ['head', 'Headache', '\u{1F915}'], ['bloat', 'Bloating', '\u{1F388}'], ['back', 'Back pain', '\u{1F9CD}‍♀\u{FE0F}'], ['acne', 'Acne', '\u{1F534}'],
   ['crave', 'Cravings', '\u{1F36B}'], ['tired', 'Tired', '\u{1F634}'], ['mood', 'Mood swings', '\u{1F3AD}'], ['breast', 'Tender breasts', '\u{1F49E}']];
 function cycleMigrate(){ S.cycle = S.cycle && typeof S.cycle === 'object' ? S.cycle : {}; S.cycle.days = S.cycle.days || {}; S.cycle.sym = S.cycle.sym || {}; S.cycle.notes = S.cycle.notes || {}; }
+// her history copied from Flo (Oct 2024 – Oct 2026), added once
+const FLO_HISTORY = {'2024-10':[22,23,24,25,26,27], '2024-11':[17,18,19,20,21,22], '2025-01':[12,13,14,15,16,17], '2025-02':[11,12,13,14,15,16], '2025-03':[15,16,17,18,19,20], '2025-04':[18,19,20,21,22,23], '2025-05':[16,17,18,19,20], '2025-06':[12,13,14,15,16], '2025-07':[12,13,14,15,16], '2025-08':[8,9,10,11,12], '2025-09':[3,4,5,6,7,29,30], '2025-10':[1,2,3,25,26,27,28,29], '2025-11':[19,20,21,22,23], '2025-12':[18,19,20,21,22], '2026-01':[18,19,20,21,22], '2026-02':[14,15,16,17,18], '2026-03':[15,16,17,18,19], '2026-04':[11,12,13,14,15], '2026-05':[9,10,11,12,13], '2026-06':[6,7,8,9,10], '2026-07':[1,2,3,4,5,30,31], '2026-08':[1,2,3,4,31], '2026-09':[1,2,3,4,5,30], '2026-10':[1,2,3,4,28,29]};
+function cycleImportFlo(){ if (S.seedFlo1) return; Object.entries(FLO_HISTORY).forEach(([k, ds]) => ds.forEach(d => { const key = k + '-' + pad(d); if (key <= todayStr() && !S.cycle.days[key]) S.cycle.days[key] = 'medium'; })); S.seedFlo1 = true; }
 function periods(){
   const ds = Object.keys(S.cycle.days).filter(d => S.cycle.days[d] && S.cycle.days[d] !== 'spot').sort(), out = [];
   ds.forEach(d => { const last = out[out.length - 1]; if (last && daysBetween(last.end, d) <= 2) last.end = d; else out.push({start:d, end:d}); });
@@ -4272,14 +4276,16 @@ function periods(){
 function cycleStats(){
   const P = periods(), gaps = [];
   for (let i = 1; i < P.length; i++){ const g = daysBetween(P[i - 1].start, P[i].start); if (g >= 18 && g <= 45) gaps.push(g); }
-  const recent = gaps.slice(-6), cyc = recent.length ? Math.round(sum(recent, x => x) / recent.length) : 28;
-  const lens = P.slice(-6).map(p => p.len), plen = lens.length ? Math.round(sum(lens, x => x) / lens.length) : 5;
-  const last = P[P.length - 1], t = todayStr();
+  const recent = gaps.slice(-12), srt = recent.slice().sort((a, b) => a - b), mid = srt.length >> 1;
+  const cyc = !srt.length ? 28 : srt.length % 2 ? srt[mid] : Math.floor((srt[mid - 1] + srt[mid]) / 2);
+  const last = P[P.length - 1], t = todayStr(), ongoing = last && daysBetween(last.end, t) <= 1;
+  const lens = (ongoing ? P.slice(0, -1) : P).slice(-6).map(p => p.len), plen = lens.length ? Math.round(sum(lens, x => x) / lens.length) : 5;
+  const spread = srt.length >= 4 ? [srt[Math.floor(srt.length * 0.2)], srt[Math.ceil(srt.length * 0.8) - 1]] : [cyc - 2, cyc + 2];
   let next = last ? addDays(last.start, cyc) : '';
   while (next && next < t && !(last && last.end >= t)) next = addDays(next, cyc);   // a missed log: roll forward
   const inPeriod = last && t >= last.start && daysBetween(last.end, t) <= 0;
   const cycleDay = last ? daysBetween(last.start, t) + 1 : 0;
-  return {P, cyc, plen, last, next, inPeriod, cycleDay, guess:recent.length < 2};
+  return {P, cyc, plen, last, next, inPeriod, cycleDay, guess:recent.length < 2, spread, early:last ? addDays(last.start, spread[0]) : '', late:last ? addDays(last.start, spread[1]) : ''};
 }
 function predictedDays(st, fromK, toK){
   const set = {}; if (!st.next) return set;
@@ -4306,8 +4312,12 @@ VIEWS['me.cycle'] = function(el){
     cells += '<button class="cday cy' + (f && f !== 'spot' ? ' on' : f === 'spot' ? ' spot' : pr === 'p' ? ' pred' : pr === 'o' ? ' ovu' : pr === 'f' ? ' fert' : '') + (key === t ? ' today' : '') + (key === sel ? ' sel' : '') + '" data-cd="' + key + '"><span>' + d + '</span></button>'; }
   const status = st.inPeriod ? 'Day ' + st.cycleDay + ' of your period' : st.last ? (st.next ? (daysBetween(t, st.next) <= 0 ? 'Your period is expected today' : 'Next period in ' + daysBetween(t, st.next) + ' days') : '') : 'Log your last period to start';
   el.innerHTML = '<div class="card cyc" style="flex-direction:column;align-items:stretch;text-align:center"><div style="font-size:40px">\u{1FA78}</div><div class="greet">' + status + '</div>' +
-      (st.next ? '<span class="small" style="font-weight:800">Expected ' + nice(st.next) + ' · cycle about ' + st.cyc + ' days · period about ' + st.plen + ' days' + (st.guess ? ' (a guess until you log 2 periods)' : '') + '</span>' : '') +
-      '<div class="row" style="justify-content:center"><button class="btn" id="cyStart">My period started today</button>' + (st.inPeriod ? '<button class="btn soft" id="cyEnd">It ended today</button>' : '') + '</div></div>' +
+      (st.next ? '<span class="small" style="font-weight:800">' + L2('متوقعة ' + nice(st.next) + (st.early && st.late && st.next === addDays(st.last.start, st.cyc) && st.early !== st.late ? ' (بين ' + niceDM(st.early) + ' و' + niceDM(st.late) + ')' : '') + ' · الدورة حوالي ' + st.cyc + ' يوم · بتقعد حوالي ' + st.plen + ' أيام', 'Expected ' + nice(st.next) + ' · cycle about ' + st.cyc + ' days · period about ' + st.plen + ' days') + (st.guess ? L2(' (تخمين لحد ما تسجلي دورتين)', ' (a guess until you log 2 periods)') : '') + '</span>' : '') +
+      '<div class="cyq"><b>' + L2('🩸 نزلت إمتى؟', '🩸 When did it start?') + '</b><div class="row" style="justify-content:center"><button class="btn" data-cys="0">' + L2('النهارده', 'Today') + '</button><button class="btn soft" data-cys="1">' + L2('امبارح', 'Yesterday') + '</button><button class="btn soft" data-cys="2">' + L2('أول امبارح', '2 days ago') + '</button><input class="in" type="date" id="cyStartPick" max="' + t + '" aria-label="Pick the day" style="width:auto;min-height:42px"></div></div>' +
+      (st.inPeriod || (st.last && daysBetween(st.last.end, t) <= 7) ? '<div class="cyq"><b>' + L2('✅ خلصت إمتى؟', '✅ When did it end?') + '</b><div class="row" style="justify-content:center"><button class="btn soft" data-cye="0">' + L2('النهارده', 'Today') + '</button><button class="btn soft" data-cye="1">' + L2('امبارح', 'Yesterday') + '</button><input class="in" type="date" id="cyEndPick" max="' + t + '" min="' + (st.last ? st.last.start : '') + '" aria-label="Pick the day" style="width:auto;min-height:42px"></div></div>' : '') +
+      '<span class="small muted" style="font-weight:700">' + L2('أو دوسي على أي يوم في الكالندر تحت وغيّري النزول بتاعه.', 'Or tap any day in the calendar below and set its flow.') + '</span></div>' +
+    (W && st.next && !wedHit ? (() => { let s0 = st.next; while (s0 && addDays(s0, st.cyc) <= W) s0 = addDays(s0, st.cyc); const gap = s0 ? daysBetween(addDays(s0, st.plen - 1), W) : null;
+      return s0 && gap != null && gap >= 0 && gap <= 14 ? '<div class="card" style="border-color:var(--gold);background:var(--gold-soft)"><h2>\u{1F48D} ' + L2('الدورة والفرح', 'Period and the wedding') + '</h2><p style="margin:0;font-weight:700">' + L2('المتوقع تنزل حوالي ' + niceDM(s0) + ' وتخلص حوالي ' + niceDM(addDays(s0, st.plen - 1)) + '، يعني قبل الفرح بحوالي ' + gap + (gap >= 3 && gap <= 10 ? ' أيام.' : ' يوم.') + ' ده تقدير، وممكن تتأخر أو تبدر كام يوم، فلو حابة تتأكدي كلّمي دكتورتك قبلها بكام أسبوع.', 'Expected around ' + niceDM(s0) + '–' + niceDM(addDays(s0, st.plen - 1)) + ', about ' + gap + ' days before the wedding. It can shift a few days.') + '</p></div>' : ''; })() : '') +
     (wedHit ? '<div class="card" style="border-color:var(--gold);background:var(--gold-soft)"><h2>\u{1F48D} Heads-up for the wedding</h2><p style="margin:0;font-weight:700">Your period may come around 31 December. If you want to plan around it, talk to your gynaecologist a few weeks before.</p></div>' : '') +
     '<div class="monthnav"><button data-cm="-1" aria-label="Previous month">‹</button><b>' + MONTHS_L[first.getMonth()] + ' ' + first.getFullYear() + '</b><button data-cm="1" aria-label="Next month">›</button></div>' +
     '<div class="card"><div class="cal">' + cells + '</div><div class="chips" style="justify-content:center;font-size:12px"><span class="chip lg on-p">Period</span><span class="chip lg pr">Expected</span><span class="chip lg fe">Fertile (estimate)</span></div></div>' +
@@ -4324,8 +4334,17 @@ VIEWS['me.cycle'] = function(el){
   $$('[data-fl]', el).forEach(b => b.onclick = () => { if (b.dataset.fl) S.cycle.days[sel] = b.dataset.fl; else delete S.cycle.days[sel]; save(); again(); });
   $$('[data-sy]', el).forEach(b => b.onclick = () => { const a = S.cycle.sym[sel] = S.cycle.sym[sel] || [], i = a.indexOf(b.dataset.sy); if (i >= 0) a.splice(i, 1); else a.push(b.dataset.sy); save(); b.classList.toggle('on'); });
   $('#cyNote', el).oninput = e => { S.cycle.notes[sel] = e.target.value; save(); };
-  $('#cyStart', el).onclick = () => { S.cycle.days[t] = S.cycle.days[t] && S.cycle.days[t] !== 'spot' ? S.cycle.days[t] : 'medium'; ui.cycDay = t; save(); toast('Logged. Be gentle with yourself today ♡'); again(); };
-  const ce = $('#cyEnd', el); if (ce) ce.onclick = () => { const L = st.last; for (let d = L.start; d <= t; d = addDays(d, 1)) if (!S.cycle.days[d]) S.cycle.days[d] = 'light'; save(); toast('Saved ♡'); again(); };
+  const startOn = d => { if (!d || d > t) return; const end = addDays(d, Math.max(0, Math.min(daysBetween(d, t), st.plen - 1)));
+    for (let x = d; x <= end; x = addDays(x, 1)) if (!S.cycle.days[x] || S.cycle.days[x] === 'spot') S.cycle.days[x] = x === d ? 'medium' : (S.cycle.days[x] || 'medium');
+    ui.cycDay = d; ui.cycMonth = d.slice(0, 7); save(); toast(L2('اتسجلت من ' + niceDM(d) + ' ♡ خلي بالك من نفسك', 'Logged from ' + niceDM(d) + ' ♡')); again(); };
+  const endOn = d => { const L = cycleStats().last; if (!d || !L || d < L.start) return toast(L2('اختاري يوم بعد ما نزلت', 'Pick a day after it started'));
+    for (let x = L.start; x <= d; x = addDays(x, 1)) if (!S.cycle.days[x] || S.cycle.days[x] === 'spot') S.cycle.days[x] = 'light';
+    for (let x = addDays(d, 1); x <= addDays(d, 10); x = addDays(x, 1)) if (S.cycle.days[x] && x <= t) delete S.cycle.days[x];
+    save(); toast(L2('اتسجل إنها خلصت ' + niceDM(d) + ' ♡', 'Saved: ended ' + niceDM(d) + ' ♡')); again(); };
+  $$('[data-cys]', el).forEach(b => b.onclick = () => startOn(addDays(t, -b.dataset.cys)));
+  $('#cyStartPick', el).onchange = e => startOn(e.target.value);
+  $$('[data-cye]', el).forEach(b => b.onclick = () => endOn(addDays(t, -b.dataset.cye)));
+  const cep = $('#cyEndPick', el); if (cep) cep.onchange = e => endOn(e.target.value);
 };
 const meTab = TABS.find(x => x.id === 'me'); if (meTab && !meTab.subs.some(x => x[0] === 'cycle')) meTab.subs.splice(4, 0, ['cycle', 'Period']);
 function cycleReminders(push, at){
@@ -5367,6 +5386,7 @@ hobbyMigrate();
 remMigrate();
 novMigrate();
 cycleMigrate();
+cycleImportFlo();
 photoMigrate();
 frMigrate();
 frPlusMigrate();
