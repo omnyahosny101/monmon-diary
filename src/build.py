@@ -18,6 +18,6 @@ for k, v in parts.items():
 (root / 'ios/Web/index.html').write_text(page)
 import shutil
 shutil.rmtree(root / 'ios/Web/books', ignore_errors=True)
-shutil.copytree(root / 'books', root / 'ios/Web/books')
+shutil.copytree(root / 'books', root / 'ios/Web/books', ignore=shutil.ignore_patterns('audio'))
 (root / 'ios/Shared/plan.json').write_text(parts['__DATA__'])
 print('built', len(page), 'bytes')

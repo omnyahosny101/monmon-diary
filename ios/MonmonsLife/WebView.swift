@@ -123,6 +123,15 @@ struct WebView: UIViewRepresentable {
                                       lang: body["lang"] as? String ?? "ar-EG",
                                       rate: (body["rate"] as? NSNumber)?.doubleValue ?? 0.5,
                                       voiceId: body["voice"] as? String ?? "")
+            case "audioQueue":
+                VoiceBox.shared.webView = webView
+                let items = (body["items"] as? [[String: Any]] ?? []).compactMap { item -> (String, String)? in
+                    guard let id = item["id"] as? String, let url = item["url"] as? String else { return nil }
+                    return (id, url)
+                }
+                VoiceBox.shared.playAudio(items,
+                                          rate: (body["rate"] as? NSNumber)?.doubleValue ?? 1,
+                                          replace: body["replace"] as? Bool ?? true)
             case "pauseSpeak":
                 VoiceBox.shared.pause()
             case "resumeSpeak":
@@ -241,11 +250,65 @@ final class VoiceBox: NSObject, AVSpeechSynthesizerDelegate {
         }
     }
 
-    func pause() { if synth.isSpeaking { synth.pauseSpeaking(at: .word) } }
-    func resume() { if synth.isPaused { synth.continueSpeaking() } }
+    func pause() {
+        if synth.isSpeaking { synth.pauseSpeaking(at: .word) }
+        audio?.pause()
+    }
+    func resume() {
+        if synth.isPaused { synth.continueSpeaking() }
+        if let p = audio, p.currentItem != nil, p.rate == 0 { p.playImmediately(atRate: audioRate) }
+    }
+
+    // MARK: recorded audio (the book in the Egyptian voice), one file per paragraph
+    private var audio: AVQueuePlayer?
+    private var audioIds: [ObjectIdentifier: String] = [:]
+    private var audioRate: Float = 1
+    private var endObserver: NSObjectProtocol?
+
+    func playAudio(_ items: [(String, String)], rate: Double, replace: Bool) {
+        if synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
+        if engine.isRunning { stopListening() }
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .spokenAudio, options: [])
+        try? session.setActive(true)
+        if audio == nil {
+            audio = AVQueuePlayer()
+            endObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: nil, queue: .main) { [weak self] note in
+                guard let self = self, let item = note.object as? AVPlayerItem,
+                      let id = self.audioIds.removeValue(forKey: ObjectIdentifier(item)) else { return }
+                self.send("__spoke", id)
+                self.announceAudio()
+            }
+        }
+        guard let player = audio else { return }
+        if replace { stopAudio() }
+        for (id, link) in items {
+            guard let url = URL(string: link) else { continue }
+            let item = AVPlayerItem(url: url)
+            item.audioTimePitchAlgorithm = .timeDomain
+            audioIds[ObjectIdentifier(item)] = id
+            player.insert(item, after: nil)
+        }
+        audioRate = Float(max(0.5, min(2, rate)))
+        player.playImmediately(atRate: audioRate)
+        announceAudio()
+    }
+
+    private func announceAudio() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            if let item = self.audio?.currentItem, let id = self.audioIds[ObjectIdentifier(item)] { self.send("__spokeStart", id) }
+        }
+    }
+
+    private func stopAudio() {
+        audio?.pause()
+        audio?.removeAllItems()
+        audioIds.removeAll()
+    }
 
     func stopSpeaking() {
         if synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
+        stopAudio()
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {

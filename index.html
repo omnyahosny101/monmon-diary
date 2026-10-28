@@ -5249,7 +5249,24 @@ function frHomeExtra(el, again){
    S.nar = {rate, voice} */
 const NAR = {bar:false, playing:false, paused:false, q:[], at:-1, sent:0, run:0};
 const NAR_RATES = [0.8, 1, 1.2, 1.4];
-function narrMigrate(){ S.nar = Object.assign({rate:1, voice:''}, S.nar || {}); }
+function narrMigrate(){ S.nar = Object.assign({rate:1, voice:'', engine:'salma'}, S.nar || {}); }
+/* the book recorded in Microsoft's Egyptian voice (Salma), one MP3 per paragraph, made by scripts/book_audio.py */
+const NAR_AUDIO = {}; const LIVE = 'https://omnyahosny101.github.io/monmon-diary/';
+function narrManifest(b){
+  if (NAR_AUDIO[b.id] !== undefined) return Promise.resolve(NAR_AUDIO[b.id]);
+  const base = location.protocol.startsWith('http') ? '' : LIVE;
+  return fetch(base + 'books/audio/' + b.id + '/index.json?t=' + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null)
+    .then(m => { NAR_AUDIO[b.id] = m && m.files && Object.keys(m.files).length ? m : null; return NAR_AUDIO[b.id]; });
+}
+const narrUsesAudio = () => RD && S.nar.engine === 'salma' && !!NAR_AUDIO[RD.b.id];
+function narrAudioURL(b, f){ return new URL('books/audio/' + b.id + '/' + f, location.protocol.startsWith('http') ? location.href : LIVE).href; }
+let narrEl = null;
+function narrWebAudio(i){
+  const x = NAR.q[i]; if (!x) return;
+  if (!narrEl){ narrEl = new Audio(); narrEl.preload = 'auto'; }
+  narrEl.onended = () => { narrDone(x.id); if (NAR.q[i + 1] && NAR.playing) narrWebAudio(i + 1); };
+  narrEl.src = x.url; narrEl.playbackRate = S.nar.rate; narrEl.play().then(() => narrStart(x.id)).catch(() => toast(L2('الصوت محتاج نت', 'The audio needs internet')));
+}
 function narrSplit(t){
   const out = [];
   t.split(/(?<=[.؟!?:؛])\s+/).forEach(s => {
@@ -5282,6 +5299,7 @@ function narrClean(t){
 function narrBuild(from){
   NAR.run++; NAR.q = []; NAR.sent = 0; NAR.at = -1;
   const P = RD.P;
+  if (narrUsesAudio()){ const m = NAR_AUDIO[RD.b.id]; for (let p = from; p < P.length; p++) if (m.files[p]) NAR.q.push({id:'n' + NAR.run + '_' + NAR.q.length, p, url:narrAudioURL(RD.b, m.files[p])}); return; }
   for (let p = from; p < P.length; p++) narrSplit(plainOf(P[p][1])).map(narrClean).filter(t => /[\u0600-\u06FF]/.test(t)).forEach(t => NAR.q.push({id:'n' + NAR.run + '_' + NAR.q.length, p, t}));
 }
 function narrWebVoice(){
@@ -5291,6 +5309,11 @@ function narrWebVoice(){
   return vs.slice().sort((a, b) => sc(b) - sc(a))[0];
 }
 function narrSend(replace){
+  if (NAR.q[0] && NAR.q[0].url){
+    if (!replace) return; NAR.sent = NAR.q.length;
+    if (VOX.native){ try { native().postMessage({type:'audioQueue', replace:true, rate:S.nar.rate, items:NAR.q.map(x => ({id:x.id, url:x.url}))}); return; } catch(e){} }
+    return narrWebAudio(0);
+  }
   const batch = NAR.q.slice(NAR.sent, NAR.sent + 150); if (!batch.length) return;
   NAR.sent += batch.length;
   if (VOX.native){
@@ -5336,20 +5359,23 @@ function narrMarkRead(p){
 }
 function narrFrom(p){
   if (!RD || !RD.P) return;
-  stopSpeak(); narrBuild(Math.max(0, Math.min(RD.P.length - 1, p)));
+  stopSpeak(); if (narrEl){ narrEl.pause(); narrEl.onended = null; }
+  narrBuild(Math.max(0, Math.min(RD.P.length - 1, p)));
   NAR.playing = true; NAR.paused = false; narrSend(true); narrLabel();
 }
 function narrStop(){
   if (!NAR.bar && !NAR.playing) return;
   NAR.run++; NAR.playing = false; NAR.paused = false; NAR.bar = false;
   try { if (VOX.native) native().postMessage({type:'stopSpeak'}); else if (window.speechSynthesis) speechSynthesis.cancel(); } catch(e){}
+  if (narrEl){ narrEl.pause(); narrEl.onended = null; }
   if (RD){ $$('.rd-now', RD.el).forEach(e => e.classList.remove('rd-now')); const bar = $('#rdNar', RD.el); if (bar) bar.remove(); RD.el.classList.remove('narr'); }
 }
 function narrPause(){
   if (!NAR.playing) return narrFrom(NAR.at >= 0 ? NAR.q[NAR.at].p : S.books[RD.b.id].pos);
   NAR.paused = !NAR.paused;
   try {
-    if (VOX.native) native().postMessage({type:NAR.paused ? 'pauseSpeak' : 'resumeSpeak'});
+    if (narrEl && !VOX.native && NAR.q[0] && NAR.q[0].url){ if (NAR.paused) narrEl.pause(); else narrEl.play(); }
+    else if (VOX.native) native().postMessage({type:NAR.paused ? 'pauseSpeak' : 'resumeSpeak'});
     else if (NAR.paused) speechSynthesis.pause(); else speechSynthesis.resume();
   } catch(e){}
   narrLabel();
@@ -5364,7 +5390,7 @@ function narrLabel(){
   $('[data-np]', bar).textContent = !NAR.playing ? '▶️' : NAR.paused ? '▶️' : '⏸️';
   $('[data-nr]', bar).textContent = S.nar.rate + '×';
   $('.nl', bar).textContent = !NAR.playing ? L2('دوسي ▶️ أو دوسي على أي فقرة تبدأ منها', 'Tap ▶️ or any paragraph to start') :
-    (NAR.paused ? L2('واقفة · ', 'Paused · ') : L2('بتقرالك · ', 'Reading · ')) + (ch ? ch[1] : '');
+    (NAR.paused ? L2('واقفة · ', 'Paused · ') : (narrUsesAudio() ? L2('سلمى بتقرالك · ', 'Salma is reading · ') : L2('بتقرالك · ', 'Reading · '))) + (ch ? ch[1] : '');
 }
 function narrBar(){
   if (!RD || !RD.P) return;
@@ -5378,12 +5404,14 @@ function narrBar(){
   $('[data-nr]', bar).onclick = () => { const i = NAR_RATES.indexOf(S.nar.rate); S.nar.rate = NAR_RATES[(i + 1) % NAR_RATES.length]; save(); if (NAR.playing && NAR.at >= 0) narrFrom(NAR.q[NAR.at].p); else narrLabel(); };
   $('[data-nx]', bar).onclick = narrStop;
   $('[data-nv]', bar).onclick = narrVoiceSheet;
-  narrFrom(S.books[RD.b.id].pos || 0);
+  narrManifest(RD.b).then(() => { if (RD && NAR.bar) narrFrom(S.books[RD.b.id].pos || 0); });
 }
 function narrVoiceSheet(){
   const nat = VOX.native, list = nat ? VOX.ar : webVoices('ar').map(v => ({id:v.name, name:v.name, lang:v.lang, q:/premium/i.test(v.name) ? 3 : /enhanced|natural|neural/i.test(v.name) ? 2 : 1}));
   sheet('<div style="text-align:center;font-size:38px">🗣️</div><h2 class="plain" style="justify-content:center">' + L2('صوت الراوي', 'Narrator voice') + '</h2>' +
-    '<label class="field"><span>' + L2('الصوت', 'Voice') + '</span><select class="in" data-v><option value="">' + L2('أحسن صوت عربي عندك (تلقائي)', 'Best Arabic voice (auto)') + '</option>' +
+    '<div class="chips" style="justify-content:center"><button class="chip' + (S.nar.engine === 'salma' ? ' on' : '') + '" data-eng="salma">🇪🇬 ' + L2('سلمى (مصري)', 'Salma (Egyptian)') + '</button><button class="chip' + (S.nar.engine !== 'salma' ? ' on' : '') + '" data-eng="tts">📱 ' + L2('صوت الآيفون', 'iPhone voice') + '</button></div>' +
+    '<p class="small" style="margin:0;font-weight:800;text-align:center">' + (RD && NAR_AUDIO[RD.b.id] ? L2('✓ صوت سلمى المصري جاهز للكتاب ده (محتاج نت)', '✓ Salma’s Egyptian audio is ready for this book (needs internet)') : L2('⏳ صوت سلمى المصري لسه بيتجهز للكتاب ده، ولحد ما يخلص هيقرا صوت الآيفون.', '⏳ Salma’s audio isn’t ready yet; the iPhone voice reads meanwhile.')) + '</p>' +
+    '<label class="field"><span>' + L2('صوت الآيفون', 'iPhone voice') + '</span><select class="in" data-v><option value="">' + L2('أحسن صوت عربي عندك (تلقائي)', 'Best Arabic voice (auto)') + '</option>' +
       list.map(v => '<option value="' + esc(v.id) + '"' + (S.nar.voice === v.id ? ' selected' : '') + '>' + esc(v.name) + ' · ' + esc(v.lang) + ' · ' + QLAB(v.q) + '</option>').join('') + '</select></label>' +
     '<button class="btn soft full" data-t>🔊 ' + L2('جربي الصوت', 'Test the voice') + '</button>' +
     '<div class="frnote"><b>📥 ' + L2('عشان الصوت يبقى أوضح', 'For a clearer voice') + '</b><p>' +
@@ -5391,6 +5419,7 @@ function narrVoiceSheet(){
       '<br><br>' + L2('ملحوظة: أصوات الآيفون العربي بتنطق فصحى، فهتقرالك الكلام المصري بلهجة فصحى شوية. لسه مفيش صوت مصري جوه الآيفون.', 'Note: iPhone Arabic voices speak Modern Standard Arabic; there is no Egyptian voice built in yet.') +
       (nat ? '' : '<br><br>' + L2('⚠️ الأصوات الواضحة والقراية والشاشة مقفولة بتشتغل جوه التطبيق بعد تحديث Xcode.', '⚠️ Clear voices and reading with the screen locked work in the app after the Xcode update.')) + '</p></div>',
   sh => {
+    $$('[data-eng]', sh).forEach(b => b.onclick = () => { S.nar.engine = b.dataset.eng; save(); $$('[data-eng]', sh).forEach(z => z.classList.toggle('on', z === b)); if (NAR.playing && NAR.at >= 0) narrFrom(NAR.q[NAR.at].p); });
     $('[data-v]', sh).onchange = e => { S.nar.voice = e.target.value; save(); if (NAR.playing && NAR.at >= 0) narrFrom(NAR.q[NAR.at].p); };
     $('[data-t]', sh).onclick = () => { if (NAR.playing && !NAR.paused) narrPause(); speakAr('أهلًا يا مونمون، أنا هقرالك الكتاب النهارده.'); };
   });
