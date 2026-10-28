@@ -14,10 +14,30 @@ function narrSplit(t){
   });
   return out;
 }
+// make the text easy to say: no symbols read out loud, numbers written the way they're spoken
+function narrClean(t){
+  return t.replace(/\*\*/g, '')
+    .replace(/(\d),(\d{3})/g, '$1$2')
+    .replace(/الـ\s?(?=\d)/g, '')
+    .replace(/(\d+(?:\.\d+)?)\s?%/g, '$1 في المية')
+    .replace(/\$\s?(\d+(?:\.\d+)?)/g, '$1 دولار')
+    .replace(/(\d{4})\s?[-–]\s?(\d{4})/g, '$1 لـ $2')
+    .replace(/\bPPP\b/g, '')
+    .replace(/[«»"“”„]/g, '')
+    .replace(/[()\[\]]/g, '، ')
+    .replace(/\s*[:؛;—–]\s*/g, '، ')
+    .replace(/\.\.+/g, '، ')
+    .replace(/\s*\/\s*/g, ' أو ')
+    .replace(/[*#•]/g, '')
+    .replace(/\s+،/g, '،')
+    .replace(/(،\s*){2,}/g, '، ')
+    .replace(/^\s*،\s*|\s*،\s*$/g, '')
+    .replace(/\s{2,}/g, ' ').trim();
+}
 function narrBuild(from){
   NAR.run++; NAR.q = []; NAR.sent = 0; NAR.at = -1;
   const P = RD.P;
-  for (let p = from; p < P.length; p++) narrSplit(plainOf(P[p][1])).forEach((t, k) => NAR.q.push({id:'n' + NAR.run + '_' + NAR.q.length, p, t}));
+  for (let p = from; p < P.length; p++) narrSplit(plainOf(P[p][1])).map(narrClean).filter(t => /[\u0600-\u06FF]/.test(t)).forEach(t => NAR.q.push({id:'n' + NAR.run + '_' + NAR.q.length, p, t}));
 }
 function narrWebVoice(){
   const vs = webVoices('ar'); if (!vs.length) return null;
@@ -34,7 +54,8 @@ function narrSend(replace){
   const s = window.speechSynthesis; if (!s) return toast(L2('الصوت مش متاح هنا', 'Sound isn’t available here'));
   if (replace) s.cancel();
   const v = narrWebVoice();
-  batch.forEach(x => { const u = new SpeechSynthesisUtterance(x.t); u.lang = v ? v.lang : 'ar-EG'; if (v) u.voice = v; u.rate = S.nar.rate;
+  if (!v && replace) toast(L2('مفيش صوت عربي ظاهر هنا. نزّلي تحديث Xcode عشان يستعمل صوت الآيفون العربي.', 'No Arabic voice here. Install the app update to use the iPhone’s Arabic voice.'));
+  batch.forEach(x => { const u = new SpeechSynthesisUtterance(x.t); u.lang = v ? v.lang : 'ar-SA'; if (v) u.voice = v; u.rate = S.nar.rate;
     u.onstart = () => narrStart(x.id); u.onend = () => narrDone(x.id); s.speak(u); });
 }
 const _spokeBase = window.__spoke;
@@ -131,5 +152,5 @@ function narrVoiceSheet(){
 }
 function speakAr(t){
   if (VOX.native){ try { native().postMessage({type:'speak', id:'t' + Date.now(), text:t, lang:'ar-EG', rate:0.5 * S.nar.rate, voice:S.nar.voice || ''}); return; } catch(e){} }
-  try { const s = speechSynthesis; s.cancel(); const u = new SpeechSynthesisUtterance(t); const v = narrWebVoice(); u.lang = v ? v.lang : 'ar-EG'; if (v) u.voice = v; u.rate = S.nar.rate; s.speak(u); } catch(e){}
+  try { const s = speechSynthesis; s.cancel(); const u = new SpeechSynthesisUtterance(t); const v = narrWebVoice(); u.lang = v ? v.lang : 'ar-SA'; if (v) u.voice = v; u.rate = S.nar.rate; s.speak(u); } catch(e){}
 }
