@@ -10,6 +10,7 @@ photoMigrate();
 frMigrate();
 frPlusMigrate();
 bookMigrate();
+narrMigrate();
 applyLang();
 render();
 syncNative();

@@ -28,6 +28,7 @@ targets:
         UIUserInterfaceStyle: Light
         NSCameraUsageDescription: To take photos of your food, outings and diary.
         NSPhotoLibraryUsageDescription: To add photos of your food, outings and diary.
+        UIBackgroundModes: [audio]
         NSMicrophoneUsageDescription: To hear you say French words and play your voice back.
         NSSpeechRecognitionUsageDescription: To check how you pronounce French words.
         UISupportedInterfaceOrientations:

@@ -4,6 +4,10 @@
 <dict>
 	<key>NSCameraUsageDescription</key>
 	<string>To take photos of your food, outings and diary.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>To hear you say French words and play your voice back.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

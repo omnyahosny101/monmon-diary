@@ -101,7 +101,7 @@ function openReader(id, at){
   const shell = document.createElement('div'); shell.className = 'reader rt-' + S.reader.theme; shell.id = 'reader'; shell.setAttribute('data-notr', '');
   shell.setAttribute('style', readerVars());
   shell.innerHTML = '<div class="rd-top"><button class="rd-ic" data-rclose aria-label="Close">✕</button><div class="rd-title"><b>' + esc(b.t) + '</b><span id="rdChap"></span></div>' +
-    '<button class="rd-ic" data-rtoc aria-label="Chapters">☰</button><button class="rd-ic" data-rnotes aria-label="My highlights">🖍️</button><button class="rd-ic" data-raa aria-label="Text settings">Aa</button></div>' +
+    '<button class="rd-ic" data-rnar aria-label="Listen">🎧</button><button class="rd-ic" data-rtoc aria-label="Chapters">☰</button><button class="rd-ic" data-rnotes aria-label="My highlights">🖍️</button><button class="rd-ic" data-raa aria-label="Text settings">Aa</button></div>' +
     '<div class="rd-scroll" id="rdScroll"><div class="rd-loading">' + L2('بنفتح الكتاب…', 'Opening the book…') + '</div></div>' +
     '<div class="rd-bottom"><div class="rd-prog"><i id="rdBar"></i></div><span id="rdInfo"></span></div>' +
     '<div class="rd-sel" id="rdSel" hidden>' + HL_COLORS.map(c => '<button class="rd-dot" data-hc="' + c[0] + '" style="background:' + c[1] + '" aria-label="Highlight"></button>').join('') +
@@ -114,6 +114,7 @@ function openReader(id, at){
   $('[data-raa]', shell).onclick = readerSettings;
   $('[data-rtoc]', shell).onclick = readerTOC;
   $('[data-rnotes]', shell).onclick = () => highlightsSheet(b.id, true);
+  $('[data-rnar]', shell).onclick = () => narrBar();
   loadBook(b).then(P => { RD.P = P; drawReader(at != null ? at : x.pos); })
     .catch(() => { $('#rdScroll', shell).innerHTML = '<div class="rd-loading">' + L2('محتاجة نت أول مرة تفتحي فيها الكتاب. اتأكدي من النت وجربي تاني.', 'You need internet the first time you open this book.') + '</div>'; });
 }
@@ -131,6 +132,7 @@ function drawReader(at){
   readerTrack(true);
 }
 function closeReader(){
+  if (typeof narrStop === 'function') narrStop();
   if (!RD) return; readerTrack(true); saveNow();
   RD.el.remove(); RD = null; document.documentElement.classList.remove('reading');
   try { if (document.fullscreenElement) document.exitFullscreen(); } catch(e){}
@@ -180,6 +182,8 @@ function bindReaderText(){
     const sel = window.getSelection();
     if (sel && !sel.isCollapsed) return;
     if (m) return hlSheet(RD.b.id, m.dataset.hid);
+    const pp = ev.target.closest('[data-i]');
+    if (pp && NAR.bar){ narrFrom(+pp.dataset.i); return; }
     if (ev.target.closest('.rd-text')) el.classList.toggle('bare');
   };
 }

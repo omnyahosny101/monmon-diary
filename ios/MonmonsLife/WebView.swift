@@ -112,6 +112,21 @@ struct WebView: UIViewRepresentable {
                                       rate: (body["rate"] as? NSNumber)?.doubleValue ?? 0.45,
                                       voiceId: body["voice"] as? String ?? "",
                                       id: body["id"] as? String ?? "")
+            case "speakQueue":
+                VoiceBox.shared.webView = webView
+                let items = (body["items"] as? [[String: Any]] ?? []).compactMap { item -> (String, String)? in
+                    guard let id = item["id"] as? String, let text = item["text"] as? String else { return nil }
+                    return (id, text)
+                }
+                VoiceBox.shared.queue(items,
+                                      replace: body["replace"] as? Bool ?? true,
+                                      lang: body["lang"] as? String ?? "ar-EG",
+                                      rate: (body["rate"] as? NSNumber)?.doubleValue ?? 0.5,
+                                      voiceId: body["voice"] as? String ?? "")
+            case "pauseSpeak":
+                VoiceBox.shared.pause()
+            case "resumeSpeak":
+                VoiceBox.shared.resume()
             case "stopSpeak":
                 VoiceBox.shared.stopSpeaking()
             case "listen":
@@ -207,10 +222,38 @@ final class VoiceBox: NSObject, AVSpeechSynthesizerDelegate {
         synth.speak(u)
     }
 
+    /// The narrator: many sentences queued at once so reading carries on with the screen locked.
+    func queue(_ items: [(String, String)], replace: Bool, lang: String, rate: Double, voiceId: String) {
+        if engine.isRunning { stopListening() }
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .spokenAudio, options: [])
+        try? session.setActive(true)
+        if replace && synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
+        let voice = (voiceId.isEmpty ? nil : AVSpeechSynthesisVoice(identifier: voiceId)) ?? best(lang)
+        let r = Float(min(Double(AVSpeechUtteranceMaximumSpeechRate), max(Double(AVSpeechUtteranceMinimumSpeechRate), rate)))
+        for (id, text) in items {
+            let u = AVSpeechUtterance(string: text)
+            u.voice = voice
+            u.rate = r
+            u.postUtteranceDelay = 0.12
+            spoken[ObjectIdentifier(u)] = id
+            synth.speak(u)
+        }
+    }
+
+    func pause() { if synth.isSpeaking { synth.pauseSpeaking(at: .word) } }
+    func resume() { if synth.isPaused { synth.continueSpeaking() } }
+
     func stopSpeaking() {
         if synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
     }
 
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
+        let key = ObjectIdentifier(utterance)
+        DispatchQueue.main.async {
+            if let id = self.spoken[key] { self.send("__spokeStart", id) }
+        }
+    }
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) { finished(utterance) }
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) { finished(utterance) }
 

@@ -475,6 +475,15 @@ mark.hl.noted::after{content:"💬";font-size:.7em;margin-right:2px;vertical-ali
 .rday.ok .dn{background:var(--mint);color:#fff}
 .rday.cur{background:var(--acc-soft);border-radius:14px;padding-inline:8px}
 .rday .s{display:block;font-size:12px;color:var(--muted);font-weight:700}
+.rd-p.rd-now,.rd-h.rd-now{background:color-mix(in srgb,#8f6bff 14%,transparent);border-radius:10px;box-shadow:0 0 0 8px color-mix(in srgb,#8f6bff 14%,transparent);transition:background .3s}
+.rd-nar{position:absolute;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 66px);z-index:3;display:flex;flex-direction:column;gap:6px;align-items:center;padding:10px 12px;border-radius:20px;background:linear-gradient(135deg,#ff5c8f,#8f6bff);color:#fff;box-shadow:0 12px 30px rgba(143,107,255,.35);transition:bottom .25s}
+.rd-nar .nl{font-size:12px;font-weight:800;opacity:.95;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.rd-nar .nb{display:flex;gap:6px;align-items:center;justify-content:center}
+.rd-nar button{min-width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.18);color:#fff;font-weight:900;font-size:15px;padding:0 8px}
+.rd-nar button.big{min-width:54px;height:48px;font-size:20px;background:rgba(255,255,255,.3)}
+.reader.bare .rd-nar{bottom:calc(env(safe-area-inset-bottom,0px) + 12px)}
+.reader.narr .rd-sel{bottom:calc(env(safe-area-inset-bottom,0px) + 168px)}
+.reader.narr .rd-scroll{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 180px)}
 /* ask claude */
 .askb{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:900;padding:6px 11px;border-radius:999px;background:linear-gradient(135deg,#fff0c9,#ffe0ec);color:#a5487a;flex:0 0 auto}
 .askb.sm{width:34px;height:34px;padding:0;justify-content:center;font-size:15px;border-radius:50%}
