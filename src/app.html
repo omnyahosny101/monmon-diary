@@ -119,7 +119,7 @@ select.in{min-width:0;max-width:100%}
 .empty{font-size:13px;color:var(--muted);text-align:center;padding:10px 0}
 .amt{font-family:var(--f-num);font-weight:600;white-space:nowrap}
 .pill{display:inline-block;font-size:10.5px;font-weight:900;padding:2px 8px;border-radius:999px;background:var(--acc-soft);color:var(--acc);margin-right:4px;vertical-align:1px}
-.pill.urgent{background:var(--danger);color:#fff}
+.pill.urgent{background:var(--danger);color:#fff;animation:none;box-shadow:none;display:inline-block;padding:2px 8px}
 .pill.high{background:var(--gold-soft);color:#a86d00}
 
 /* chips */
@@ -166,7 +166,7 @@ select.in{min-width:0;max-width:100%}
 .mbox span{font-size:11px;font-weight:800;color:var(--muted)}
 
 /* urgent banner */
-.urgent{background:linear-gradient(135deg,var(--danger),var(--warn));color:#fff;border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:0 14px 28px -14px var(--danger);animation:pulse 2s ease-in-out infinite}
+div.urgent{background:linear-gradient(135deg,var(--danger),var(--warn));color:#fff;border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:0 14px 28px -14px var(--danger);animation:pulse 2s ease-in-out infinite}
 .urgent h2{color:#fff}.urgent h2::before{background:#fff}
 .urgent .ur{display:flex;align-items:center;gap:10px;font-weight:800;text-align:left}
 .urgent .ur .tick{border-color:rgba(255,255,255,.7)}

@@ -119,7 +119,7 @@ select.in{min-width:0;max-width:100%}
 .empty{font-size:13px;color:var(--muted);text-align:center;padding:10px 0}
 .amt{font-family:var(--f-num);font-weight:600;white-space:nowrap}
 .pill{display:inline-block;font-size:10.5px;font-weight:900;padding:2px 8px;border-radius:999px;background:var(--acc-soft);color:var(--acc);margin-right:4px;vertical-align:1px}
-.pill.urgent{background:var(--danger);color:#fff}
+.pill.urgent{background:var(--danger);color:#fff;animation:none;box-shadow:none;display:inline-block;padding:2px 8px}
 .pill.high{background:var(--gold-soft);color:#a86d00}
 
 /* chips */
@@ -166,7 +166,7 @@ select.in{min-width:0;max-width:100%}
 .mbox span{font-size:11px;font-weight:800;color:var(--muted)}
 
 /* urgent banner */
-.urgent{background:linear-gradient(135deg,var(--danger),var(--warn));color:#fff;border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:0 14px 28px -14px var(--danger);animation:pulse 2s ease-in-out infinite}
+div.urgent{background:linear-gradient(135deg,var(--danger),var(--warn));color:#fff;border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:0 14px 28px -14px var(--danger);animation:pulse 2s ease-in-out infinite}
 .urgent h2{color:#fff}.urgent h2::before{background:#fff}
 .urgent .ur{display:flex;align-items:center;gap:10px;font-weight:800;text-align:left}
 .urgent .ur .tick{border-color:rgba(255,255,255,.7)}
@@ -3823,7 +3823,8 @@ function tasksHTML(){
   const row = x => '<div class="item"><button class="tick" data-htdone="' + x.id + '" aria-label="Done">' + CHECK + '</button><span class="t">' + (x.job ? '<span class="pill">' + esc(jobName(x.job)) + '</span>' : '') + (x.prio && x.prio !== 'normal' ? '<span class="pill ' + PRIO[x.prio].c + '">' + PRIO[x.prio].l + '</span>' : '') + esc(x.title) + photoStrip('task:' + x.id, false) + (x.due ? '<span class="s" style="' + (x.due < t ? 'color:var(--danger);font-weight:900' : '') + '">' + (x.due < t ? 'Overdue · ' : 'Due ') + nice(x.due) + (x.time ? ' · by ' + x.time : '') + '</span>' : '') + '</span><span class="ibtns">' + editBtn('task', x.id) + flagBtn('t:' + x.id, x.prio === 'urgent') + '</span></div>';
   const w = S.tasks.filter(x => !x.done && x.kind === 'work').sort(sort), p = S.tasks.filter(x => !x.done && x.kind !== 'work').sort(sort);
   return '<div class="card"><div class="card-head"><h2>Tasks</h2><button class="linkbtn" data-go="plans:tasks">All tasks</button></div>' +
-    '<div class="row"><label class="field" style="flex:2 1 150px"><input class="in" id="htIn" placeholder="Add a task…" aria-label="New task"></label><label class="field" style="flex:1 1 100px"><select class="in" id="htFor" aria-label="For"><option value="personal">Personal</option>' + S.jobs.map(j => '<option value="' + j.id + '">' + esc(j.name) + '</option>').join('') + '</select></label><button class="btn" id="htAdd">Add</button></div>' +
+    '<div class="row"><label class="field" style="flex:1 1 100%"><input class="in" id="htIn" placeholder="Add a task…" aria-label="New task"></label></div>' +
+    '<div class="row" style="flex-wrap:nowrap;align-items:center"><label class="field" style="flex:1 1 auto;min-width:0"><select class="in" id="htFor" aria-label="For"><option value="personal">Personal</option>' + S.jobs.map(j => '<option value="' + j.id + '">' + esc(j.name) + '</option>').join('') + '</select></label><button class="btn" id="htAdd" style="flex:0 0 auto;padding-inline:22px">Add</button></div>' +
     '<h3>\u{1F4BC} Work · ' + w.length + '</h3><div class="list">' + (w.length ? w.slice(0, 6).map(row).join('') : '<div class="empty">No open work tasks.</div>') + '</div>' +
     '<h3>✅ My to-dos · ' + p.length + '</h3><div class="list">' + (p.length ? p.slice(0, 6).map(row).join('') : '<div class="empty">Nothing on your list.</div>') + '</div></div>';
 }
