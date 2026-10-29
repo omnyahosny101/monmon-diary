@@ -1871,7 +1871,7 @@ Object.assign(AR, {
   "Fridays at 12:00": "الجمعة الساعة 12", "Shop-free hours": "ساعات من غير شوبينج", "11 PM: no shopping until 9 AM": "11 بالليل: مفيش شوبينج لحد 9 الصبح", "9:00, 14:00, 17:30, 20:30 with that day’s meal": "9:00، 14:00، 17:30، 20:30 بوجبة اليوم",
   "12:00 am and 2:00 am": "12 بالليل و2 بالليل", "Evening check-in": "مراجعة بالليل", "10:00 pm: habits, spending, day log": "10 بالليل: العادات، المصاريف، يومك", "Start of the month": "أول الشهر",
   "Invest, buy gold, plan self-care": "استثمري، اشتري دهب، خططي للعناية بنفسك", "Invest, buy gold, plan self-care, log salary": "استثمري، اشتري دهب، خططي للعناية بنفسك، سجّلي المرتب",
-  "Tasks and plans": "التاسكات والخطط", "Urgent tasks, mashawer, experiences, beauty and self-care sessions": "التاسكات المستعجلة، المشاوير، التجارب، جلسات البيوتي والعناية بنفسك",
+  "Tasks and plans": "التاسكات والخطط", "Urgent tasks, mashawer, beauty and self-care sessions": "التاسكات المستعجلة، المشاوير، جلسات البيوتي والعناية بنفسك", "Urgent tasks, mashawer, experiences, beauty and self-care sessions": "التاسكات المستعجلة، المشاوير، التجارب، جلسات البيوتي والعناية بنفسك",
   "Urgent tasks, mashawer, experiences and self-care sessions": "التاسكات المستعجلة، المشاوير، التجارب وجلسات العناية بنفسك",
   "Backup": "نسخة احتياطي", "Everything is saved on this phone. Copy a backup now and then and keep it in Notes.": "كل حاجة متحفظة على الموبايل ده. خدي نسخة كل فترة وحطيها في النوتس.",
   "Copy backup": "انسخي النسخة", "Restore from backup": "رجّعي من نسخة", "Restore": "رجّعي", "Paste your backup here": "الصقي النسخة هنا", "Backup copied. Paste it in Notes.": "النسخة اتنسخت. الصقيها في النوتس.",
@@ -2533,7 +2533,6 @@ function buildReminders(){
   if (R.water) [11,13,16,19].forEach(h => repeat.push({id:'water-' + h, title:'Water break \u{1F4A7}', body:'Have a glass of water and tap it in Monmon’s Life.', hour:h, minute:0}));
   if (R.diary){
     repeat.push({id:'diary-0', title:'Diary time, Monmon ♡', body:'How was today? Pick your mood and answer today’s 3 questions.', hour:0, minute:0});
-    repeat.push({id:'diary-2', title:'Before you sleep \u{1F319}', body:'If you haven’t yet, close the day in your diary. Then rest, beautiful.', hour:2, minute:0});
   }
   if (R.checkin) repeat.push({id:'checkin', title:'Evening check-in ✨', body:'Tick your habits, log your spending and what you did today.', hour:22, minute:0});
   if (R.money){
@@ -2565,7 +2564,6 @@ function buildReminders(){
       if (t.prio === 'high'){ const eve = at(parseD(t.due), 20, 0); eve.setDate(eve.getDate() - 1); push('th-' + t.id, '⚠\u{FE0F} Important tomorrow', t.title, eve); }
       push('t-' + t.id, (t.kind === 'work' ? 'Work task due today' : 'To-do today'), t.title, at(parseD(t.due), 9, 0));
     });
-    S.exp.filter(x => !x.done && x.date).forEach(x => { const when = at(parseD(x.date), 19, 0); when.setDate(when.getDate() - 1); push('x-' + x.id, 'Tomorrow: ' + x.title + ' ✨', x.with && x.with.length ? 'With ' + x.with.join(', ') : 'A new experience awaits.', when); });
   }
   if (R.meals){
     const slots = [['Breakfast',9,0],['Lunch',14,0],['Snack',17,30],['Dinner',20,30]];
@@ -3326,6 +3324,7 @@ const SHEIN_X = 1.61;
 
 /* ---------- migration: fills in her profile once, never overwrites her own edits ---------- */
 function lifeMigrate(){
+  if (!S.remV2){ Object.assign(S.settings.rem, {checkin:false, work:false, night:false, learn:true}); S.remV2 = true; }
   S.profile = Object.assign({name:'Omnya', birthday:'2002-01-07', wedding:'', wake:'09:00', workStart:'10:00', workEnd:'18:00'}, S.profile || {});
   if (!Array.isArray(S.jobs) || !S.jobs.length) S.jobs = JSON.parse(JSON.stringify(JOBS_DEFAULT));
   S.income = Array.isArray(S.income) ? S.income : [];
@@ -3665,10 +3664,10 @@ VIEWS['me.settings'] = function(el){
       '<h3 style="margin-top:4px">Monthly budgets · total ' + fmt(sum(Object.keys(B), k => B[k])) + '</h3>' + CATS.map(c => '<div class="item"><span style="font-size:18px">' + c.e + '</span><span class="t">' + c.name + (c.protected ? '<span class="s">\u{1F497} protected</span>' : '') + '</span><input class="in num" data-bud="' + c.id + '" type="number" inputmode="decimal" min="0" placeholder="No limit" value="' + (+B[c.id] ? B[c.id] : '') + '" style="width:110px;text-align:right" aria-label="Budget for ' + c.name + '"></div>').join('') +
       '<p class="small muted" style="margin:0">Still to decide: gym subscription and a clothes budget.</p></div>' +
     '<div class="card"><h2>Reminders</h2>' + (native() ? '' : '<p class="small" style="margin:0;font-weight:800;color:var(--berry)">Reminders work in the iPhone app. In the browser these switches are saved for when you use the app.</p>') +
-      sw('wake', 'Wake-up and wind-down', 'At ' + esc(P.wake) + ', and a wind-down 8½ hours before') + sw('work', 'Work hours', 'Start and log-off, Sunday to Thursday') +
+      sw('wake', L2('الصحيان', 'Wake-up'), L2('الساعة ', 'At ') + esc(P.wake)) + sw('work', 'Work hours', 'Start and log-off, Sunday to Thursday') +
       sw('payday', 'Paydays', 'Pay yourself first on each salary day') + sw('friday', 'Friday money check-in', 'Fridays at 12:00') + sw('night', 'Shop-free hours', '11 PM: no shopping until 9 AM') +
-      sw('meals', 'Meals', '9:00, 14:00, 17:30, 20:30 with that day’s meal') + sw('water', 'Water', '11:00, 13:00, 16:00, 19:00') + sw('diary', 'Diary', '12:00 am and 2:00 am') + sw('checkin', 'Evening check-in', '10:00 pm: habits, spending, day log') +
-      sw('money', 'Start of the month', 'Invest, buy gold, plan self-care') + sw('plans', 'Tasks and plans', 'Urgent tasks, mashawer, experiences, beauty and self-care sessions') + '</div>' +
+      sw('meals', 'Meals', '9:00, 14:00, 17:30, 20:30 with that day’s meal') + sw('water', 'Water', '11:00, 13:00, 16:00, 19:00') + sw('diary', 'Diary', L2('12 بالليل', '12:00 am')) + sw('learn', L2('دروس ومعلومات \u{1F4A1}', 'Lessons and facts \u{1F4A1}'), L2('حكمة 9:30 الصبح، درس النهارده 12 الضهر، و6 معلومات على مدار اليوم', 'A quote at 9:30, today’s lesson at 12:00 and 6 facts through the day')) + sw('checkin', 'Evening check-in', '10:00 pm: habits, spending, day log') +
+      sw('money', 'Start of the month', 'Invest, buy gold, plan self-care') + sw('plans', 'Tasks and plans', 'Urgent tasks, mashawer, beauty and self-care sessions') + '</div>' +
     '<div class="card"><h2>Backup</h2><p class="small muted" style="margin:0;font-weight:600">Everything is saved on this phone. Copy a backup now and then and keep it in Notes.</p>' +
       '<div class="row"><button class="btn soft" id="bkCopy">Copy backup</button><button class="btn soft" id="bkShow">Restore from backup</button></div>' +
       '<div id="bkBox" hidden><textarea class="in" id="bkText" placeholder="Paste your backup here"></textarea><button class="btn full" id="bkRestore" style="margin-top:8px">Restore</button></div></div>' +
@@ -3692,11 +3691,11 @@ function lifeReminders(R, repeat, push, at){
   myReminders(repeat, push, at);
   cycleReminders(push, at);
   frReminders(repeat);
+  if (R.learn !== false) learnReminders(push, at);
   if (typeof readReminders === 'function') readReminders(repeat);
   if (R.plans !== false) emergencyReminders(push, at);
   const P = S.profile, hm = s => s.split(':').map(Number);
-  if (R.wake !== false && P.wake){ const [h, m] = hm(P.wake); repeat.push({id:'wake', title:'Good morning, Monmon ☀\u{FE0F}', body:'Same time every day. Curtains open, a glass of water, then your day.', hour:h, minute:m});
-    const b = ((h * 60 + m - 510) % 1440 + 1440) % 1440; repeat.push({id:'bed', title:'Wind down \u{1F319}', body:'Phone away soon. Wake-up is at ' + P.wake + '.', hour:Math.floor(b / 60), minute:b % 60}); }
+  if (R.wake !== false && P.wake){ const [h, m] = hm(P.wake); repeat.push({id:'wake', title:'Good morning, Monmon ☀\u{FE0F}', body:'Same time every day. Curtains open, a glass of water, then your day.', hour:h, minute:m}); }
   if (R.work !== false && P.workStart && P.workEnd){
     const top = S.tasks.filter(x => !x.done && x.kind === 'work').sort((a, b) => ({urgent:0, high:1}[a.prio] ?? 2) - ({urgent:0, high:1}[b.prio] ?? 2))[0];
     const [sh, sm] = hm(P.workStart), [eh, em] = hm(P.workEnd);
@@ -4592,6 +4591,24 @@ function photoMigrate(){ S.photos = S.photos && typeof S.photos === 'object' ? S
 const wisdomList = () => isAr() ? WISDOM.concat(WISDOM_AR) : WISDOM;
 const LESSON_START = '2026-10-28';
 function lessonIndex(){ const all = LESSONS.length + INSIGHTS.length; return ((daysBetween(LESSON_START, todayStr()) + (S.lessonShift || 0)) % all + all) % all; }
+/* quote + today's lesson + 6 facts as notifications, for today and the next 2 days */
+function learnReminders(push, at){
+  const all = LESSONS.length + INSIGHTS.length, WL = wisdomList();
+  const cut = (s, n) => { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1).trim() + '…' : s; };
+  const item = i => { i = ((i % all) + all) % all;
+    if (i < LESSONS.length){ const L = LESSONS[i]; return {t:L.t, x:L.x}; }
+    const f = INSIGHTS[i - LESSONS.length]; return {t:L2('تعرفي إن', 'Did you know') + ' · ' + tr(f[0]), x:tr(f[1])}; };
+  const slots = [[10,30],[12,30],[15,0],[16,30],[18,30],[21,0]];
+  for (let o = 0; o < 3; o++){
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + o);
+    const ds = ymd(d), k = daysBetween(LESSON_START, ds);
+    const wz = WL[(dayOfYear(d) + (S.wisdomShift || 0)) % WL.length];
+    push('wz-' + ds, '\u{1F4AD} ' + tr(wz.src), cut(tr(wz.idea) + ' ' + L2('جربي النهارده: ', 'Try this today: ') + tr(wz.advice), 300), at(d, 9, 30));
+    const ls = item(k + (S.lessonShift || 0));
+    push('ls-' + ds, '\u{1F393} ' + L2('درس النهارده: ', 'Today’s lesson: ') + ls.t, cut(ls.x, 300), at(d, 12, 0));
+    slots.forEach(([h, m], j) => { const f = item(k * 6 + j + 135); push('nf-' + ds + '-' + j, '\u{1F4A1} ' + f.t, cut(f.x, 300), at(d, h, m)); });
+  }
+}
 function lessonCardHTML(){
   if (!isAr()){ const doy = dayOfYear(new Date()), ins = INSIGHTS[(doy + (S.insightShift || 0)) % INSIGHTS.length];
     return '<div class="card insight"><span class="tag">Did you know · ' + ins[0] + '</span><p>' + esc(ins[1]) + '</p><button class="linkbtn" id="insNext" style="align-self:flex-start;background:var(--surface);color:var(--lilac)">Another one</button></div>'; }
@@ -4696,7 +4713,7 @@ function frHomeHTML(){
     '<div class="list">' + L.w.slice(0, 3).map(frWordRow).join('') + '</div>' +
     '<div class="row"><button class="btn" data-go="grow:fr" style="flex:1">' + (isAr() ? 'افتحي الدرس' : 'Open lesson') + '</button><button class="btn soft" data-frquiz="' + n + '" style="flex:1">\u{1F4DD} ' + (isAr() ? 'كويز النهارده' : 'Today’s quiz') + '</button></div></div>';
 }
-function frReminders(repeat){ if (S.settings.rem && S.settings.rem.plans === false) return; repeat.push({id:'fr-daily', title:'\u{1F1EB}\u{1F1F7} Bonjour, Monmon !', body:'15 minutes of French today: one lesson and a short quiz.', hour:19, minute:30}); }
+function frReminders(repeat){ if (S.settings.rem && S.settings.rem.plans === false) return; repeat.push({id:'fr-daily', title:'\u{1F1EB}\u{1F1F7} Bonjour, Monmon !', body:'15 minutes of French today: one lesson and a short quiz.', hour:23, minute:0}); }
 /* ============ READING: books, a 15-day plan, a reader with highlights and notes ============
    S.books[id] = {planFrom, pos, max, done:{k:date}, hl:[{id,g,p,s,e,c,note,at,text}], log:{date:chars}}
    S.reader = {fs, theme:'pink'|'sepia'|'dark', font:'cairo'|'amiri'|'system', lh}
@@ -5171,7 +5188,7 @@ VIEWS['grow.read'] = function(el){
 function readReminders(repeat){
   if (S.settings.rem && S.settings.rem.plans === false) return;
   if (BOOKS.every(b => bookState(b).finished) || todayStr() > S.readPlan.end) return;
-  repeat.push({id:'read-daily', title:'\u{1F4D6} وقت القراية', body:'جلسة كتاب النهارده مستنياكي (حوالي 20-30 دقيقة). كمّلي من مكانك، وسلمى ممكن تقرالك 🎧', hour:21, minute:30});
+  repeat.push({id:'read-daily', title:'\u{1F4D6} وقت القراية', body:'جلسة كتاب النهارده مستنياكي (حوالي 20-30 دقيقة). كمّلي من مكانك، وسلمى ممكن تقرالك 🎧', hour:1, minute:0});
 }
 
 /* ============ ASK CLAUDE LATER ============

@@ -210,7 +210,7 @@ Object.assign(AR, {
   "Fridays at 12:00": "الجمعة الساعة 12", "Shop-free hours": "ساعات من غير شوبينج", "11 PM: no shopping until 9 AM": "11 بالليل: مفيش شوبينج لحد 9 الصبح", "9:00, 14:00, 17:30, 20:30 with that day’s meal": "9:00، 14:00، 17:30، 20:30 بوجبة اليوم",
   "12:00 am and 2:00 am": "12 بالليل و2 بالليل", "Evening check-in": "مراجعة بالليل", "10:00 pm: habits, spending, day log": "10 بالليل: العادات، المصاريف، يومك", "Start of the month": "أول الشهر",
   "Invest, buy gold, plan self-care": "استثمري، اشتري دهب، خططي للعناية بنفسك", "Invest, buy gold, plan self-care, log salary": "استثمري، اشتري دهب، خططي للعناية بنفسك، سجّلي المرتب",
-  "Tasks and plans": "التاسكات والخطط", "Urgent tasks, mashawer, experiences, beauty and self-care sessions": "التاسكات المستعجلة، المشاوير، التجارب، جلسات البيوتي والعناية بنفسك",
+  "Tasks and plans": "التاسكات والخطط", "Urgent tasks, mashawer, beauty and self-care sessions": "التاسكات المستعجلة، المشاوير، جلسات البيوتي والعناية بنفسك", "Urgent tasks, mashawer, experiences, beauty and self-care sessions": "التاسكات المستعجلة، المشاوير، التجارب، جلسات البيوتي والعناية بنفسك",
   "Urgent tasks, mashawer, experiences and self-care sessions": "التاسكات المستعجلة، المشاوير، التجارب وجلسات العناية بنفسك",
   "Backup": "نسخة احتياطي", "Everything is saved on this phone. Copy a backup now and then and keep it in Notes.": "كل حاجة متحفظة على الموبايل ده. خدي نسخة كل فترة وحطيها في النوتس.",
   "Copy backup": "انسخي النسخة", "Restore from backup": "رجّعي من نسخة", "Restore": "رجّعي", "Paste your backup here": "الصقي النسخة هنا", "Backup copied. Paste it in Notes.": "النسخة اتنسخت. الصقيها في النوتس.",

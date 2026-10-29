@@ -154,7 +154,6 @@ function buildReminders(){
   if (R.water) [11,13,16,19].forEach(h => repeat.push({id:'water-' + h, title:'Water break \u{1F4A7}', body:'Have a glass of water and tap it in Monmon’s Life.', hour:h, minute:0}));
   if (R.diary){
     repeat.push({id:'diary-0', title:'Diary time, Monmon ♡', body:'How was today? Pick your mood and answer today’s 3 questions.', hour:0, minute:0});
-    repeat.push({id:'diary-2', title:'Before you sleep \u{1F319}', body:'If you haven’t yet, close the day in your diary. Then rest, beautiful.', hour:2, minute:0});
   }
   if (R.checkin) repeat.push({id:'checkin', title:'Evening check-in ✨', body:'Tick your habits, log your spending and what you did today.', hour:22, minute:0});
   if (R.money){
@@ -186,7 +185,6 @@ function buildReminders(){
       if (t.prio === 'high'){ const eve = at(parseD(t.due), 20, 0); eve.setDate(eve.getDate() - 1); push('th-' + t.id, '⚠\u{FE0F} Important tomorrow', t.title, eve); }
       push('t-' + t.id, (t.kind === 'work' ? 'Work task due today' : 'To-do today'), t.title, at(parseD(t.due), 9, 0));
     });
-    S.exp.filter(x => !x.done && x.date).forEach(x => { const when = at(parseD(x.date), 19, 0); when.setDate(when.getDate() - 1); push('x-' + x.id, 'Tomorrow: ' + x.title + ' ✨', x.with && x.with.length ? 'With ' + x.with.join(', ') : 'A new experience awaits.', when); });
   }
   if (R.meals){
     const slots = [['Breakfast',9,0],['Lunch',14,0],['Snack',17,30],['Dinner',20,30]];

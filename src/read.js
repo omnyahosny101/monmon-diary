@@ -472,7 +472,7 @@ VIEWS['grow.read'] = function(el){
 function readReminders(repeat){
   if (S.settings.rem && S.settings.rem.plans === false) return;
   if (BOOKS.every(b => bookState(b).finished) || todayStr() > S.readPlan.end) return;
-  repeat.push({id:'read-daily', title:'\u{1F4D6} وقت القراية', body:'جلسة كتاب النهارده مستنياكي (حوالي 20-30 دقيقة). كمّلي من مكانك، وسلمى ممكن تقرالك 🎧', hour:21, minute:30});
+  repeat.push({id:'read-daily', title:'\u{1F4D6} وقت القراية', body:'جلسة كتاب النهارده مستنياكي (حوالي 20-30 دقيقة). كمّلي من مكانك، وسلمى ممكن تقرالك 🎧', hour:1, minute:0});
 }
 
 /* ============ ASK CLAUDE LATER ============

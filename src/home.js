@@ -875,6 +875,24 @@ function photoMigrate(){ S.photos = S.photos && typeof S.photos === 'object' ? S
 const wisdomList = () => isAr() ? WISDOM.concat(WISDOM_AR) : WISDOM;
 const LESSON_START = '2026-10-28';
 function lessonIndex(){ const all = LESSONS.length + INSIGHTS.length; return ((daysBetween(LESSON_START, todayStr()) + (S.lessonShift || 0)) % all + all) % all; }
+/* quote + today's lesson + 6 facts as notifications, for today and the next 2 days */
+function learnReminders(push, at){
+  const all = LESSONS.length + INSIGHTS.length, WL = wisdomList();
+  const cut = (s, n) => { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1).trim() + '…' : s; };
+  const item = i => { i = ((i % all) + all) % all;
+    if (i < LESSONS.length){ const L = LESSONS[i]; return {t:L.t, x:L.x}; }
+    const f = INSIGHTS[i - LESSONS.length]; return {t:L2('تعرفي إن', 'Did you know') + ' · ' + tr(f[0]), x:tr(f[1])}; };
+  const slots = [[10,30],[12,30],[15,0],[16,30],[18,30],[21,0]];
+  for (let o = 0; o < 3; o++){
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + o);
+    const ds = ymd(d), k = daysBetween(LESSON_START, ds);
+    const wz = WL[(dayOfYear(d) + (S.wisdomShift || 0)) % WL.length];
+    push('wz-' + ds, '\u{1F4AD} ' + tr(wz.src), cut(tr(wz.idea) + ' ' + L2('جربي النهارده: ', 'Try this today: ') + tr(wz.advice), 300), at(d, 9, 30));
+    const ls = item(k + (S.lessonShift || 0));
+    push('ls-' + ds, '\u{1F393} ' + L2('درس النهارده: ', 'Today’s lesson: ') + ls.t, cut(ls.x, 300), at(d, 12, 0));
+    slots.forEach(([h, m], j) => { const f = item(k * 6 + j + 135); push('nf-' + ds + '-' + j, '\u{1F4A1} ' + f.t, cut(f.x, 300), at(d, h, m)); });
+  }
+}
 function lessonCardHTML(){
   if (!isAr()){ const doy = dayOfYear(new Date()), ins = INSIGHTS[(doy + (S.insightShift || 0)) % INSIGHTS.length];
     return '<div class="card insight"><span class="tag">Did you know · ' + ins[0] + '</span><p>' + esc(ins[1]) + '</p><button class="linkbtn" id="insNext" style="align-self:flex-start;background:var(--surface);color:var(--lilac)">Another one</button></div>'; }
@@ -979,4 +997,4 @@ function frHomeHTML(){
     '<div class="list">' + L.w.slice(0, 3).map(frWordRow).join('') + '</div>' +
     '<div class="row"><button class="btn" data-go="grow:fr" style="flex:1">' + (isAr() ? 'افتحي الدرس' : 'Open lesson') + '</button><button class="btn soft" data-frquiz="' + n + '" style="flex:1">\u{1F4DD} ' + (isAr() ? 'كويز النهارده' : 'Today’s quiz') + '</button></div></div>';
 }
-function frReminders(repeat){ if (S.settings.rem && S.settings.rem.plans === false) return; repeat.push({id:'fr-daily', title:'\u{1F1EB}\u{1F1F7} Bonjour, Monmon !', body:'15 minutes of French today: one lesson and a short quiz.', hour:19, minute:30}); }
+function frReminders(repeat){ if (S.settings.rem && S.settings.rem.plans === false) return; repeat.push({id:'fr-daily', title:'\u{1F1EB}\u{1F1F7} Bonjour, Monmon !', body:'15 minutes of French today: one lesson and a short quiz.', hour:23, minute:0}); }

@@ -36,6 +36,7 @@ const SHEIN_X = 1.61;
 
 /* ---------- migration: fills in her profile once, never overwrites her own edits ---------- */
 function lifeMigrate(){
+  if (!S.remV2){ Object.assign(S.settings.rem, {checkin:false, work:false, night:false, learn:true}); S.remV2 = true; }
   S.profile = Object.assign({name:'Omnya', birthday:'2002-01-07', wedding:'', wake:'09:00', workStart:'10:00', workEnd:'18:00'}, S.profile || {});
   if (!Array.isArray(S.jobs) || !S.jobs.length) S.jobs = JSON.parse(JSON.stringify(JOBS_DEFAULT));
   S.income = Array.isArray(S.income) ? S.income : [];
@@ -375,10 +376,10 @@ VIEWS['me.settings'] = function(el){
       '<h3 style="margin-top:4px">Monthly budgets · total ' + fmt(sum(Object.keys(B), k => B[k])) + '</h3>' + CATS.map(c => '<div class="item"><span style="font-size:18px">' + c.e + '</span><span class="t">' + c.name + (c.protected ? '<span class="s">\u{1F497} protected</span>' : '') + '</span><input class="in num" data-bud="' + c.id + '" type="number" inputmode="decimal" min="0" placeholder="No limit" value="' + (+B[c.id] ? B[c.id] : '') + '" style="width:110px;text-align:right" aria-label="Budget for ' + c.name + '"></div>').join('') +
       '<p class="small muted" style="margin:0">Still to decide: gym subscription and a clothes budget.</p></div>' +
     '<div class="card"><h2>Reminders</h2>' + (native() ? '' : '<p class="small" style="margin:0;font-weight:800;color:var(--berry)">Reminders work in the iPhone app. In the browser these switches are saved for when you use the app.</p>') +
-      sw('wake', 'Wake-up and wind-down', 'At ' + esc(P.wake) + ', and a wind-down 8½ hours before') + sw('work', 'Work hours', 'Start and log-off, Sunday to Thursday') +
+      sw('wake', L2('الصحيان', 'Wake-up'), L2('الساعة ', 'At ') + esc(P.wake)) + sw('work', 'Work hours', 'Start and log-off, Sunday to Thursday') +
       sw('payday', 'Paydays', 'Pay yourself first on each salary day') + sw('friday', 'Friday money check-in', 'Fridays at 12:00') + sw('night', 'Shop-free hours', '11 PM: no shopping until 9 AM') +
-      sw('meals', 'Meals', '9:00, 14:00, 17:30, 20:30 with that day’s meal') + sw('water', 'Water', '11:00, 13:00, 16:00, 19:00') + sw('diary', 'Diary', '12:00 am and 2:00 am') + sw('checkin', 'Evening check-in', '10:00 pm: habits, spending, day log') +
-      sw('money', 'Start of the month', 'Invest, buy gold, plan self-care') + sw('plans', 'Tasks and plans', 'Urgent tasks, mashawer, experiences, beauty and self-care sessions') + '</div>' +
+      sw('meals', 'Meals', '9:00, 14:00, 17:30, 20:30 with that day’s meal') + sw('water', 'Water', '11:00, 13:00, 16:00, 19:00') + sw('diary', 'Diary', L2('12 بالليل', '12:00 am')) + sw('learn', L2('دروس ومعلومات \u{1F4A1}', 'Lessons and facts \u{1F4A1}'), L2('حكمة 9:30 الصبح، درس النهارده 12 الضهر، و6 معلومات على مدار اليوم', 'A quote at 9:30, today’s lesson at 12:00 and 6 facts through the day')) + sw('checkin', 'Evening check-in', '10:00 pm: habits, spending, day log') +
+      sw('money', 'Start of the month', 'Invest, buy gold, plan self-care') + sw('plans', 'Tasks and plans', 'Urgent tasks, mashawer, beauty and self-care sessions') + '</div>' +
     '<div class="card"><h2>Backup</h2><p class="small muted" style="margin:0;font-weight:600">Everything is saved on this phone. Copy a backup now and then and keep it in Notes.</p>' +
       '<div class="row"><button class="btn soft" id="bkCopy">Copy backup</button><button class="btn soft" id="bkShow">Restore from backup</button></div>' +
       '<div id="bkBox" hidden><textarea class="in" id="bkText" placeholder="Paste your backup here"></textarea><button class="btn full" id="bkRestore" style="margin-top:8px">Restore</button></div></div>' +
@@ -402,11 +403,11 @@ function lifeReminders(R, repeat, push, at){
   myReminders(repeat, push, at);
   cycleReminders(push, at);
   frReminders(repeat);
+  if (R.learn !== false) learnReminders(push, at);
   if (typeof readReminders === 'function') readReminders(repeat);
   if (R.plans !== false) emergencyReminders(push, at);
   const P = S.profile, hm = s => s.split(':').map(Number);
-  if (R.wake !== false && P.wake){ const [h, m] = hm(P.wake); repeat.push({id:'wake', title:'Good morning, Monmon ☀\u{FE0F}', body:'Same time every day. Curtains open, a glass of water, then your day.', hour:h, minute:m});
-    const b = ((h * 60 + m - 510) % 1440 + 1440) % 1440; repeat.push({id:'bed', title:'Wind down \u{1F319}', body:'Phone away soon. Wake-up is at ' + P.wake + '.', hour:Math.floor(b / 60), minute:b % 60}); }
+  if (R.wake !== false && P.wake){ const [h, m] = hm(P.wake); repeat.push({id:'wake', title:'Good morning, Monmon ☀\u{FE0F}', body:'Same time every day. Curtains open, a glass of water, then your day.', hour:h, minute:m}); }
   if (R.work !== false && P.workStart && P.workEnd){
     const top = S.tasks.filter(x => !x.done && x.kind === 'work').sort((a, b) => ({urgent:0, high:1}[a.prio] ?? 2) - ({urgent:0, high:1}[b.prio] ?? 2))[0];
     const [sh, sm] = hm(P.workStart), [eh, em] = hm(P.workEnd);
