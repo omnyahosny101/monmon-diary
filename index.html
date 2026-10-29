@@ -5251,7 +5251,7 @@ function frHomeExtra(el, again){
    The paragraph being read glows and the page follows it. Tap any paragraph to start from there.
    S.nar = {rate, voice} */
 const NAR = {log:[], bar:false, playing:false, paused:false, q:[], at:-1, sent:0, run:0};
-const NAR_RATES = [0.8, 1, 1.2, 1.4];
+const NAR_RATES = [0.8, 0.9, 1, 1.05, 1.1, 1.2, 1.3, 1.4, 1.5];
 function narrMigrate(){ S.nar = Object.assign({rate:1, voice:'', engine:'salma'}, S.nar || {}); }
 /* the book recorded in Microsoft's Egyptian voice (Salma), one MP3 per paragraph, made by scripts/book_audio.py */
 const NAR_AUDIO = {}; const LIVE = 'https://omnyahosny101.github.io/monmon-diary/';
@@ -5416,7 +5416,7 @@ function narrBar(from){
   const bar = $('#rdNar', RD.el);
   $('[data-np]', bar).onclick = narrPause;
   $$('[data-nk]', bar).forEach(b => b.onclick = () => narrSkip(+b.dataset.nk));
-  $('[data-nr]', bar).onclick = () => { const i = NAR_RATES.indexOf(S.nar.rate); S.nar.rate = NAR_RATES[(i + 1) % NAR_RATES.length]; save(); if (NAR.playing && NAR.at >= 0) narrFrom(NAR.q[NAR.at].p); else narrLabel(); };
+  $('[data-nr]', bar).onclick = narrSpeedSheet;
   $('[data-nx]', bar).onclick = narrStop;
   $('[data-nv]', bar).onclick = narrVoiceSheet;
   const go = () => { if (RD && NAR.bar) narrFrom(from != null ? from : (S.books[RD.b.id].pos || 0)); };
@@ -5460,6 +5460,19 @@ function narrHerePill(p, y){
   b.style.top = Math.max(70, Math.min(window.innerHeight - 180, y - 22)) + 'px';
   b.onclick = ev => { ev.stopPropagation(); b.remove(); narrBar(p); };
   RD.el.appendChild(b); clearTimeout(narrHerePill.t); narrHerePill.t = setTimeout(() => b.remove(), 3500);
+}
+
+function narrSetRate(r){
+  S.nar.rate = r; save();
+  const webAudio = narrEl && !VOX.audio && NAR.q[0] && NAR.q[0].url;
+  if (webAudio) narrEl.playbackRate = r;            // the recording changes speed right away
+  else if (NAR.playing && NAR.at >= 0) narrFrom(NAR.q[NAR.at].p);
+  narrLabel();
+}
+function narrSpeedSheet(){
+  sheet('<h2 class="plain" style="justify-content:center">⏩ ' + L2('سرعة القراية', 'Reading speed') + '</h2><div class="chips" style="justify-content:center">' +
+    NAR_RATES.map(r => '<button class="chip' + (r === S.nar.rate ? ' on' : '') + '" data-rt="' + r + '" style="min-width:64px;justify-content:center">' + r + '×</button>').join('') + '</div>',
+    (sh, close) => $$('[data-rt]', sh).forEach(b => b.onclick = () => { narrSetRate(+b.dataset.rt); close(); }));
 }
 /* ============ boot ============ */
 lifeMigrate();
