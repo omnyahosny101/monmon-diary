@@ -7,7 +7,7 @@ parts = {
     '__DATA__': json.dumps(json.loads((src / 'plan.json').read_text()), ensure_ascii=False),
     '__GROC__': json.dumps(json.loads((src / 'groc.json').read_text()), ensure_ascii=False),
     '__DISHES__': json.dumps(json.loads((src / 'dishes.json').read_text()), ensure_ascii=False),
-    '__CONTENT__': (src / 'content.js').read_text() + (src / 'wisdom.js').read_text() + (src / 'facts.js').read_text() + ''.join((src / f).read_text() for f in ['learn1.js', 'learn2.js', 'learn3.js', 'wisdom_ar1.js', 'wisdom_ar2.js', 'french1.js', 'french2.js', 'books.js']),
+    '__CONTENT__': (src / 'content.js').read_text() + (src / 'wisdom.js').read_text() + (src / 'facts.js').read_text() + ''.join((src / f).read_text() for f in ['learn1.js', 'learn2.js', 'learn3.js', 'wisdom_ar1.js', 'wisdom_ar2.js', 'french1.js', 'french2.js', 'books.js', 'book_extras.js']),
     '__NUTRITION__': (src / 'nutrition.js').read_text(),
     '__APP_JS__': (src / 'i18n.js').read_text() + (src / 'ar_ui.js').read_text() + (src / 'ar_food.js').read_text() + (src / 'ar_content.js').read_text() + (src / 'app.js').read_text() + (src / 'life.js').read_text() + (src / 'home.js').read_text() + (src / 'read.js').read_text() + (src / 'fr_plus.js').read_text() + (src / 'narrate.js').read_text() + (src / 'boot.js').read_text(),
 }

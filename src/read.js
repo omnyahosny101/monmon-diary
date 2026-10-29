@@ -11,7 +11,7 @@ function bookMigrate(){
   S.askq = Array.isArray(S.askq) ? S.askq : [];
   BOOKS.forEach(b => { const x = S.books[b.id] = S.books[b.id] || {};
     x.pos = x.pos || 0; x.max = x.max == null ? -1 : x.max;
-    x.done = x.done || {}; x.hl = Array.isArray(x.hl) ? x.hl : []; x.log = x.log || {}; });
+    x.done = x.done || {}; x.hl = Array.isArray(x.hl) ? x.hl : []; x.log = x.log || {}; x.quiz = x.quiz || {}; x.teach = x.teach || {}; });
   // one shared plan: the books take turns, one book a day, all finished by the end date
   if (!S.readPlan){ S.readPlan = {start:'2026-10-29', end:'2026-11-30', order:BOOKS.map(b => b.id)};
     BOOKS.forEach(b => { const x = S.books[b.id]; x.planFrom = x.max + 1; x.done = {}; }); }
@@ -135,9 +135,10 @@ function openReader(id, at){
 function drawReader(at){
   const {b, P, el} = RD, st = bookState(b), dayStarts = {};
   st.R.forEach((r, k) => { if (r[0] < r[1]) dayStarts[r[0]] = '📅 ' + L2('جلسة ', 'Session ') + (k + 1) + ' · ' + nice(st.dates[k]); });
+  const after = readerAfterBlocks(b, st);
   const sc = $('#rdScroll', el);
   sc.innerHTML = '<article class="rd-text"><div class="rd-cover"><div class="e">' + b.e + '</div><h1>' + esc(b.t) + '</h1><p>' + esc(b.au) + '</p><p class="s">' + esc(b.sub) + '</p></div>' +
-    P.map((_, i) => paraHTML(b, i, P, dayStarts)).join('') +
+    P.map((_, i) => paraHTML(b, i, P, dayStarts) + (after[i] || '')).join('') +
     '<div class="rd-fin">' + L2('🎉 خلصتي الكتاب! برافو يا مونمون', '🎉 You finished the book!') + '</div></article>';
   RD.paras = $$('[data-i]', sc);
   const tgt = RD.paras[Math.max(0, Math.min(P.length - 1, at || 0))];
@@ -187,11 +188,117 @@ function readDone(b, st){
   S.lastBook = b.t;
   if (S.habits.some(h => h.id === 'read') && !habitDone('read', day)) setHabit('read', day, true);
   toast(L2('🎉 خلصتي قراية النهارده! برافو', '🎉 Today’s reading is done!'));
+  const r = st.session; if (!r || (typeof NAR !== 'undefined' && NAR.playing)) return;
+  setTimeout(() => { if ($('.sheet')) return;
+    sheet('<div style="text-align:center;font-size:44px">🎉</div><h2 class="plain" style="justify-content:center">' + L2('خلصتي جلسة النهارده!', 'Session done!') + '</h2><p class="small" style="margin:0;text-align:center;font-weight:700">' + L2('دقيقتين كمان يثبّتوا اللي قريتيه في دماغك:', 'Two more minutes to make it stick:') + '</p>' +
+      '<button class="btn full" data-q>📝 ' + L2('كويز الجلسة (3 أسئلة)', 'Session quiz') + '</button><button class="btn soft full" data-t>🧑‍🏫 ' + L2('علّمي حد: اشرحيها بكلامك', 'Teach it in your words') + '</button><button class="btn soft full" data-r>📄 ' + L2('الملخص', 'Recap') + '</button>',
+      (sh, close) => { $('[data-q]', sh).onclick = () => { close(); bookQuiz(b, r[0], r[1]); }; $('[data-t]', sh).onclick = () => { close(); teachSheet(b, headIndexAt(b, r[1] - 1)); }; $('[data-r]', sh).onclick = () => { close(); recapSheet(b, r[0], r[1]); }; });
+  }, 900);
+}
+
+/* ---------- remember what you read: recaps, quizzes, teach-it-back ---------- */
+function extrasIn(b, a, z){
+  const all = (typeof BOOK_EXTRA !== 'undefined' && BOOK_EXTRA[b.id] || []).map((e, i) => Object.assign({i}, e));
+  const ov = e => Math.min(z, e.r[1]) - Math.max(a, e.r[0]);
+  const main = all.filter(e => ov(e) > 0 && ov(e) >= (e.r[1] - e.r[0]) / 2);
+  return main.length ? main : all.filter(e => ov(e) > 0).slice(0, 1);
+}
+function headIndexAt(b, p){ let k = 0; b.heads.forEach((h, j) => { if (h[0] <= p) k = j; }); return k; }
+function readerAfterBlocks(b, st){
+  const after = {}, add = (i, h) => { after[i] = (after[i] || '') + h; };
+  // end of each chapter: teach it back
+  const real = b.heads.map((h, j) => j).filter(j => { const nx = b.heads[j + 1]; return !nx || nx[0] - b.heads[j][0] > 1; });
+  real.forEach(j => { const nx = b.heads[j + 1], end = (nx ? nx[0] : b.lens.length) - 1, done = S.books[b.id].teach[j];
+    add(end, '<div class="rd-act teach" data-notr><b>🧑‍🏫 ' + L2('علّمي حد: ', 'Teach it: ') + esc(b.heads[j][1].split(':')[0]) + '</b><span>' + (done ? L2('✓ شرحتيه. تقدري تراجعي شرحك أو تعدليه.', '✓ Explained. Review or edit.') : L2('اشرحي الفصل ده بكلامك كأنك بتحكيه لصاحبتك، ده أقوى طريقة تفتكريه.', 'Explain this chapter as if telling a friend.')) + '</span><button class="btn sm" data-rx="teach" data-h="' + j + '">' + (done ? L2('شرحي', 'My explanation') : L2('يلا أشرح', 'Explain it')) + '</button></div>'); });
+  // end of each session: quiz + recap; start of each session: remember the last one
+  st.R.forEach((r, k) => { if (r[0] >= r[1]) return;
+    const parts = extrasIn(b, r[0], r[1]); if (!parts.length) return;
+    const best = parts.map(e => S.books[b.id].quiz[e.i]).filter(v => v != null);
+    add(r[1] - 1, '<div class="rd-act" data-notr><b>✅ ' + L2('آخر الجلسة ', 'End of session ') + (k + 1) + '</b><span>' + (best.length ? L2('أحسن نتيجة: ', 'Best: ') + Math.min(...best) + '/3' : L2('3 أسئلة صغيرة تثبّت اللي قريتيه', '3 quick questions to make it stick')) + '</span><div class="row"><button class="btn sm" data-rx="quiz" data-a="' + r[0] + '" data-z="' + r[1] + '">📝 ' + L2('كويز', 'Quiz') + '</button><button class="btn sm soft" data-rx="recap" data-a="' + r[0] + '" data-z="' + r[1] + '">📄 ' + L2('الملخص', 'Recap') + '</button></div></div>');
+    if (r[0] > 0) add(r[0] - 1, '<div class="rd-act prev" data-notr><button class="linkbtn" data-rx="prev" data-a="' + r[0] + '">↩️ ' + L2('افتكري اللي فات قبل ما تبدأي', 'Recall the last session first') + '</button></div>');
+  });
+  return after;
+}
+function recapSheet(b, a, z, title){
+  const parts = extrasIn(b, a, z); if (!parts.length) return toast(L2('مفيش ملخص للجزء ده', 'No recap for this part'));
+  sheet('<div style="text-align:center;font-size:36px">📄</div><h2 class="plain" style="justify-content:center">' + (title || L2('ملخص الجلسة', 'Session recap')) + '</h2>' +
+    '<p class="small muted" style="margin:0;text-align:center;font-weight:800" data-notr>' + esc(b.t) + ' · ' + esc((chapterOfPara(b, a) || ['', ''])[1]) + '</p>' +
+    parts.map(e => '<p class="recap" data-notr>' + esc(e.s) + '</p>').join('') +
+    '<div class="row"><button class="btn soft" data-q style="flex:1">📝 ' + L2('كويز', 'Quiz') + '</button><button class="btn soft" data-ask style="flex:1">🤔 ' + L2('اسألي كلود', 'Ask Claude') + '</button></div>',
+  (sh, close) => { $('[data-q]', sh).onclick = () => { close(); bookQuiz(b, a, z); };
+    $('[data-ask]', sh).onclick = () => { close(); askSheet({src:'book', title:b.t, ctx:parts.map(e => e.s).join('\n')}); }; });
+}
+function recapBefore(b, a){
+  const all = (typeof BOOK_EXTRA !== 'undefined' && BOOK_EXTRA[b.id]) || [], prev = all.filter(e => e.r[1] <= a + 1).slice(-1)[0];
+  if (!prev) return toast(L2('ده أول جزء في الكتاب', 'This is the start'));
+  const head = '<p class="small" style="margin:0;text-align:center;font-weight:800">' + L2('قبل ما تبصي: حاولي تفتكري 3 حاجات من اللي فات، وبعدين اكشفي.', 'Before looking: try to recall 3 things, then reveal.') + '</p>';
+  sheet('<div style="text-align:center;font-size:36px">↩️</div><h2 class="plain" style="justify-content:center">' + L2('افتكري اللي فات', 'What happened last time') + '</h2>' + head +
+    '<button class="btn full" data-show>👀 ' + L2('اكشفي الملخص', 'Reveal the recap') + '</button><p class="recap" data-notr hidden>' + esc(prev.s) + '</p>',
+  sh => { $('[data-show]', sh).onclick = e => { e.currentTarget.remove(); $('.recap', sh).hidden = false; }; });
+}
+function bookQuiz(b, a, z){
+  const parts = extrasIn(b, a, z); if (!parts.length) return toast(L2('مفيش كويز للجزء ده', 'No quiz here'));
+  const shuffle = arr => arr.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(x => x[1]);
+  const qs = shuffle(parts.flatMap(e => e.q.map(q => ({part:e.i, q:q[0], opts:q[1], ok:q[2], why:q[3]})))).slice(0, 5)
+    .map(q => { const order = shuffle([0, 1, 2]); return Object.assign({}, q, {opts:order.map(i => q.opts[i]), ok:order.indexOf(q.ok)}); });
+  let i = 0, score = 0; const per = {};
+  const show = sh => {
+    const box = $('[data-qbox]', sh), q = qs[i];
+    if (!q){ const x = S.books[b.id];
+      Object.entries(per).forEach(([p, v]) => { x.quiz[p] = Math.max(x.quiz[p] || 0, Math.round(v.ok / v.n * 3)); }); save();
+      const pct = score / qs.length;
+      box.innerHTML = '<div style="text-align:center;font-size:46px">' + (pct >= 0.8 ? '🏆' : pct >= 0.5 ? '👏' : '💪') + '</div><div class="greet" style="text-align:center">' + score + ' / ' + qs.length + '</div><p style="text-align:center;margin:0;font-weight:700">' +
+        (pct >= 0.8 ? L2('ممتاز! الكلام ثبت.', 'Excellent!') : pct >= 0.5 ? L2('حلو! بصّي على الملخص مرة كمان.', 'Good! Glance at the recap again.') : L2('عادي خالص، الغلط بيثبّت أكتر. اقري الملخص وجربي بكرة.', 'Mistakes help memory. Read the recap and retry tomorrow.')) + '</p>' +
+        '<button class="btn soft full" data-rc>📄 ' + L2('الملخص', 'Recap') + '</button>';
+      $('[data-rc]', box).onclick = () => { $('[data-close]', sh).click(); recapSheet(b, a, z); };
+      return; }
+    box.innerHTML = '<span class="small muted" style="font-weight:900">' + (i + 1) + ' / ' + qs.length + '</span><div class="greet" style="font-size:18px;line-height:1.6" data-notr>' + esc(q.q) + '</div>' +
+      '<div class="list">' + q.opts.map((o, k) => '<button class="qopt" data-k="' + k + '" data-notr style="text-align:start;line-height:1.5">' + esc(o) + '</button>').join('') + '</div><div data-why></div>';
+    $$('[data-k]', box).forEach(btn => btn.onclick = () => { const k = +btn.dataset.k, right = k === q.ok;
+      per[q.part] = per[q.part] || {ok:0, n:0}; per[q.part].n++; if (right){ score++; per[q.part].ok++; }
+      $$('[data-k]', box).forEach(x => { x.disabled = true; if (+x.dataset.k === q.ok) x.classList.add('right'); else if (x === btn) x.classList.add('wrong'); });
+      $('[data-why]', box).innerHTML = '<p class="small" style="margin:0;font-weight:800" data-notr>' + (right ? '✓ ' : '💡 ') + esc(q.why || '') + '</p><button class="btn full" data-next style="margin-top:8px">' + (i < qs.length - 1 ? L2('اللي بعده', 'Next') : L2('النتيجة', 'Result')) + '</button>';
+      $('[data-next]', box).onclick = () => { i++; show(sh); }; });
+  };
+  sheet('<div style="text-align:center;font-size:34px">📝</div><h2 class="plain" style="justify-content:center">' + L2('كويز الجلسة', 'Session quiz') + '</h2><div data-qbox style="display:flex;flex-direction:column;gap:10px"></div>', sh => show(sh));
+}
+function teachSheet(b, j){
+  const x = S.books[b.id], h = b.heads[j], cur = x.teach[j] || {};
+  sheet('<div style="text-align:center;font-size:36px">🧑‍🏫</div><h2 class="plain" style="justify-content:center">' + L2('علّمي حد', 'Teach it back') + '</h2><p class="small muted" style="margin:0;text-align:center;font-weight:800" data-notr>' + esc(h[1]) + '</p>' +
+    '<div class="frnote"><b>' + L2('اشرحيه كأنك بتحكيه لصاحبتك بكلام بسيط:', 'Explain it to a friend in simple words:') + '</b><p>' + L2('1) الفكرة الأساسية في جملتين.<br>2) مثال أو قصة من الفصل.<br>3) مثال من حياتك انتي أو من مصر.<br>4) إيه اللي لسه مش واضح؟', '1) The main idea in two sentences. 2) An example from the chapter. 3) An example from your life. 4) What is still unclear?') + '</p></div>' +
+    '<label class="field"><span>' + L2('شرحي', 'My explanation') + '</span><textarea class="in" data-t style="min-height:150px" placeholder="' + L2('اكتبي هنا… أو دوسي 🎤 في الكيبورد واتكلمي', 'Type here… or tap 🎤 on the keyboard and speak') + '">' + esc(cur.t || '') + '</textarea></label>' +
+    '<button class="btn full" data-save>' + L2('حفظ', 'Save') + '</button><button class="btn soft full" data-claude>💬 ' + L2('ابعتيه لكلود يصحّحلي', 'Send to Claude to check') + '</button>',
+  (sh, close) => {
+    const ta = $('[data-t]', sh);
+    const keep = () => { const t = ta.value.trim(); if (t){ x.teach[j] = {t, at:todayStr()}; } else delete x.teach[j]; save(); return t; };
+    $('[data-save]', sh).onclick = ev => { if (keep()){ hearts(ev.clientX, ev.clientY); toast(L2('اتحفظ في دفتر الكتاب 📓', 'Saved to the book notebook 📓')); } close(); if (RD) drawReaderKeep(); };
+    $('[data-claude]', sh).onclick = () => { const t = keep(); if (!t) return toast(L2('اكتبي شرحك الأول', 'Write your explanation first'));
+      S.askq.unshift({id:uid(), src:'book', title:b.t + ' · ' + h[1], ctx:L2('ده شرحي للفصل بكلامي:\n', 'My explanation of the chapter:\n') + t, q:L2('صحّحلي فهمي، وقولّي إيه الأفكار المهمة اللي نسيتها أو فهمتها غلط، واسألني سؤالين أختبر بيهم نفسي.', 'Correct my understanding, tell me what I missed, and ask me two questions.'), at:todayStr(), done:false}); save(); close();
+      toast(L2('اتحفظ في «اسألي كلود» 🤔', 'Saved to Ask Claude 🤔')); };
+  });
+}
+function drawReaderKeep(){ if (!RD || !RD.P) return; const sc = $('#rdScroll', RD.el), top = sc.scrollTop; drawReader(); sc.scrollTop = top; }
+function notebookSheet(b){
+  const x = S.books[b.id], all = (typeof BOOK_EXTRA !== 'undefined' && BOOK_EXTRA[b.id]) || [], read = all.map((e, i) => Object.assign({i}, e)).filter(e => x.max >= e.r[1] - 1);
+  const teach = Object.entries(x.teach).sort((p, q) => p[0] - q[0]);
+  sheet('<div style="text-align:center;font-size:36px">📓</div><h2 class="plain" style="justify-content:center">' + L2('دفتر الكتاب', 'Book notebook') + '</h2><p class="small muted" style="margin:0;text-align:center;font-weight:800" data-notr>' + esc(b.t) + '</p>' +
+    (teach.length ? '<h3>🧑‍🏫 ' + L2('شرحي بكلامي', 'In my words') + '</h3>' + teach.map(([j, v]) => '<div class="nbk"><b data-notr>' + esc(b.heads[j][1]) + '</b><p data-notr>' + esc(v.t) + '</p><button class="linkbtn" data-tj="' + j + '">✏️ ' + L2('عدّلي', 'Edit') + '</button></div>').join('') : '') +
+    '<h3>📄 ' + L2('ملخصات اللي قريتيه', 'Recaps of what you read') + '</h3>' + (read.length ? read.map(e => '<div class="nbk"><b data-notr>' + esc((chapterOfPara(b, e.r[0]) || ['', ''])[1]) + (x.quiz[e.i] != null ? ' · 📝 ' + x.quiz[e.i] + '/3' : '') + '</b><p data-notr>' + esc(e.s) + '</p></div>').join('') : '<div class="empty">' + L2('هتظهر هنا كل ما تخلصي جزء.', 'They appear as you finish parts.') + '</div>') +
+    (read.length ? '<button class="btn soft full" data-allq>📝 ' + L2('كويز على كل اللي قريتيه', 'Quiz on everything so far') + '</button>' : ''),
+  (sh, close) => { $$('[data-tj]', sh).forEach(btn => btn.onclick = () => { close(); teachSheet(b, +btn.dataset.tj); });
+    const aq = $('[data-allq]', sh); if (aq) aq.onclick = () => { close(); bookQuiz(b, 0, Math.max(...read.map(e => e.r[1]))); }; });
 }
 function bindReaderText(){
   const {el} = RD, sc = $('#rdScroll', el);
   sc.onscroll = () => { if (rdTick) return; rdTick = requestAnimationFrame(() => { rdTick = 0; readerTrack(); }); };
   sc.onclick = ev => {
+    const act = ev.target.closest('[data-rx]');
+    if (act){ const a = +act.dataset.a, z = +act.dataset.z, b = RD.b;
+      if (act.dataset.rx === 'quiz') bookQuiz(b, a, z);
+      else if (act.dataset.rx === 'recap') recapSheet(b, a, z);
+      else if (act.dataset.rx === 'prev') recapBefore(b, a);
+      else if (act.dataset.rx === 'teach') teachSheet(b, +act.dataset.h);
+      return; }
     const m = ev.target.closest('mark[data-hid]');
     const sel = window.getSelection();
     if (sel && !sel.isCollapsed) return;
@@ -328,6 +435,7 @@ function readHomeHTML(){
     '<span class="small" style="font-weight:800">' + (doneToday ? L2('✓ خلصتي جلسة النهارده · ' + st.pct + '% من الكتاب', '✓ Today’s session is done · ' + st.pct + '%') :
       L2('جلسة ' + (st.k + 1) + ' من ' + st.n + ' · ~' + minsOf(st.remToday) + ' دقيقة' + (st.behind ? ' (فيهم ' + st.behind + ' متأخرة)' : '') + ' · ' + st.pct + '%', 'Session ' + (st.k + 1) + '/' + st.n + ' · ~' + minsOf(st.remToday) + ' min · ' + st.pct + '%')) + '</span>' +
     '<div class="row"><button class="btn" data-readopen="' + main.id + '" style="flex:2">' + (x.max < 0 ? L2('ابدئي القراية', 'Start reading') : L2('كمّلي من مكانك', 'Continue reading')) + '</button><button class="btn soft" data-go="grow:read" style="flex:1">' + L2('الخطة', 'Plan') + '</button></div>' +
+    (x.max >= 0 ? '<div class="row"><button class="linkbtn" data-rprev="' + main.id + '">↩️ ' + L2('افتكري اللي فات', 'Recall last time') + '</button><button class="linkbtn" data-rnb="' + main.id + '">📓 ' + L2('دفتر الكتاب', 'Notebook') + '</button></div>' : '') +
     (others ? '<div class="rothers">' + others + '</div>' : '') + '</div>';
 }
 VIEWS['grow.read'] = function(el){
@@ -343,7 +451,8 @@ VIEWS['grow.read'] = function(el){
       return '<div class="card"><div class="rbook big"><span class="rcov">' + b.e + '</span><span class="t" data-notr><b>' + esc(b.t) + '</b><span class="s">' + esc(b.au) + ' · ' + st.n + L2(' جلسة · تخلص ', ' sessions · ends ') + niceDM(st.endDate) + '</span></span></div>' +
         '<div class="bar good"><i style="width:' + st.pct + '%"></i></div>' +
         '<div class="stats3"><div class="stat"><b>' + st.pct + '%</b><span>' + L2('من الكتاب', 'read') + '</span></div><div class="stat"><b>' + groups + '</b><span>' + L2('علامة', 'highlights') + '</span></div><div class="stat"><b>' + minsOf(mins) + '</b><span>' + L2('دقيقة الأسبوع ده', 'min this week') + '</span></div></div>' +
-        '<div class="row"><button class="btn" data-readopen="' + b.id + '" style="flex:2">📖 ' + (x.max < 0 ? L2('ابدئي', 'Start') : L2('كمّلي القراية', 'Continue')) + '</button><button class="btn soft" data-hls="' + b.id + '" style="flex:1">🖍️ ' + L2('علاماتي', 'Highlights') + (notes ? ' · 💬' + notes : '') + '</button></div></div>'; }).join('') +
+        '<div class="row"><button class="btn" data-readopen="' + b.id + '" style="flex:2">📖 ' + (x.max < 0 ? L2('ابدئي', 'Start') : L2('كمّلي القراية', 'Continue')) + '</button><button class="btn soft" data-hls="' + b.id + '" style="flex:1">🖍️ ' + L2('علاماتي', 'Highlights') + (notes ? ' · 💬' + notes : '') + '</button></div>' +
+        '<button class="btn soft full" data-nb="' + b.id + '">📓 ' + L2('دفتر الكتاب: ملخصات وكويزات وشرحي', 'Notebook: recaps, quizzes, my explanations') + '</button></div>'; }).join('') +
     '<div class="card"><h2>' + L2('الجدول', 'Schedule') + '</h2><div class="list">' + days.map(d => { const id = planBookOn(d), b = bookById(id); if (!b) return ''; const st = states[id], k = st.dates.indexOf(d), r = st.R[k];
         if (!r || r[0] >= r[1]) return ''; const ok = S.books[id].max >= r[1] - 1, chars = b.lens.slice(r[0], r[1]).reduce((a, y) => a + y, 0);
         return '<button class="item rday' + (ok ? ' ok' : '') + (d === t ? ' cur' : '') + '" data-rgo="' + id + ':' + r[0] + '"><span class="dn">' + (ok ? '✓' : b.e) + '</span><span class="t">' + nice(d) + (d === t ? L2(' · النهارده', ' · today') : '') + '<span class="s" data-notr>' + esc(b.t) + ' · ' + esc((chapterOfPara(b, r[0]) || ['', ''])[1]) + ' · ~' + minsOf(chars) + L2(' دقيقة', ' min') + '</span></span><span></span></button>'; }).join('') + '</div></div>' +
@@ -352,6 +461,7 @@ VIEWS['grow.read'] = function(el){
   const again = () => VIEWS['grow.read'](el);
   $$('[data-readopen]', el).forEach(btn => btn.onclick = () => openReader(btn.dataset.readopen));
   $$('[data-hls]', el).forEach(btn => btn.onclick = () => highlightsSheet(btn.dataset.hls));
+  $$('[data-nb]', el).forEach(btn => btn.onclick = () => notebookSheet(bookById(btn.dataset.nb)));
   $$('[data-rgo]', el).forEach(btn => btn.onclick = () => { const [id, p] = btn.dataset.rgo.split(':'); openReader(id, +p); });
   const replan = () => { BOOKS.forEach(b => { const x = S.books[b.id]; x.planFrom = x.max + 1; x.done = {}; }); save(); again(); };
   $('#rpStart', el).onchange = e => { if (e.target.value && e.target.value <= P.end){ P.start = e.target.value; replan(); } };
@@ -455,6 +565,8 @@ VIEWS.today = function(el){
   const fr = $('.frhome', el), html = readHomeHTML();
   if (html){ if (fr) fr.insertAdjacentHTML('beforebegin', html); else el.insertAdjacentHTML('beforeend', html); }
   $$('[data-readopen]', el).forEach(b => b.onclick = () => openReader(b.dataset.readopen));
+  $$('[data-rprev]', el).forEach(b => b.onclick = () => { const bk = bookById(b.dataset.rprev); recapBefore(bk, S.books[bk.id].max + 1); });
+  $$('[data-rnb]', el).forEach(b => b.onclick = () => notebookSheet(bookById(b.dataset.rnb)));
   $$('.readhome [data-go]', el).forEach(b => b.onclick = () => { const p = b.dataset.go.split(':'); go(p[0], p[1]); });
   const wz = $('.card.wisdom', el);
   if (wz && !$('.askb', wz)){ const src = $('.src', wz), idea = $('.idea', wz); wz.insertAdjacentHTML('beforeend', askBtn('wisdom', src ? src.textContent.replace(/^\S+\s/, '') : '', idea ? idea.textContent : '', false)); const nb = $('#wzNext', wz); if (nb){ const r = document.createElement('div'); r.className = 'row'; nb.before(r); r.appendChild(nb); r.appendChild($('.askb', wz)); } }
