@@ -213,13 +213,13 @@ VIEWS.today = function(el){
       '<button class="linkbtn" data-go="me:days" style="align-self:flex-start">See my whole day ›</button></div>' +
     habitsHTML(day) +
     frHomeHTML() +
+    lessonCardHTML() +
     beautyHTML() +
     shopHTML() +
     lifeTodayTop() +
     lifeTodayMid() +
     (coming.length ? '<div class="card"><div class="card-head"><h2>Coming up</h2><button class="linkbtn" data-go="plans:exp">Experiences</button></div><div class="list">' + coming.slice(0, 4).map(c => '<div class="item"><span style="font-size:20px">' + c.e + '</span><span class="t">' + esc(c.title) + '<span class="s">' + c.when + '</span></span><span></span></div>').join('') + '</div></div>' : '') +
-    (inPlan ? '<div class="card"><div class="card-head"><h2>Next meal</h2><button class="linkbtn" data-go="food">Food</button></div>' + nextMealHTML(n) + '</div>' : '') +
-    lessonCardHTML();
+    (inPlan ? '<div class="card"><div class="card-head"><h2>Next meal</h2><button class="linkbtn" data-go="food">Food</button></div>' + nextMealHTML(n) + '</div>' : '');
 
   const again = () => VIEWS.today(el);
   $$('[data-hd]', el).forEach(b => b.onclick = () => { const nd = addDays(day, +b.dataset.hd); ui.homeDay = nd >= T0 ? '' : nd; again(); });
