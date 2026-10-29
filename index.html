@@ -5382,7 +5382,6 @@ function narrStop(){
   if (RD){ $$('.rd-now', RD.el).forEach(e => e.classList.remove('rd-now')); const bar = $('#rdNar', RD.el); if (bar) bar.remove(); RD.el.classList.remove('narr'); }
 }
 function narrPause(){
-  narrUnlock();
   if (!NAR.playing) return narrFrom(NAR.at >= 0 ? NAR.q[NAR.at].p : S.books[RD.b.id].pos);
   if (!VOX.native && !(NAR.q[0] && NAR.q[0].url) && window.speechSynthesis && !speechSynthesis.speaking && !speechSynthesis.pending) return narrFrom(NAR.at >= 0 ? NAR.q[NAR.at].p : S.books[RD.b.id].pos);
   if (NAR.paused && narrEl && !VOX.native && NAR.q[0] && NAR.q[0].url && narrEl.src.startsWith('data:')) return narrFrom(NAR.at >= 0 ? NAR.q[NAR.at].p : S.books[RD.b.id].pos);
@@ -5409,7 +5408,6 @@ function narrLabel(){
 function narrBar(){
   if (!RD || !RD.P) return;
   if (NAR.bar) return narrStop();
-  narrUnlock();
   NAR.bar = true; RD.el.classList.add('narr');
   RD.el.insertAdjacentHTML('beforeend', '<div class="rd-nar" id="rdNar"><span class="nl"></span><div class="nb">' +
     '<button data-nv aria-label="Voice">🗣️</button><button data-nk="-1" aria-label="Previous paragraph">⏮️</button><button class="big" data-np aria-label="Play or pause">⏸️</button><button data-nk="1" aria-label="Next paragraph">⏭️</button><button data-nr aria-label="Speed">1×</button><button data-nx aria-label="Stop">✕</button></div></div>');
@@ -5420,7 +5418,8 @@ function narrBar(){
   $('[data-nx]', bar).onclick = narrStop;
   $('[data-nv]', bar).onclick = narrVoiceSheet;
   const go = () => { if (RD && NAR.bar) narrFrom(S.books[RD.b.id].pos || 0); };
-  if (NAR_AUDIO[RD.b.id] !== undefined) go(); else narrManifest(RD.b).then(go);
+  // start inside this same tap; only when the audio list isn't here yet, wake the players first and start after it arrives
+  if (NAR_AUDIO[RD.b.id] !== undefined) go(); else { narrUnlock(); narrManifest(RD.b).then(go); }
 }
 function narrVoiceSheet(){
   const nat = VOX.native, list = nat ? VOX.ar : webVoices('ar').map(v => ({id:v.name, name:v.name, lang:v.lang, q:/premium/i.test(v.name) ? 3 : /enhanced|natural|neural/i.test(v.name) ? 2 : 1}));
