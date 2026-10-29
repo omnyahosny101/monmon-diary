@@ -3,6 +3,7 @@ import WebKit
 import WidgetKit
 import AVFoundation
 import Speech
+import MediaPlayer
 
 /// Shows Monmon's Life. It opens the live website so every update arrives by itself,
 /// and falls back to the copy bundled inside the app when there's no internet.
@@ -135,6 +136,23 @@ struct WebView: UIViewRepresentable {
                 VoiceBox.shared.playAudio(items,
                                           rate: (body["rate"] as? NSNumber)?.doubleValue ?? 1,
                                           replace: body["replace"] as? Bool ?? true)
+            case "podPlay":
+                VoiceBox.shared.webView = webView
+                PodPlayer.shared.play(url: body["url"] as? String ?? "",
+                                      start: (body["start"] as? NSNumber)?.doubleValue ?? 0,
+                                      rate: (body["rate"] as? NSNumber)?.doubleValue ?? 1,
+                                      title: body["title"] as? String ?? "",
+                                      artist: body["artist"] as? String ?? "")
+            case "podPause":
+                PodPlayer.shared.pause()
+            case "podResume":
+                PodPlayer.shared.resume()
+            case "podSeek":
+                PodPlayer.shared.seek(by: (body["by"] as? NSNumber)?.doubleValue ?? 0)
+            case "podRate":
+                PodPlayer.shared.setRate((body["rate"] as? NSNumber)?.doubleValue ?? 1)
+            case "podStop":
+                PodPlayer.shared.stop()
             case "pauseSpeak":
                 VoiceBox.shared.pause()
             case "resumeSpeak":
@@ -215,6 +233,7 @@ final class VoiceBox: NSObject, AVSpeechSynthesizerDelegate {
         ["speak": true,
          "queue": true,
          "audio": true,
+         "pod": true,
          "listen": SFSpeechRecognizer(locale: Locale(identifier: "fr-FR")) != nil,
          "voices": Self.voices("fr"),
          "ar": Self.voices("ar")]
@@ -429,5 +448,107 @@ final class VoiceBox: NSObject, AVSpeechSynthesizerDelegate {
               let json = String(data: data, encoding: .utf8) else { return }
         let code = "window.\(fn) && window.\(fn).apply(null, \(json));"
         DispatchQueue.main.async { self.webView?.evaluateJavaScript(code) }
+    }
+}
+
+/// Podcast episodes: one native player that keeps playing with the screen locked,
+/// shows on the lock screen and answers the headphone and lock-screen buttons.
+final class PodPlayer: NSObject {
+    static let shared = PodPlayer()
+    private var player: AVPlayer?
+    private var timeObserver: Any?
+    private var endObserver: NSObjectProtocol?
+    private var rate: Float = 1
+    private var info: [String: Any] = [:]
+    private var commandsReady = false
+
+    func play(url: String, start: Double, rate: Double, title: String, artist: String) {
+        guard let link = URL(string: url) else { return }
+        VoiceBox.shared.stopSpeaking()
+        stop()
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .spokenAudio, options: [])
+        try? session.setActive(true)
+        let item = AVPlayerItem(url: link)
+        item.audioTimePitchAlgorithm = .timeDomain
+        let p = AVPlayer(playerItem: item)
+        player = p
+        self.rate = Float(max(0.5, min(3, rate)))
+        if start > 1 { p.seek(to: CMTime(seconds: start, preferredTimescale: 600)) }
+        p.playImmediately(atRate: self.rate)
+        timeObserver = p.addPeriodicTimeObserver(forInterval: CMTime(seconds: 1, preferredTimescale: 600), queue: .main) { [weak self] _ in
+            self?.report()
+        }
+        endObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main) { [weak self] _ in
+            self?.updateNowPlaying()
+            VoiceBox.shared.send("__podIn", ["ended": true])
+        }
+        info = [MPMediaItemPropertyTitle: title, MPMediaItemPropertyArtist: artist]
+        setupCommands()
+        updateNowPlaying()
+    }
+
+    private func report() {
+        guard let p = player else { return }
+        updateNowPlaying()
+        let duration = p.currentItem?.duration.seconds ?? 0
+        VoiceBox.shared.send("__podIn", ["pos": p.currentTime().seconds,
+                                         "dur": duration.isFinite ? duration : 0,
+                                         "playing": p.rate > 0])
+    }
+
+    func pause() { player?.pause(); report() }
+    func resume() {
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .spokenAudio, options: [])
+        try? session.setActive(true)
+        player?.playImmediately(atRate: rate)
+        report()
+    }
+    func seek(by seconds: Double) {
+        guard let p = player else { return }
+        let target = max(0, p.currentTime().seconds + seconds)
+        p.seek(to: CMTime(seconds: target, preferredTimescale: 600)) { [weak self] _ in self?.report() }
+    }
+    func setRate(_ r: Double) {
+        rate = Float(max(0.5, min(3, r)))
+        if let p = player, p.rate > 0 { p.rate = rate }
+        updateNowPlaying()
+    }
+    func stop() {
+        if let t = timeObserver { player?.removeTimeObserver(t) }
+        timeObserver = nil
+        if let e = endObserver { NotificationCenter.default.removeObserver(e) }
+        endObserver = nil
+        player?.pause()
+        player = nil
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+    }
+
+    private func updateNowPlaying() {
+        guard let p = player else { return }
+        var now = info
+        now[MPNowPlayingInfoPropertyElapsedPlaybackTime] = p.currentTime().seconds
+        let duration = p.currentItem?.duration.seconds ?? 0
+        if duration.isFinite && duration > 0 { now[MPMediaItemPropertyPlaybackDuration] = duration }
+        now[MPNowPlayingInfoPropertyPlaybackRate] = Double(p.rate)
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = now
+    }
+
+    private func setupCommands() {
+        guard !commandsReady else { return }
+        commandsReady = true
+        let c = MPRemoteCommandCenter.shared()
+        c.playCommand.addTarget { [weak self] _ in self?.resume(); return .success }
+        c.pauseCommand.addTarget { [weak self] _ in self?.pause(); return .success }
+        c.togglePlayPauseCommand.addTarget { [weak self] _ in
+            guard let self = self, let p = self.player else { return .commandFailed }
+            if p.rate > 0 { self.pause() } else { self.resume() }
+            return .success
+        }
+        c.skipForwardCommand.preferredIntervals = [30]
+        c.skipForwardCommand.addTarget { [weak self] _ in self?.seek(by: 30); return .success }
+        c.skipBackwardCommand.preferredIntervals = [15]
+        c.skipBackwardCommand.addTarget { [weak self] _ in self?.seek(by: -15); return .success }
     }
 }

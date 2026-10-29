@@ -3,7 +3,7 @@
    Enhanced and Premium French voices downloaded in Settings. Safari's web voices can't, so they stay a fallback.
    S.frv = {speed, voice}; S.fr.srs = {fr:{b, due}}; S.fr.rev / sh / drill = {date:count} */
 const VOX = {native:false, listen:false, voices:[], ar:[]};
-window.__capsIn = c => { VOX.native = !!(c && c.speak); VOX.audio = !!(c && c.audio); VOX.queue = !!(c && c.queue); VOX.listen = !!(c && c.listen); VOX.voices = (c && c.voices) || []; VOX.ar = (c && c.ar) || [];
+window.__capsIn = c => { VOX.native = !!(c && c.speak); VOX.audio = !!(c && c.audio); VOX.pod = !!(c && c.pod); VOX.queue = !!(c && c.queue); VOX.listen = !!(c && c.listen); VOX.voices = (c && c.voices) || []; VOX.ar = (c && c.ar) || [];
   if (nav.tab === 'grow' && nav.sub.grow === 'fr' && !$('.sheet') && !RD) render(); };
 (function(){ const n = native(); if (n) try { n.postMessage({type:'caps'}); } catch(e){} })();
 function frPlusMigrate(){

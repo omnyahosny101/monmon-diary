@@ -494,6 +494,24 @@ mark.hl.noted::after{content:"💬";font-size:.7em;margin-right:2px;vertical-ali
 .rd-act.prev{background:transparent;border:0;padding:0;align-items:center}
 .recap{margin:0;padding:12px 14px;border-radius:14px;background:var(--bg);font-weight:600;line-height:1.8}
 .nbk{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:14px;background:var(--bg);margin-bottom:8px}.nbk p{margin:0;line-height:1.7;font-weight:600;white-space:pre-wrap}
+/* podcasts */
+#podBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 86px);z-index:21;width:min(520px,calc(100% - 20px));display:flex;align-items:center;gap:4px;padding:8px 10px 10px;border-radius:20px;background:linear-gradient(135deg,#2a1822,#4a2350);color:#fff;box-shadow:0 12px 30px rgba(60,15,40,.35);overflow:hidden;box-sizing:border-box}
+#podBar button{color:#fff;font-weight:900;font-size:13px;min-width:36px;height:38px;border-radius:12px;padding:0 6px;flex:0 0 auto}
+#podBar button.big{font-size:20px;min-width:44px;background:rgba(255,255,255,.14)}
+#podBar .pb-info{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;text-align:start;height:auto}
+#podBar .pb-info img,#podBar .pb-e{width:38px;height:38px;border-radius:10px;object-fit:cover;flex:0 0 auto;display:grid;place-items:center;font-size:20px;background:rgba(255,255,255,.12)}
+#podBar .t{display:flex;flex-direction:column;min-width:0}#podBar .t b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#podBar .t span{font-size:11px;opacity:.75;font-family:var(--f-num)}
+#podBar .pb-prog{position:absolute;left:0;bottom:0;height:3px;background:linear-gradient(90deg,#ff5c8f,#8f6bff)}
+body.has-pod .app{padding-bottom:200px}
+.podep{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;width:100%;text-align:start;padding:10px 0;border-bottom:1px dashed var(--line)}
+.podep .t{display:flex;flex-direction:column;gap:2px;min-width:0}.podep b{font-size:14px;line-height:1.4}.podep .s{font-size:12px;color:var(--muted);font-weight:700}
+.podep .pp{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--acc-soft)}
+.podep.done b{opacity:.6}.podep.hi{background:var(--acc-soft);border-radius:12px;padding-inline:8px}
+.pbar{display:block;height:4px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:4px}.pbar i{display:block;height:100%;background:var(--acc)}
+.podres{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
+.podres img{width:48px;height:48px;border-radius:12px;object-fit:cover}.podres .t{display:flex;flex-direction:column;min-width:0}.podres .s{font-size:12px;color:var(--muted);font-weight:700}
+.pchip{width:20px;height:20px;border-radius:6px;object-fit:cover}
+.podhome{background:linear-gradient(135deg,#efe6ff 0%,#ffffff 55%,#ffe3ef 100%)!important;border-color:transparent!important}
 /* ask claude */
 .askb{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:900;padding:6px 11px;border-radius:999px;background:linear-gradient(135deg,#fff0c9,#ffe0ec);color:#a5487a;flex:0 0 auto}
 .askb.sm{width:34px;height:34px;padding:0;justify-content:center;font-size:15px;border-radius:50%}

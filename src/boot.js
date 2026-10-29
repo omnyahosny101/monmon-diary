@@ -12,6 +12,7 @@ frMigrate();
 frPlusMigrate();
 bookMigrate();
 narrMigrate();
+podMigrate();
 applyLang();
 render();
 syncNative();

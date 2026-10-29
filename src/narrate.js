@@ -124,6 +124,7 @@ function narrMarkRead(p){
 }
 function narrFrom(p){
   if (!RD || !RD.P) return;
+  if (typeof POD !== 'undefined' && POD.playing) podToggle();
   stopSpeak(); if (narrEl){ narrEl.pause(); narrEl.onended = null; }
   narrBuild(Math.max(0, Math.min(RD.P.length - 1, p)));
   NAR.playing = true; NAR.paused = false; narrSend(true); narrLabel();
