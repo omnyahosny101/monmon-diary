@@ -213,6 +213,8 @@ final class VoiceBox: NSObject, AVSpeechSynthesizerDelegate {
 
     func caps() -> [String: Any] {
         ["speak": true,
+         "queue": true,
+         "audio": true,
          "listen": SFSpeechRecognizer(locale: Locale(identifier: "fr-FR")) != nil,
          "voices": Self.voices("fr"),
          "ar": Self.voices("ar")]

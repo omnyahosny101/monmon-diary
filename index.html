@@ -4966,7 +4966,7 @@ VIEWS['grow.learn'] = function(el){
    Enhanced and Premium French voices downloaded in Settings. Safari's web voices can't, so they stay a fallback.
    S.frv = {speed, voice}; S.fr.srs = {fr:{b, due}}; S.fr.rev / sh / drill = {date:count} */
 const VOX = {native:false, listen:false, voices:[], ar:[]};
-window.__capsIn = c => { VOX.native = !!(c && c.speak); VOX.listen = !!(c && c.listen); VOX.voices = (c && c.voices) || []; VOX.ar = (c && c.ar) || [];
+window.__capsIn = c => { VOX.native = !!(c && c.speak); VOX.audio = !!(c && c.audio); VOX.queue = !!(c && c.queue); VOX.listen = !!(c && c.listen); VOX.voices = (c && c.voices) || []; VOX.ar = (c && c.ar) || [];
   if (nav.tab === 'grow' && nav.sub.grow === 'fr' && !$('.sheet') && !RD) render(); };
 (function(){ const n = native(); if (n) try { n.postMessage({type:'caps'}); } catch(e){} })();
 function frPlusMigrate(){
@@ -5269,7 +5269,7 @@ const NAR_SILENT = 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwL
 function narrLog(m){ NAR.log.push(new Date().toTimeString().slice(0, 8) + ' ' + m); if (NAR.log.length > 8) NAR.log.shift(); }
 function narrUnlock(){
   try { if (!narrEl){ narrEl = new Audio(); narrEl.preload = 'auto'; } if (!narrEl.src || narrEl.src.startsWith('data:')){ narrEl.src = NAR_SILENT; const pr = narrEl.play(); if (pr) pr.catch(() => {}); } } catch(e){}
-  try { if (!VOX.native && window.speechSynthesis && !NAR.ttsUnlocked){ const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); NAR.ttsUnlocked = true; } } catch(e){}
+  try { if (!VOX.queue && window.speechSynthesis && !NAR.ttsUnlocked){ const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); NAR.ttsUnlocked = true; } } catch(e){}
 }
 function narrWebAudio(i){
   const x = NAR.q[i]; if (!x) return;
@@ -5323,12 +5323,12 @@ function narrWebVoice(){
 function narrSend(replace){
   if (NAR.q[0] && NAR.q[0].url){
     if (!replace) return; NAR.sent = NAR.q.length;
-    if (VOX.native){ narrLog('native audio'); try { native().postMessage({type:'audioQueue', replace:true, rate:S.nar.rate, items:NAR.q.map(x => ({id:x.id, url:x.url}))}); return; } catch(e){} }
+    if (VOX.audio){ narrLog('native audio'); try { native().postMessage({type:'audioQueue', replace:true, rate:S.nar.rate, items:NAR.q.map(x => ({id:x.id, url:x.url}))}); return; } catch(e){} }
     return narrWebAudio(0);
   }
   const batch = NAR.q.slice(NAR.sent, NAR.sent + 150); if (!batch.length) return;
   NAR.sent += batch.length;
-  if (VOX.native){
+  if (VOX.queue){
     try { native().postMessage({type:'speakQueue', replace:!!replace, items:batch.map(x => ({id:x.id, text:x.t})), lang:'ar-EG', rate:0.5 * S.nar.rate, voice:S.nar.voice || ''}); return; } catch(e){}
   }
   const s = window.speechSynthesis; if (!s) return toast(L2('الصوت مش متاح هنا', 'Sound isn’t available here'));
@@ -5379,18 +5379,18 @@ function narrFrom(p){
 function narrStop(){
   if (!NAR.bar && !NAR.playing) return;
   NAR.run++; NAR.playing = false; NAR.paused = false; NAR.bar = false;
-  try { if (VOX.native) native().postMessage({type:'stopSpeak'}); else if (window.speechSynthesis) speechSynthesis.cancel(); } catch(e){}
+  try { if (VOX.native) native().postMessage({type:'stopSpeak'}); if (window.speechSynthesis) speechSynthesis.cancel(); } catch(e){}
   if (narrEl){ narrEl.pause(); narrEl.onended = null; }
   if (RD){ $$('.rd-now', RD.el).forEach(e => e.classList.remove('rd-now')); const bar = $('#rdNar', RD.el); if (bar) bar.remove(); RD.el.classList.remove('narr'); }
 }
 function narrPause(){
   if (!NAR.playing) return narrFrom(NAR.at >= 0 ? NAR.q[NAR.at].p : S.books[RD.b.id].pos);
-  if (!VOX.native && !(NAR.q[0] && NAR.q[0].url) && window.speechSynthesis && !speechSynthesis.speaking && !speechSynthesis.pending) return narrFrom(NAR.at >= 0 ? NAR.q[NAR.at].p : S.books[RD.b.id].pos);
-  if (NAR.paused && narrEl && !VOX.native && NAR.q[0] && NAR.q[0].url && narrEl.src.startsWith('data:')) return narrFrom(NAR.at >= 0 ? NAR.q[NAR.at].p : S.books[RD.b.id].pos);
+  if (!VOX.queue && !(NAR.q[0] && NAR.q[0].url) && window.speechSynthesis && !speechSynthesis.speaking && !speechSynthesis.pending) return narrFrom(NAR.at >= 0 ? NAR.q[NAR.at].p : S.books[RD.b.id].pos);
+  if (NAR.paused && narrEl && !VOX.audio && NAR.q[0] && NAR.q[0].url && narrEl.src.startsWith('data:')) return narrFrom(NAR.at >= 0 ? NAR.q[NAR.at].p : S.books[RD.b.id].pos);
   NAR.paused = !NAR.paused;
   try {
-    if (narrEl && !VOX.native && NAR.q[0] && NAR.q[0].url){ if (NAR.paused) narrEl.pause(); else narrEl.play(); }
-    else if (VOX.native) native().postMessage({type:NAR.paused ? 'pauseSpeak' : 'resumeSpeak'});
+    if (narrEl && !VOX.audio && NAR.q[0] && NAR.q[0].url){ if (NAR.paused) narrEl.pause(); else narrEl.play(); }
+    else if (VOX.queue || VOX.audio) native().postMessage({type:NAR.paused ? 'pauseSpeak' : 'resumeSpeak'});
     else if (NAR.paused) speechSynthesis.pause(); else speechSynthesis.resume();
   } catch(e){}
   narrLabel();
@@ -5436,7 +5436,7 @@ function narrVoiceSheet(){
       L2('الإعدادات ‹ تسهيلات الاستخدام ‹ المحتوى المنطوق ‹ الأصوات ‹ العربية ‹ اختاري صوت ونزّلي نسخة «المحسّن Enhanced». بعدين اقفلي التطبيق وافتحيه واختاريه من هنا.', 'Settings › Accessibility › Spoken Content › Voices › Arabic › download an Enhanced voice, then reopen the app and pick it here.') +
       '<br><br>' + L2('ملحوظة: أصوات الآيفون العربي بتنطق فصحى، فهتقرالك الكلام المصري بلهجة فصحى شوية. لسه مفيش صوت مصري جوه الآيفون.', 'Note: iPhone Arabic voices speak Modern Standard Arabic; there is no Egyptian voice built in yet.') +
       (nat ? '' : '<br><br>' + L2('⚠️ الأصوات الواضحة والقراية والشاشة مقفولة بتشتغل جوه التطبيق بعد تحديث Xcode.', '⚠️ Clear voices and reading with the screen locked work in the app after the Xcode update.')) + '</p></div>' +
-    '<p class="small muted" dir="ltr" data-notr style="margin:0;font-size:10.5px;line-height:1.5;word-break:break-all">diag · app:' + (native() ? (VOX.native ? 'new' : 'old') : 'web') + ' · ar:' + (nat ? VOX.ar.length : webVoices('ar').length) + ' · all:' + (window.speechSynthesis ? speechSynthesis.getVoices().length : 'x') + ' · salma:' + (RD && NAR_AUDIO[RD.b.id] ? 'yes' : RD && NAR_AUDIO[RD.b.id] === null ? 'no' : '?') + ' · ' + esc(NAR.log.join(' | ')) + '</p>',
+    '<p class="small muted" dir="ltr" data-notr style="margin:0;font-size:10.5px;line-height:1.5;word-break:break-all">diag · app:' + (native() ? (VOX.audio ? 'new' : VOX.native ? 'mid' : 'old') : 'web') + ' · ar:' + (nat ? VOX.ar.length : webVoices('ar').length) + ' · all:' + (window.speechSynthesis ? speechSynthesis.getVoices().length : 'x') + ' · salma:' + (RD && NAR_AUDIO[RD.b.id] ? 'yes' : RD && NAR_AUDIO[RD.b.id] === null ? 'no' : '?') + ' · ' + esc(NAR.log.join(' | ')) + '</p>',
   sh => {
     $$('[data-try]', sh).forEach(b => b.onclick = () => {
       if (b.dataset.try === 'salma'){ const m = RD && NAR_AUDIO[RD.b.id]; if (!m) return toast(L2('ملفات سلمى ماوصلتش، اتأكدي من النت', 'Salma’s files didn’t load')); if (!narrEl) narrEl = new Audio();
