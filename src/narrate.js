@@ -117,7 +117,7 @@ function narrMarkRead(p){
   if (!RD) return; const b = RD.b, x = S.books[b.id];
   if (p > x.max){
     const day = todayStr(); x.log[day] = (x.log[day] || 0) + b.lens.slice(x.max + 1, p + 1).reduce((a, y) => a + y, 0); x.max = p;
-    const st = bookState(b); if (!x.done[st.k] && p >= st.due){ x.done[st.k] = day; readDone(b, st); }
+    const st = bookState(b); if (st.k >= 0 && !x.done[st.k] && p >= st.due){ x.done[st.k] = day; readDone(b, st); }
     save();
   }
   x.pos = p; readerTrack();

@@ -1,5 +1,5 @@
 /* ============ READING: books, a 15-day plan, a reader with highlights and notes ============
-   S.books[id] = {start, days, pos, max, done:{k:date}, hl:[{id,g,p,s,e,c,note,at,text}], log:{date:chars}}
+   S.books[id] = {planFrom, pos, max, done:{k:date}, hl:[{id,g,p,s,e,c,note,at,text}], log:{date:chars}}
    S.reader = {fs, theme:'pink'|'sepia'|'dark', font:'cairo'|'amiri'|'system', lh}
    The text of each book lives in books/<file>.js and is loaded only when the book is opened. */
 const L2 = (ar, en) => isAr() ? ar : en;
@@ -10,37 +10,50 @@ function bookMigrate(){
   S.reader = Object.assign({fs:19, theme:'pink', font:'cairo', lh:2}, S.reader || {});
   S.askq = Array.isArray(S.askq) ? S.askq : [];
   BOOKS.forEach(b => { const x = S.books[b.id] = S.books[b.id] || {};
-    if (!x.start) x.start = todayStr(); if (!x.days) x.days = 15; x.pos = x.pos || 0; x.max = x.max == null ? -1 : x.max;
+    x.pos = x.pos || 0; x.max = x.max == null ? -1 : x.max;
     x.done = x.done || {}; x.hl = Array.isArray(x.hl) ? x.hl : []; x.log = x.log || {}; });
+  // one shared plan: the books take turns, one book a day, all finished by the end date
+  if (!S.readPlan){ S.readPlan = {start:'2026-10-29', end:'2026-11-30', order:BOOKS.map(b => b.id)};
+    BOOKS.forEach(b => { const x = S.books[b.id]; x.planFrom = x.max + 1; x.done = {}; }); }
+  BOOKS.forEach(b => { if (!S.readPlan.order.includes(b.id)) S.readPlan.order.push(b.id); const x = S.books[b.id]; if (x.planFrom == null) x.planFrom = x.max + 1; });
 }
 const bookById = id => BOOKS.find(b => b.id === id);
 const plainOf = s => s.replace(/\*\*/g, '');
 function bookTotal(b){ return b.lens.reduce((a, x) => a + x, 0); }
-function bookRanges(b, days){
-  const total = bookTotal(b), per = total / days, out = []; let start = 0, acc = 0, k = 1;
-  for (let i = 0; i < b.lens.length; i++){
-    acc += b.lens[i];
+function planDates(id){
+  const P = S.readPlan, i = P.order.indexOf(id), n = P.order.length, out = [];
+  if (i < 0) return out;
+  for (let d = P.start, k = 0; d <= P.end; d = addDays(d, 1), k++) if (k % n === i) out.push(d);
+  return out;
+}
+const planBookOn = d => { const P = S.readPlan, k = daysBetween(P.start, d); return k >= 0 && d <= P.end ? P.order[k % P.order.length] : null; };
+function bookRanges(b, days, from){
+  from = Math.max(0, Math.min(b.lens.length, from || 0)); days = Math.max(1, days);
+  const lens = b.lens, total = lens.slice(from).reduce((a, x) => a + x, 0), per = total / days, out = [];
+  let start = from, acc = 0, k = 1;
+  for (let i = from; i < lens.length; i++){
+    acc += lens[i];
     if (k < days && acc >= per * k){
       let end = i + 1; // never end a day on a heading
-      while (end < b.lens.length && b.heads.some(h => h[0] === end - 1)) end++;
-      out.push([start, end]); start = end; k++; i = end - 1; acc = b.lens.slice(0, end).reduce((a, x) => a + x, 0);
+      while (end < lens.length && b.heads.some(h => h[0] === end - 1)) end++;
+      out.push([start, end]); start = end; k++; i = end - 1; acc = lens.slice(from, end).reduce((a, x) => a + x, 0);
     }
   }
-  out.push([start, b.lens.length]);
-  while (out.length < days) out.push([b.lens.length, b.lens.length]);
+  out.push([start, lens.length]);
+  while (out.length < days) out.push([lens.length, lens.length]);
   return out;
 }
 function bookState(b){
-  const x = S.books[b.id], R = bookRanges(b, x.days), today = todayStr();
-  const k = Math.max(0, Math.min(x.days - 1, daysBetween(x.start, today)));
-  const due = R[k][1] - 1, read = x.max;
-  const left = c => b.lens.slice(Math.max(read + 1, c[0]), c[1]).reduce((a, y) => a + y, 0);
-  let remToday = 0; for (let j = 0; j <= k; j++) remToday += left(R[j]);
-  const behind = R.slice(0, k).filter(r => read < r[1] - 1).length;
+  const x = S.books[b.id], dates = planDates(b.id), n = Math.max(1, dates.length), from = x.planFrom || 0, R = bookRanges(b, n, from), today = todayStr();
+  let k = -1; dates.forEach((d, i) => { if (d <= today) k = i; });
+  const read = x.max, due = k >= 0 ? R[k][1] - 1 : from - 1;
+  const remToday = due > read ? b.lens.slice(read + 1, due + 1).reduce((a, y) => a + y, 0) : 0;
+  const behind = k > 0 ? R.slice(0, k).filter(r => r[0] < r[1] && read < r[1] - 1).length : 0;
   const pct = Math.round(Math.max(0, read + 1) / b.lens.length * 100);
   const chapIdx = b.heads.filter(h => h[0] <= Math.max(0, x.pos)).length - 1;
   const finished = read >= b.lens.length - 1;
-  return {R, k, due, remToday, behind, pct, chap:b.heads[Math.max(0, chapIdx)], finished, endDate:addDays(x.start, x.days - 1)};
+  return {R, k, n, dates, due, remToday, behind, pct, chap:b.heads[Math.max(0, chapIdx)], finished, isToday:dates[k] === today,
+    next:dates.find(d => d > today) || '', endDate:dates[dates.length - 1] || S.readPlan.end, session:R[k] || null};
 }
 const minsOf = c => Math.max(1, Math.round(c / CPM));
 function chapterOfPara(b, i){ let h = b.heads[0]; for (const x of b.heads) if (x[0] <= i) h = x; return h; }
@@ -83,7 +96,7 @@ function paraInner(b, i, raw){
 }
 function paraHTML(b, i, P, dayStarts){
   const [k, raw] = P[i];
-  const day = dayStarts[i] != null ? '<div class="rd-day" data-notr>' + L2('📅 اليوم ', '📅 Day ') + (dayStarts[i] + 1) + '</div>' : '';
+  const day = dayStarts[i] != null ? '<div class="rd-day" data-notr>' + dayStarts[i] + '</div>' : '';
   if (k === 'h') return day + '<h2 class="rd-h" data-i="' + i + '">' + paraInner(b, i, raw) + '</h2>';
   return day + '<p class="rd-p' + (k === 'li' ? ' li' : '') + '" data-i="' + i + '">' + paraInner(b, i, raw) + '</p>';
 }
@@ -120,8 +133,8 @@ function openReader(id, at){
     .catch(() => { $('#rdScroll', shell).innerHTML = '<div class="rd-loading">' + L2('محتاجة نت أول مرة تفتحي فيها الكتاب. اتأكدي من النت وجربي تاني.', 'You need internet the first time you open this book.') + '</div>'; });
 }
 function drawReader(at){
-  const {b, P, el} = RD, x = S.books[b.id], R = bookRanges(b, x.days), dayStarts = {};
-  R.forEach((r, k) => { if (r[0] < r[1]) dayStarts[r[0]] = k; });
+  const {b, P, el} = RD, st = bookState(b), dayStarts = {};
+  st.R.forEach((r, k) => { if (r[0] < r[1]) dayStarts[r[0]] = '📅 ' + L2('جلسة ', 'Session ') + (k + 1) + ' · ' + nice(st.dates[k]); });
   const sc = $('#rdScroll', el);
   sc.innerHTML = '<article class="rd-text"><div class="rd-cover"><div class="e">' + b.e + '</div><h1>' + esc(b.t) + '</h1><p>' + esc(b.au) + '</p><p class="s">' + esc(b.sub) + '</p></div>' +
     P.map((_, i) => paraHTML(b, i, P, dayStarts)).join('') +
@@ -158,14 +171,14 @@ function readerTrack(force){
     const day = todayStr(), gained = b.lens.slice(x.max + 1, max + 1).reduce((a, y) => a + y, 0);
     x.log[day] = (x.log[day] || 0) + gained; x.max = max;
     const st = bookState(b);
-    if (!x.done[st.k] && max >= st.due){ x.done[st.k] = day; readDone(b, st); }
+    if (st.k >= 0 && !x.done[st.k] && max >= st.due){ x.done[st.k] = day; readDone(b, st); }
   }
   const st = bookState(b), ch = chapterOfPara(b, pos);
   $('#rdChap', el).textContent = ch ? ch[1] : '';
   $('#rdBar', el).style.width = st.pct + '%';
   $('#rdInfo', el).textContent = st.finished ? L2('خلصتي الكتاب 🎉', 'Finished 🎉') :
-    st.remToday > 0 ? L2('اليوم ' + (st.k + 1) + ' من ' + x.days + ' · فاضل ' + minsOf(st.remToday) + ' دقيقة على جزء النهارده', 'Day ' + (st.k + 1) + ' of ' + x.days + ' · ' + minsOf(st.remToday) + ' min left today')
-      : L2('✓ خلصتي جزء النهارده · ' + st.pct + '% من الكتاب', '✓ Today’s part done · ' + st.pct + '%');
+    st.remToday > 0 ? L2('جلسة ' + (st.k + 1) + ' من ' + st.n + ' · فاضل ' + minsOf(st.remToday) + ' دقيقة', 'Session ' + (st.k + 1) + ' of ' + st.n + ' · ' + minsOf(st.remToday) + ' min left')
+      : L2('✓ خلصتي الجلسة دي · ' + st.pct + '% من الكتاب' + (st.next ? ' · الجاية ' + niceDM(st.next) : ''), '✓ Session done · ' + st.pct + '%');
   const now = Date.now(); if (force || now - rdSaveT > 2500){ rdSaveT = now; save(); }
 }
 function readDone(b, st){
@@ -279,10 +292,10 @@ function readerSettings(){
   });
 }
 function readerTOC(){
-  const {b} = RD, x = S.books[b.id], R = bookRanges(b, x.days);
+  const {b} = RD, x = S.books[b.id], st = bookState(b), R = st.R;
   sheet('<h2 class="plain">☰ ' + L2('الفصول', 'Chapters') + '</h2><div class="list">' +
-    b.heads.map(h => { const k = R.findIndex(r => h[0] >= r[0] && h[0] < r[1]); return '<button class="item" data-to="' + h[0] + '"><span class="t">' + esc(h[1]) + '<span class="s">' + L2('اليوم ', 'Day ') + (k + 1) + (x.max >= h[0] ? ' · ✓' : '') + '</span></span><span></span></button>'; }).join('') + '</div>' +
-    '<h3>' + L2('أيام الخطة', 'Plan days') + '</h3><div class="list">' + R.map((r, k) => '<button class="item" data-to="' + r[0] + '"><span class="t">' + L2('اليوم ', 'Day ') + (k + 1) + ' · ' + niceDM(addDays(x.start, k)) + '<span class="s">' + esc((chapterOfPara(b, r[0]) || ['', ''])[1]) + '</span></span><span>' + (x.done[k] || x.max >= r[1] - 1 ? '✓' : '') + '</span></button>').join('') + '</div>',
+    b.heads.map(h => { const k = R.findIndex(r => h[0] >= r[0] && h[0] < r[1]); return '<button class="item" data-to="' + h[0] + '"><span class="t">' + esc(h[1]) + '<span class="s">' + (k >= 0 ? niceDM(st.dates[k]) : L2('قريتيه', 'read')) + (x.max >= h[0] ? ' · ✓' : '') + '</span></span><span></span></button>'; }).join('') + '</div>' +
+    '<h3>' + L2('جلسات الكتاب ده', 'This book’s sessions') + '</h3><div class="list">' + R.map((r, k) => '<button class="item" data-to="' + r[0] + '"><span class="t">' + L2('جلسة ', 'Session ') + (k + 1) + ' · ' + nice(st.dates[k]) + '<span class="s">' + esc((chapterOfPara(b, r[0]) || ['', ''])[1]) + '</span></span><span>' + (x.max >= r[1] - 1 ? '✓' : '') + '</span></button>').join('') + '</div>',
   (sh, close) => $$('[data-to]', sh).forEach(btn => btn.onclick = () => { close(); const t = RD.paras[+btn.dataset.to]; if (t){ const sc = $('#rdScroll', RD.el); sc.scrollTop = t.offsetTop - 70; } }));
 }
 function highlightsSheet(id, inReader){
@@ -302,42 +315,53 @@ function highlightsSheet(id, inReader){
 
 /* ---------- home card + Grow › Reading ---------- */
 function readHomeHTML(){
-  return BOOKS.map(b => { const x = S.books[b.id], st = bookState(b);
-    if (st.finished && x.done[x.days - 1] && x.done[x.days - 1] < addDays(todayStr(), -3)) return '';
-    const doneToday = st.remToday === 0;
-    return '<div class="card readhome"><div class="card-head"><h2>📖 ' + L2('قراية النهارده', 'Reading today') + '</h2><span class="num" style="font-weight:800">' + L2('اليوم ', 'Day ') + (st.k + 1) + ' / ' + x.days + '</span></div>' +
-      '<div class="rbook"><span class="rcov">' + b.e + '</span><span class="t" data-notr><b>' + esc(b.t) + '</b><span class="s">' + esc(st.chap ? st.chap[1] : '') + '</span></span></div>' +
-      '<div class="bar good"><i style="width:' + st.pct + '%"></i></div>' +
-      '<span class="small" style="font-weight:800">' + (st.finished ? L2('🎉 خلصتي الكتاب كله!', '🎉 Book finished!') : doneToday ? L2('✓ خلصتي جزء النهارده · ' + st.pct + '% من الكتاب', '✓ Today’s part is done · ' + st.pct + '%') :
-        L2('فاضل ~' + minsOf(st.remToday) + ' دقيقة' + (st.behind ? ' (فيهم ' + st.behind + ' يوم متأخر)' : '') + ' · ' + st.pct + '% من الكتاب', '~' + minsOf(st.remToday) + ' min left' + (st.behind ? ' (incl. ' + st.behind + ' day behind)' : '') + ' · ' + st.pct + '%')) + '</span>' +
-      '<div class="row"><button class="btn" data-readopen="' + b.id + '" style="flex:2">' + (x.max < 0 ? L2('ابدئي القراية', 'Start reading') : L2('كمّلي من مكانك', 'Continue reading')) + '</button><button class="btn soft" data-go="grow:read" style="flex:1">' + L2('الخطة', 'Plan') + '</button></div></div>';
-  }).join('');
+  const t = todayStr(), todayId = planBookOn(t), tomorrowId = planBookOn(addDays(t, 1));
+  const live = BOOKS.filter(b => !bookState(b).finished);
+  if (!live.length) return '';
+  const main = bookById(todayId) && !bookState(bookById(todayId)).finished ? bookById(todayId) : live.slice().sort((a, c) => bookState(c).remToday - bookState(a).remToday)[0];
+  const st = bookState(main), x = S.books[main.id], doneToday = st.remToday === 0;
+  const others = BOOKS.filter(b => b !== main).map(b => { const o = bookState(b);
+    return '<button class="rmini" data-readopen="' + b.id + '"><span>' + b.e + '</span><span class="t" data-notr><b>' + esc(b.t) + '</b><span class="s">' + (o.finished ? L2('خلص 🎉', 'done 🎉') : o.remToday ? L2('متأخرة ~' + minsOf(o.remToday) + ' دقيقة', '~' + minsOf(o.remToday) + ' min behind') : (o.next ? L2('الجلسة الجاية ', 'Next ') + (o.next === addDays(t, 1) ? L2('بكرة', 'tomorrow') : niceDM(o.next)) : '')) + ' · ' + o.pct + '%</span></span></button>'; }).join('');
+  return '<div class="card readhome"><div class="card-head"><h2>📖 ' + L2('قراية النهارده', 'Reading today') + '</h2><span class="num" style="font-weight:800">' + L2('لحد ', 'until ') + niceDM(S.readPlan.end) + '</span></div>' +
+    '<div class="rbook"><span class="rcov">' + main.e + '</span><span class="t" data-notr><b>' + esc(main.t) + '</b><span class="s">' + esc(st.chap ? st.chap[1] : '') + '</span></span></div>' +
+    '<div class="bar good"><i style="width:' + st.pct + '%"></i></div>' +
+    '<span class="small" style="font-weight:800">' + (doneToday ? L2('✓ خلصتي جلسة النهارده · ' + st.pct + '% من الكتاب', '✓ Today’s session is done · ' + st.pct + '%') :
+      L2('جلسة ' + (st.k + 1) + ' من ' + st.n + ' · ~' + minsOf(st.remToday) + ' دقيقة' + (st.behind ? ' (فيهم ' + st.behind + ' متأخرة)' : '') + ' · ' + st.pct + '%', 'Session ' + (st.k + 1) + '/' + st.n + ' · ~' + minsOf(st.remToday) + ' min · ' + st.pct + '%')) + '</span>' +
+    '<div class="row"><button class="btn" data-readopen="' + main.id + '" style="flex:2">' + (x.max < 0 ? L2('ابدئي القراية', 'Start reading') : L2('كمّلي من مكانك', 'Continue reading')) + '</button><button class="btn soft" data-go="grow:read" style="flex:1">' + L2('الخطة', 'Plan') + '</button></div>' +
+    (others ? '<div class="rothers">' + others + '</div>' : '') + '</div>';
 }
 VIEWS['grow.read'] = function(el){
-  el.innerHTML = BOOKS.map(b => { const x = S.books[b.id], st = bookState(b), R = st.R, groups = new Set(x.hl.map(h => h.g)).size, notes = x.hl.filter(h => h.note).length;
-    const week = Object.entries(x.log).sort().slice(-7), mins = week.reduce((a, e) => a + e[1], 0);
-    return '<div class="card tint"><div class="rbook big"><span class="rcov">' + b.e + '</span><span class="t" data-notr><b>' + esc(b.t) + '</b><span class="s">' + esc(b.au) + '</span></span></div>' +
-      '<div class="bar good"><i style="width:' + st.pct + '%"></i></div>' +
-      '<div class="stats3"><div class="stat"><b>' + st.pct + '%</b><span>' + L2('من الكتاب', 'read') + '</span></div><div class="stat"><b>' + groups + '</b><span>' + L2('علامة', 'highlights') + '</span></div><div class="stat"><b>' + minsOf(mins) + '</b><span>' + L2('دقيقة الأسبوع ده', 'min this week') + '</span></div></div>' +
-      '<div class="row"><button class="btn" data-readopen="' + b.id + '" style="flex:2">📖 ' + (x.max < 0 ? L2('ابدئي', 'Start') : L2('كمّلي القراية', 'Continue')) + '</button><button class="btn soft" data-hls="' + b.id + '" style="flex:1">🖍️ ' + L2('علاماتي', 'Highlights') + (notes ? ' · 💬' + notes : '') + '</button></div></div>' +
-      '<div class="card"><div class="card-head"><h2>' + L2('خطة الـ' + x.days + ' يوم', x.days + '-day plan') + '</h2><span class="small muted" style="font-weight:800">' + L2('تخلص ', 'Ends ') + nice(st.endDate) + '</span></div>' +
-      '<div class="row"><label class="field" style="flex:1"><span>' + L2('بدأت يوم', 'Started on') + '</span><input class="in" type="date" data-bstart="' + b.id + '" value="' + x.start + '"></label><label class="field" style="flex:1"><span>' + L2('عدد الأيام', 'Days') + '</span><select class="in" data-bdays="' + b.id + '">' + [7, 10, 14, 15, 20, 30].map(n => '<option' + (n === x.days ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></label></div>' +
-      '<div class="list">' + R.map((r, k) => { const ok = x.max >= r[1] - 1, cur = k === st.k, chars = b.lens.slice(r[0], r[1]).reduce((a, y) => a + y, 0);
-        return '<button class="item rday' + (ok ? ' ok' : '') + (cur ? ' cur' : '') + '" data-rgo="' + b.id + ':' + r[0] + '"><span class="dn">' + (ok ? '✓' : k + 1) + '</span><span class="t">' + L2('اليوم ', 'Day ') + (k + 1) + ' · ' + nice(addDays(x.start, k)) + (cur ? L2(' · النهارده', ' · today') : '') + '<span class="s" data-notr>' + esc((chapterOfPara(b, r[0]) || ['', ''])[1]) + ' · ~' + minsOf(chars) + L2(' دقيقة', ' min') + '</span></span><span></span></button>'; }).join('') + '</div></div>';
-  }).join('') +
-  '<div class="card"><h2>' + L2('💡 إزاي تقري بتركيز', '💡 Read with focus') + '</h2><p class="small" style="margin:0;font-weight:700;line-height:1.7">' +
-    L2('اقري جزء النهارده مرة واحدة من غير ما تقفي (20 دقيقة تقريبًا). علّمي بالأصفر على الأفكار المهمة، وبالوردي على اللي عايزة تفهميه أكتر، وابعتي أي حاجة مش واضحة لـ«اسألي كلود». في آخر كل يوم اكتبي في تعليق جملة واحدة: إيه أهم حاجة اتعلمتها؟',
-      'Read today’s part in one sitting (about 20 minutes). Highlight key ideas in yellow and things to dig into in pink, and send anything unclear to “Ask Claude”.') + '</p></div>';
+  const P = S.readPlan, t = todayStr(), days = [];
+  for (let d = P.start; d <= P.end; d = addDays(d, 1)) days.push(d);
+  const states = {}; BOOKS.forEach(b => states[b.id] = bookState(b));
+  el.innerHTML = '<div class="card tint"><div class="greet">📚 ' + L2('خطة القراية', 'Reading plan') + '</div><span class="small" style="font-weight:700;line-height:1.6">' +
+      L2('كتاب كل يوم بالتبادل: يوم ده ويوم ده، والاتنين يخلصوا ' + nice(P.end) + '.', 'One book a day, taking turns; both finish by ' + nice(P.end) + '.') + '</span>' +
+      '<div class="row"><label class="field" style="flex:1"><span>' + L2('من', 'From') + '</span><input class="in" type="date" id="rpStart" value="' + P.start + '"></label><label class="field" style="flex:1"><span>' + L2('لحد', 'Until') + '</span><input class="in" type="date" id="rpEnd" value="' + P.end + '"></label></div>' +
+      '<button class="btn soft" id="rpSwap">🔁 ' + L2('بدّلي: النهارده الكتاب التاني', 'Swap which book is today') + '</button></div>' +
+    BOOKS.map(b => { const x = S.books[b.id], st = states[b.id], groups = new Set(x.hl.map(h => h.g)).size, notes = x.hl.filter(h => h.note).length;
+      const mins = Object.entries(x.log).sort().slice(-7).reduce((a, e) => a + e[1], 0);
+      return '<div class="card"><div class="rbook big"><span class="rcov">' + b.e + '</span><span class="t" data-notr><b>' + esc(b.t) + '</b><span class="s">' + esc(b.au) + ' · ' + st.n + L2(' جلسة · تخلص ', ' sessions · ends ') + niceDM(st.endDate) + '</span></span></div>' +
+        '<div class="bar good"><i style="width:' + st.pct + '%"></i></div>' +
+        '<div class="stats3"><div class="stat"><b>' + st.pct + '%</b><span>' + L2('من الكتاب', 'read') + '</span></div><div class="stat"><b>' + groups + '</b><span>' + L2('علامة', 'highlights') + '</span></div><div class="stat"><b>' + minsOf(mins) + '</b><span>' + L2('دقيقة الأسبوع ده', 'min this week') + '</span></div></div>' +
+        '<div class="row"><button class="btn" data-readopen="' + b.id + '" style="flex:2">📖 ' + (x.max < 0 ? L2('ابدئي', 'Start') : L2('كمّلي القراية', 'Continue')) + '</button><button class="btn soft" data-hls="' + b.id + '" style="flex:1">🖍️ ' + L2('علاماتي', 'Highlights') + (notes ? ' · 💬' + notes : '') + '</button></div></div>'; }).join('') +
+    '<div class="card"><h2>' + L2('الجدول', 'Schedule') + '</h2><div class="list">' + days.map(d => { const id = planBookOn(d), b = bookById(id); if (!b) return ''; const st = states[id], k = st.dates.indexOf(d), r = st.R[k];
+        if (!r || r[0] >= r[1]) return ''; const ok = S.books[id].max >= r[1] - 1, chars = b.lens.slice(r[0], r[1]).reduce((a, y) => a + y, 0);
+        return '<button class="item rday' + (ok ? ' ok' : '') + (d === t ? ' cur' : '') + '" data-rgo="' + id + ':' + r[0] + '"><span class="dn">' + (ok ? '✓' : b.e) + '</span><span class="t">' + nice(d) + (d === t ? L2(' · النهارده', ' · today') : '') + '<span class="s" data-notr>' + esc(b.t) + ' · ' + esc((chapterOfPara(b, r[0]) || ['', ''])[1]) + ' · ~' + minsOf(chars) + L2(' دقيقة', ' min') + '</span></span><span></span></button>'; }).join('') + '</div></div>' +
+    '<div class="card"><h2>' + L2('💡 إزاي تقري بتركيز', '💡 Read with focus') + '</h2><p class="small" style="margin:0;font-weight:700;line-height:1.7">' +
+      L2('اقري جلسة النهارده مرة واحدة من غير ما تقفي. علّمي بالأصفر على الأفكار المهمة، وبالوردي على اللي عايزة تفهميه أكتر، وابعتي أي حاجة مش واضحة لـ«اسألي كلود».', 'Read today’s session in one sitting. Highlight key ideas, and send anything unclear to “Ask Claude”.') + '</p></div>';
   const again = () => VIEWS['grow.read'](el);
   $$('[data-readopen]', el).forEach(btn => btn.onclick = () => openReader(btn.dataset.readopen));
   $$('[data-hls]', el).forEach(btn => btn.onclick = () => highlightsSheet(btn.dataset.hls));
   $$('[data-rgo]', el).forEach(btn => btn.onclick = () => { const [id, p] = btn.dataset.rgo.split(':'); openReader(id, +p); });
-  $$('[data-bstart]', el).forEach(i => i.onchange = () => { if (i.value){ S.books[i.dataset.bstart].start = i.value; save(); again(); } });
-  $$('[data-bdays]', el).forEach(i => i.onchange = () => { S.books[i.dataset.bdays].days = +i.value; S.books[i.dataset.bdays].done = {}; save(); again(); });
+  const replan = () => { BOOKS.forEach(b => { const x = S.books[b.id]; x.planFrom = x.max + 1; x.done = {}; }); save(); again(); };
+  $('#rpStart', el).onchange = e => { if (e.target.value && e.target.value <= P.end){ P.start = e.target.value; replan(); } };
+  $('#rpEnd', el).onchange = e => { if (e.target.value && e.target.value >= P.start){ P.end = e.target.value; replan(); } };
+  $('#rpSwap', el).onclick = () => { P.order.reverse(); replan(); toast(L2('اتبدلوا ✓', 'Swapped ✓')); };
 };
 function readReminders(repeat){
   if (S.settings.rem && S.settings.rem.plans === false) return;
-  BOOKS.forEach(b => { const st = bookState(b); if (!st.finished) repeat.push({id:'read-' + b.id, title:'\u{1F4D6} ' + b.t, body:'وقت القراية: جزء النهارده حوالي ' + minsOf(bookTotal(b) / S.books[b.id].days) + ' دقيقة. كمّلي من مكانك.', hour:21, minute:30}); });
+  if (BOOKS.every(b => bookState(b).finished) || todayStr() > S.readPlan.end) return;
+  repeat.push({id:'read-daily', title:'\u{1F4D6} وقت القراية', body:'جلسة كتاب النهارده مستنياكي (حوالي 20-30 دقيقة). كمّلي من مكانك، وسلمى ممكن تقرالك 🎧', hour:21, minute:30});
 }
 
 /* ============ ASK CLAUDE LATER ============

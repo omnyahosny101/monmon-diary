@@ -16,7 +16,9 @@ jobs:
         env:
           AZURE_SPEECH_KEY: ${{ secrets.AZURE_SPEECH_KEY }}
           AZURE_SPEECH_REGION: ${{ secrets.AZURE_SPEECH_REGION }}
-        run: python3 scripts/book_audio.py poor-econ books/poor-economics.js
+        run: |
+          python3 scripts/book_audio.py poor-econ books/poor-economics.js
+          python3 scripts/book_audio.py mars-venus books/mars-venus.js
       - name: Save the audio to the site
         if: always()
         run: |
