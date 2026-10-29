@@ -871,17 +871,19 @@ document.addEventListener('click', ev => {
 }, true);
 function photoMigrate(){ S.photos = S.photos && typeof S.photos === 'object' ? S.photos : {}; }
 
-/* ============ DAILY WISDOM (242) AND DAILY LESSON (201 + facts) ============ */
+/* ============ DAILY WISDOM (242) AND DAILY LESSON (301 lessons + facts) ============ */
 const wisdomList = () => isAr() ? WISDOM.concat(WISDOM_AR) : WISDOM;
 const LESSON_START = '2026-10-28';
-function lessonIndex(){ const all = LESSONS.length + INSIGHTS.length; return ((daysBetween(LESSON_START, todayStr()) + (S.lessonShift || 0)) % all + all) % all; }
+const LESSON_DONE = ['invest', 'gold'];   // fields Monmon finished: out of the daily rotation, still readable in Learn
+function lessonPool(){ return LESSONS.filter(L => !LESSON_DONE.includes(L.f)).map(L => ({L})).concat(INSIGHTS.filter(f => f[0] !== 'Investing').map(f => ({f}))); }
+function lessonIndex(){ const all = lessonPool().length; return ((daysBetween(LESSON_START, todayStr()) + (S.lessonShift || 0)) % all + all) % all; }
 /* quote + today's lesson + 6 facts as notifications, for today and the next 2 days */
 function learnReminders(push, at){
-  const all = LESSONS.length + INSIGHTS.length, WL = wisdomList();
+  const pool = lessonPool(), all = pool.length, WL = wisdomList();
   const cut = (s, n) => { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1).trim() + '…' : s; };
-  const item = i => { i = ((i % all) + all) % all;
-    if (i < LESSONS.length){ const L = LESSONS[i]; return {t:L.t, x:L.x}; }
-    const f = INSIGHTS[i - LESSONS.length]; return {t:L2('تعرفي إن', 'Did you know') + ' · ' + tr(f[0]), x:tr(f[1])}; };
+  const item = i => { const P = pool[((i % all) + all) % all];
+    if (P.L) return {t:P.L.t, x:P.L.x};
+    const f = P.f; return {t:L2('تعرفي إن', 'Did you know') + ' · ' + tr(f[0]), x:tr(f[1])}; };
   const slots = [[10,30],[12,30],[15,0],[16,30],[18,30],[21,0]];
   for (let o = 0; o < 3; o++){
     const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + o);
@@ -896,10 +898,10 @@ function learnReminders(push, at){
 function lessonCardHTML(){
   if (!isAr()){ const doy = dayOfYear(new Date()), ins = INSIGHTS[(doy + (S.insightShift || 0)) % INSIGHTS.length];
     return '<div class="card insight"><span class="tag">Did you know · ' + ins[0] + '</span><p>' + esc(ins[1]) + '</p><button class="linkbtn" id="insNext" style="align-self:flex-start;background:var(--surface);color:var(--lilac)">Another one</button></div>'; }
-  const i = lessonIndex();
-  if (i >= LESSONS.length){ const ins = INSIGHTS[i - LESSONS.length];
+  const P = lessonPool()[lessonIndex()];
+  if (P.f){ const ins = P.f;
     return '<div class="card insight"><span class="tag">Did you know · ' + ins[0] + '</span><p>' + esc(ins[1]) + '</p><div class="row"><button class="linkbtn" data-ls="-1">‹ اللي قبله</button><button class="linkbtn" data-ls="1">اللي بعده ›</button></div></div>'; }
-  const L = LESSONS[i], F = LESSON_FIELDS.find(f => f[0] === L.f), inField = LESSONS.filter(x => x.f === L.f), n = inField.indexOf(L) + 1;
+  const L = P.L, F = LESSON_FIELDS.find(f => f[0] === L.f), inField = LESSONS.filter(x => x.f === L.f), n = inField.indexOf(L) + 1;
   return '<div class="card insight lesson" data-notr><span class="tag">' + F[1] + ' درس النهارده · ' + F[2] + ' · ' + n + ' من ' + inField.length + '</span><h2 class="plain">' + esc(L.t) + '</h2><p>' + esc(L.x) + '</p>' +
     (L.ex ? '<p class="todo"><b>مثال</b>' + esc(L.ex) + '</p>' : '') +
     '<div class="row"><button class="linkbtn" data-ls="-1">‹ اللي قبله</button><button class="linkbtn" data-ls="1">اللي بعده ›</button><button class="linkbtn" data-go="grow:learn">كل الدروس</button></div></div>';
@@ -910,9 +912,9 @@ function bindLessonCard(el, again){
 const growTab = TABS.find(t => t.id === 'grow');
 if (growTab){ if (!growTab.subs.some(x => x[0] === 'fr')) growTab.subs.unshift(['fr', 'French']); if (!growTab.subs.some(x => x[0] === 'learn')) growTab.subs.splice(1, 0, ['learn', 'Learn']); }
 VIEWS['grow.learn'] = function(el){
-  const f = ui.learnField || LESSONS[Math.min(lessonIndex(), LESSONS.length - 1)].f, list = LESSONS.filter(x => x.f === f), cur = LESSONS[lessonIndex()];
-  el.innerHTML = '<div class="card tint"><div class="greet">' + (isAr() ? 'اتعلّمي كل يوم حاجة' : 'A lesson a day') + ' \u{1F4DA}</div><span class="small muted" style="font-weight:700">' + (isAr() ? 'أساسيات 10 مجالات، درس ورا درس. درس النهارده بيظهر تحت في الصفحة الرئيسية.' : 'Foundations of 10 fields, one lesson a day, in Egyptian Arabic.') + '</span></div>' +
-    '<div class="chips">' + LESSON_FIELDS.map(F => '<button class="chip' + (F[0] === f ? ' on' : '') + '" data-lf="' + F[0] + '">' + F[1] + ' ' + F[2] + ' <span class="cnt">' + LESSONS.filter(x => x.f === F[0]).length + '</span></button>').join('') + '</div>' +
+  const cur = lessonPool()[lessonIndex()].L, f = ui.learnField || (cur ? cur.f : LESSON_FIELDS[2][0]), list = LESSONS.filter(x => x.f === f);
+  el.innerHTML = '<div class="card tint"><div class="greet">' + (isAr() ? 'اتعلّمي كل يوم حاجة' : 'A lesson a day') + ' \u{1F4DA}</div><span class="small muted" style="font-weight:700">' + (isAr() ? 'أساسيات ' + LESSON_FIELDS.length + ' مجال، درس ورا درس. درس النهارده بيظهر تحت في الصفحة الرئيسية. ✅ يعني خلصتيه.' : 'Foundations of ' + LESSON_FIELDS.length + ' fields, one lesson a day, in Egyptian Arabic.') + '</span></div>' +
+    '<div class="chips">' + LESSON_FIELDS.map(F => '<button class="chip' + (F[0] === f ? ' on' : '') + '" data-lf="' + F[0] + '">' + F[1] + ' ' + F[2] + ' <span class="cnt">' + (LESSON_DONE.includes(F[0]) ? '✅' : LESSONS.filter(x => x.f === F[0]).length) + '</span></button>').join('') + '</div>' +
     list.map((L, i) => '<div class="card lesson' + (L === cur ? ' now' : '') + '" data-notr><span class="small muted" style="font-weight:900">' + (i + 1) + ' / ' + list.length + (L === cur ? ' · درس النهارده' : '') + '</span><h2 class="plain">' + esc(L.t) + '</h2><p style="margin:0">' + esc(L.x) + '</p>' + (L.ex ? '<p class="todo" style="margin:0"><b>مثال</b> ' + esc(L.ex) + '</p>' : '') + '</div>').join('');
   $$('[data-lf]', el).forEach(b => b.onclick = () => { ui.learnField = b.dataset.lf; VIEWS['grow.learn'](el); });
 };
