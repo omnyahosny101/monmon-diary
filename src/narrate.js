@@ -159,9 +159,9 @@ function narrLabel(){
   $('.nl', bar).textContent = !NAR.playing ? L2('دوسي ▶️ أو دوسي على أي فقرة تبدأ منها', 'Tap ▶️ or any paragraph to start') :
     (NAR.paused ? L2('واقفة · ', 'Paused · ') : (narrUsesAudio() ? L2('سلمى بتقرالك · ', 'Salma is reading · ') : L2('بتقرالك · ', 'Reading · '))) + (ch ? ch[1] : '');
 }
-function narrBar(){
+function narrBar(from){
   if (!RD || !RD.P) return;
-  if (NAR.bar) return narrStop();
+  if (NAR.bar){ if (from != null) return narrFrom(from); return narrStop(); }
   NAR.bar = true; RD.el.classList.add('narr');
   RD.el.insertAdjacentHTML('beforeend', '<div class="rd-nar" id="rdNar"><span class="nl"></span><div class="nb">' +
     '<button data-nv aria-label="Voice">🗣️</button><button data-nk="-1" aria-label="Previous paragraph">⏮️</button><button class="big" data-np aria-label="Play or pause">⏸️</button><button data-nk="1" aria-label="Next paragraph">⏭️</button><button data-nr aria-label="Speed">1×</button><button data-nx aria-label="Stop">✕</button></div></div>');
@@ -171,7 +171,7 @@ function narrBar(){
   $('[data-nr]', bar).onclick = () => { const i = NAR_RATES.indexOf(S.nar.rate); S.nar.rate = NAR_RATES[(i + 1) % NAR_RATES.length]; save(); if (NAR.playing && NAR.at >= 0) narrFrom(NAR.q[NAR.at].p); else narrLabel(); };
   $('[data-nx]', bar).onclick = narrStop;
   $('[data-nv]', bar).onclick = narrVoiceSheet;
-  const go = () => { if (RD && NAR.bar) narrFrom(S.books[RD.b.id].pos || 0); };
+  const go = () => { if (RD && NAR.bar) narrFrom(from != null ? from : (S.books[RD.b.id].pos || 0)); };
   // start inside this same tap; only when the audio list isn't here yet, wake the players first and start after it arrives
   if (NAR_AUDIO[RD.b.id] !== undefined) go(); else { narrUnlock(); narrManifest(RD.b).then(go); }
 }
@@ -203,4 +203,13 @@ function narrVoiceSheet(){
 function speakAr(t){
   if (VOX.native){ try { native().postMessage({type:'speak', id:'t' + Date.now(), text:t, lang:'ar-EG', rate:0.5 * S.nar.rate, voice:S.nar.voice || ''}); return; } catch(e){} }
   try { const s = speechSynthesis; s.cancel(); const u = new SpeechSynthesisUtterance(t); const v = narrWebVoice(); u.lang = v ? v.lang : 'ar-SA'; if (v) u.voice = v; u.rate = S.nar.rate; s.speak(u); } catch(e){}
+}
+
+/* tap a paragraph: a small "listen from here" button appears next to it */
+function narrHerePill(p, y){
+  if (!RD) return; const old = $('#rdHere', RD.el); if (old) old.remove();
+  const b = document.createElement('button'); b.id = 'rdHere'; b.className = 'rd-here'; b.textContent = L2('🎧 اسمعي من هنا', '🎧 Listen from here');
+  b.style.top = Math.max(70, Math.min(window.innerHeight - 180, y - 22)) + 'px';
+  b.onclick = ev => { ev.stopPropagation(); b.remove(); narrBar(p); };
+  RD.el.appendChild(b); clearTimeout(narrHerePill.t); narrHerePill.t = setTimeout(() => b.remove(), 3500);
 }

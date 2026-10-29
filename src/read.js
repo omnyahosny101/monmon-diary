@@ -185,6 +185,7 @@ function bindReaderText(){
     if (m) return hlSheet(RD.b.id, m.dataset.hid);
     const pp = ev.target.closest('[data-i]');
     if (pp && NAR.bar){ narrFrom(+pp.dataset.i); return; }
+    if (pp) narrHerePill(+pp.dataset.i, ev.clientY);
     if (ev.target.closest('.rd-text')) el.classList.toggle('bare');
   };
 }
