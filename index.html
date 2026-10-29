@@ -5248,7 +5248,7 @@ function frHomeExtra(el, again){
    Sentences go to the phone's Arabic voice in batches, so it keeps reading with the screen locked.
    The paragraph being read glows and the page follows it. Tap any paragraph to start from there.
    S.nar = {rate, voice} */
-const NAR = {bar:false, playing:false, paused:false, q:[], at:-1, sent:0, run:0};
+const NAR = {log:[], bar:false, playing:false, paused:false, q:[], at:-1, sent:0, run:0};
 const NAR_RATES = [0.8, 1, 1.2, 1.4];
 function narrMigrate(){ S.nar = Object.assign({rate:1, voice:'', engine:'salma'}, S.nar || {}); }
 /* the book recorded in Microsoft's Egyptian voice (Salma), one MP3 per paragraph, made by scripts/book_audio.py */
@@ -5264,6 +5264,7 @@ function narrAudioURL(b, f){ return new URL('books/audio/' + b.id + '/' + f, loc
 let narrEl = null;
 // iPhones only let sound start from a tap, so the first tap on 🎧 or ▶️ wakes both players up
 const NAR_SILENT = 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAAA//OEwAAAAAAAAAAAAEluZm8AAAAPAAAACQAABCAARUVFRUVFRUVFRUVdXV1dXV1dXV1dXXR0dHR0dHR0dHR0i4uLi4uLi4uLi4uioqKioqKioqKiorq6urq6urq6urq60dHR0dHR0dHR0dHo6Ojo6Ojo6Ojo6P//////////////AAAAAExhdmM2MC4zMQAAAAAAAAAAAAAAACQD8AAAAAAAAAQgDeb0IwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//NExAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExFMAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKYAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NExKwAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NExKwAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+function narrLog(m){ NAR.log.push(new Date().toTimeString().slice(0, 8) + ' ' + m); if (NAR.log.length > 8) NAR.log.shift(); }
 function narrUnlock(){
   try { if (!narrEl){ narrEl = new Audio(); narrEl.preload = 'auto'; } if (!narrEl.src || narrEl.src.startsWith('data:')){ narrEl.src = NAR_SILENT; const pr = narrEl.play(); if (pr) pr.catch(() => {}); } } catch(e){}
   try { if (!VOX.native && window.speechSynthesis && !NAR.ttsUnlocked){ const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); NAR.ttsUnlocked = true; } } catch(e){}
@@ -5272,7 +5273,7 @@ function narrWebAudio(i){
   const x = NAR.q[i]; if (!x) return;
   if (!narrEl){ narrEl = new Audio(); narrEl.preload = 'auto'; }
   narrEl.onended = () => { narrDone(x.id); if (NAR.q[i + 1] && NAR.playing) narrWebAudio(i + 1); };
-  narrEl.src = x.url; narrEl.playbackRate = S.nar.rate; narrEl.play().then(() => narrStart(x.id)).catch(e => {
+  narrEl.src = x.url; narrEl.playbackRate = S.nar.rate; narrLog('audio ' + i); narrEl.onerror = () => narrLog('audio error ' + (narrEl.error ? narrEl.error.code : '?')); narrEl.play().then(() => { narrLog('audio playing'); narrStart(x.id); }).catch(e => { narrLog('audio blocked ' + (e && e.name));
     if (e && e.name === 'NotAllowedError'){ NAR.paused = true; narrLabel(); toast(L2('دوسي ▶️ عشان الصوت يشتغل', 'Tap ▶️ to start the sound')); }
     else toast(L2('الصوت محتاج نت', 'The audio needs internet')); });
 }
@@ -5320,7 +5321,7 @@ function narrWebVoice(){
 function narrSend(replace){
   if (NAR.q[0] && NAR.q[0].url){
     if (!replace) return; NAR.sent = NAR.q.length;
-    if (VOX.native){ try { native().postMessage({type:'audioQueue', replace:true, rate:S.nar.rate, items:NAR.q.map(x => ({id:x.id, url:x.url}))}); return; } catch(e){} }
+    if (VOX.native){ narrLog('native audio'); try { native().postMessage({type:'audioQueue', replace:true, rate:S.nar.rate, items:NAR.q.map(x => ({id:x.id, url:x.url}))}); return; } catch(e){} }
     return narrWebAudio(0);
   }
   const batch = NAR.q.slice(NAR.sent, NAR.sent + 150); if (!batch.length) return;
@@ -5333,7 +5334,8 @@ function narrSend(replace){
   const v = narrWebVoice();
   if (!v && replace) toast(L2('مفيش صوت عربي ظاهر هنا. نزّلي تحديث Xcode عشان يستعمل صوت الآيفون العربي.', 'No Arabic voice here. Install the app update to use the iPhone’s Arabic voice.'));
   batch.forEach(x => { const u = new SpeechSynthesisUtterance(x.t); u.lang = v ? v.lang : 'ar-SA'; if (v) u.voice = v; u.rate = S.nar.rate;
-    u.onstart = () => narrStart(x.id); u.onend = () => narrDone(x.id); s.speak(u); });
+    u.onstart = () => { narrLog('tts start'); narrStart(x.id); }; u.onend = () => narrDone(x.id); u.onerror = e => narrLog('tts error ' + (e && e.error)); s.speak(u); });
+  narrLog('tts queued ' + batch.length + (v ? ' ' + v.name : ' no-ar-voice'));
 }
 const _spokeBase = window.__spoke;
 window.__spoke = id => { if (String(id)[0] === 'n') return narrDone(id); _spokeBase(id); };
@@ -5425,14 +5427,21 @@ function narrVoiceSheet(){
   sheet('<div style="text-align:center;font-size:38px">🗣️</div><h2 class="plain" style="justify-content:center">' + L2('صوت الراوي', 'Narrator voice') + '</h2>' +
     '<div class="chips" style="justify-content:center"><button class="chip' + (S.nar.engine === 'salma' ? ' on' : '') + '" data-eng="salma">🇪🇬 ' + L2('سلمى (مصري)', 'Salma (Egyptian)') + '</button><button class="chip' + (S.nar.engine !== 'salma' ? ' on' : '') + '" data-eng="tts">📱 ' + L2('صوت الآيفون', 'iPhone voice') + '</button></div>' +
     '<p class="small" style="margin:0;font-weight:800;text-align:center">' + (RD && NAR_AUDIO[RD.b.id] ? L2('✓ صوت سلمى المصري جاهز للكتاب ده (محتاج نت)', '✓ Salma’s Egyptian audio is ready for this book (needs internet)') : L2('⏳ صوت سلمى المصري لسه بيتجهز للكتاب ده، ولحد ما يخلص هيقرا صوت الآيفون.', '⏳ Salma’s audio isn’t ready yet; the iPhone voice reads meanwhile.')) + '</p>' +
+    '<div class="row"><button class="btn soft" data-try="salma" style="flex:1">▶️ ' + L2('جربي سلمى', 'Try Salma') + '</button><button class="btn soft" data-try="tts" style="flex:1">▶️ ' + L2('جربي الآيفون', 'Try iPhone') + '</button></div>' +
     '<label class="field"><span>' + L2('صوت الآيفون', 'iPhone voice') + '</span><select class="in" data-v><option value="">' + L2('أحسن صوت عربي عندك (تلقائي)', 'Best Arabic voice (auto)') + '</option>' +
       list.map(v => '<option value="' + esc(v.id) + '"' + (S.nar.voice === v.id ? ' selected' : '') + '>' + esc(v.name) + ' · ' + esc(v.lang) + ' · ' + QLAB(v.q) + '</option>').join('') + '</select></label>' +
     '<button class="btn soft full" data-t>🔊 ' + L2('جربي الصوت', 'Test the voice') + '</button>' +
     '<div class="frnote"><b>📥 ' + L2('عشان الصوت يبقى أوضح', 'For a clearer voice') + '</b><p>' +
       L2('الإعدادات ‹ تسهيلات الاستخدام ‹ المحتوى المنطوق ‹ الأصوات ‹ العربية ‹ اختاري صوت ونزّلي نسخة «المحسّن Enhanced». بعدين اقفلي التطبيق وافتحيه واختاريه من هنا.', 'Settings › Accessibility › Spoken Content › Voices › Arabic › download an Enhanced voice, then reopen the app and pick it here.') +
       '<br><br>' + L2('ملحوظة: أصوات الآيفون العربي بتنطق فصحى، فهتقرالك الكلام المصري بلهجة فصحى شوية. لسه مفيش صوت مصري جوه الآيفون.', 'Note: iPhone Arabic voices speak Modern Standard Arabic; there is no Egyptian voice built in yet.') +
-      (nat ? '' : '<br><br>' + L2('⚠️ الأصوات الواضحة والقراية والشاشة مقفولة بتشتغل جوه التطبيق بعد تحديث Xcode.', '⚠️ Clear voices and reading with the screen locked work in the app after the Xcode update.')) + '</p></div>',
+      (nat ? '' : '<br><br>' + L2('⚠️ الأصوات الواضحة والقراية والشاشة مقفولة بتشتغل جوه التطبيق بعد تحديث Xcode.', '⚠️ Clear voices and reading with the screen locked work in the app after the Xcode update.')) + '</p></div>' +
+    '<p class="small muted" dir="ltr" data-notr style="margin:0;font-size:10.5px;line-height:1.5;word-break:break-all">diag · app:' + (native() ? (VOX.native ? 'new' : 'old') : 'web') + ' · ar:' + (nat ? VOX.ar.length : webVoices('ar').length) + ' · all:' + (window.speechSynthesis ? speechSynthesis.getVoices().length : 'x') + ' · salma:' + (RD && NAR_AUDIO[RD.b.id] ? 'yes' : RD && NAR_AUDIO[RD.b.id] === null ? 'no' : '?') + ' · ' + esc(NAR.log.join(' | ')) + '</p>',
   sh => {
+    $$('[data-try]', sh).forEach(b => b.onclick = () => {
+      if (b.dataset.try === 'salma'){ const m = RD && NAR_AUDIO[RD.b.id]; if (!m) return toast(L2('ملفات سلمى ماوصلتش، اتأكدي من النت', 'Salma’s files didn’t load')); if (!narrEl) narrEl = new Audio();
+        narrEl.onended = null; narrEl.src = narrAudioURL(RD.b, m.files[Object.keys(m.files)[2]]); narrEl.play().then(() => narrLog('try salma ok')).catch(e => { narrLog('try salma ' + e.name); toast('Salma: ' + e.name); }); }
+      else { try { const u = new SpeechSynthesisUtterance('أهلًا يا مونمون'); const v = narrWebVoice(); u.lang = v ? v.lang : 'ar-SA'; if (v) u.voice = v; u.onerror = e => toast('TTS: ' + e.error); speechSynthesis.cancel(); speechSynthesis.speak(u); narrLog('try tts ' + (v ? v.name : 'none')); } catch(e){ toast('TTS: ' + e.message); } }
+    });
     $$('[data-eng]', sh).forEach(b => b.onclick = () => { S.nar.engine = b.dataset.eng; save(); $$('[data-eng]', sh).forEach(z => z.classList.toggle('on', z === b)); if (NAR.playing && NAR.at >= 0) narrFrom(NAR.q[NAR.at].p); });
     $('[data-v]', sh).onchange = e => { S.nar.voice = e.target.value; save(); if (NAR.playing && NAR.at >= 0) narrFrom(NAR.q[NAR.at].p); };
     $('[data-t]', sh).onclick = () => { if (NAR.playing && !NAR.paused) narrPause(); speakAr('أهلًا يا مونمون، أنا هقرالك الكتاب النهارده.'); };
