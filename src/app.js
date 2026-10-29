@@ -224,11 +224,23 @@ function renderTabs(){
   $('#tabs').innerHTML = TABS.map(t => '<button class="tab" role="tab" data-t="' + t.id + '" aria-selected="' + (nav.tab === t.id) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + t.icon + '</svg>' + t.name + '</button>').join('');
   $$('#tabs .tab').forEach(b => b.onclick = () => go(b.dataset.t));
 }
+// every page remembers where you were, so coming back lands you on the same spot
+const SCROLL = (() => { try { return JSON.parse(sessionStorage.getItem('monmon-scroll') || '{}'); } catch(e){ return {}; } })();
+const navKey = () => nav.tab + '.' + (nav.sub[nav.tab] || '');
+function rememberScroll(){ SCROLL[navKey()] = Math.round(window.scrollY); try { sessionStorage.setItem('monmon-scroll', JSON.stringify(SCROLL)); } catch(e){} }
+function restoreScroll(y){
+  if (y == null) y = SCROLL[navKey()] || 0;
+  window.scrollTo({top:y});
+  if (y){ requestAnimationFrame(() => window.scrollTo({top:y})); setTimeout(() => window.scrollTo({top:y}), 250); setTimeout(() => window.scrollTo({top:y}), 900); }
+}
 function go(tab, sub){
+  rememberScroll();
   nav.tab = tab; if (sub) nav.sub[tab] = sub;
   try { sessionStorage.setItem('monmon-nav', JSON.stringify(nav)); } catch(e){}
-  render(); window.scrollTo({top:0});
+  render(); restoreScroll();
 }
+addEventListener('pagehide', rememberScroll);
+document.addEventListener('visibilitychange', () => { if (document.hidden) rememberScroll(); });
 function segHTML(t){
   const T = TABS.find(x => x.id === t); if (!T.subs) return '';
   return '<div class="seg" role="tablist">' + T.subs.map(s => '<button data-sub="' + s[0] + '" aria-pressed="' + (nav.sub[t] === s[0]) + '">' + s[1] + '</button>').join('') + '</div>';

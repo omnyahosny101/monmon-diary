@@ -110,6 +110,7 @@ function readerVars(){
 function ensureAmiri(){ if (S.reader.font !== 'amiri' || $('#amiriFont')) return; const l = document.createElement('link'); l.id = 'amiriFont'; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap'; document.head.appendChild(l); }
 function openReader(id, at){
   const b = bookById(id); if (!b) return;
+  const backY = window.scrollY;
   const x = S.books[b.id];
   const shell = document.createElement('div'); shell.className = 'reader rt-' + S.reader.theme; shell.id = 'reader'; shell.setAttribute('data-notr', '');
   shell.setAttribute('style', readerVars());
@@ -121,7 +122,7 @@ function openReader(id, at){
     '<button data-hnote>💬 ' + L2('تعليق', 'Note') + '</button><button data-hask>🤔 ' + L2('اسألي كلود', 'Ask Claude') + '</button><button data-hcopy>📋</button></div>';
   document.body.appendChild(shell); document.documentElement.classList.add('reading');
   ensureAmiri();
-  RD = {b, el:shell, P:null};
+  RD = {b, el:shell, P:null, back:backY};
   if (typeof narrManifest === 'function') narrManifest(b);
   try { if (document.fullscreenEnabled && !navigator.standalone && window.innerWidth > 700) document.documentElement.requestFullscreen().catch(() => {}); } catch(e){}
   $('[data-rclose]', shell).onclick = closeReader;
@@ -149,9 +150,9 @@ function drawReader(at){
 function closeReader(){
   if (typeof narrStop === 'function') narrStop();
   if (!RD) return; readerTrack(true); saveNow();
-  RD.el.remove(); RD = null; document.documentElement.classList.remove('reading');
+  const back = RD.back; RD.el.remove(); RD = null; document.documentElement.classList.remove('reading');
   try { if (document.fullscreenElement) document.exitFullscreen(); } catch(e){}
-  render();
+  render(); restoreScroll(back);
 }
 function saveNow(){ save(); }
 let rdTick = 0, rdSaveT = 0;

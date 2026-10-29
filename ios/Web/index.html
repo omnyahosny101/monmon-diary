@@ -2603,11 +2603,23 @@ function renderTabs(){
   $('#tabs').innerHTML = TABS.map(t => '<button class="tab" role="tab" data-t="' + t.id + '" aria-selected="' + (nav.tab === t.id) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + t.icon + '</svg>' + t.name + '</button>').join('');
   $$('#tabs .tab').forEach(b => b.onclick = () => go(b.dataset.t));
 }
+// every page remembers where you were, so coming back lands you on the same spot
+const SCROLL = (() => { try { return JSON.parse(sessionStorage.getItem('monmon-scroll') || '{}'); } catch(e){ return {}; } })();
+const navKey = () => nav.tab + '.' + (nav.sub[nav.tab] || '');
+function rememberScroll(){ SCROLL[navKey()] = Math.round(window.scrollY); try { sessionStorage.setItem('monmon-scroll', JSON.stringify(SCROLL)); } catch(e){} }
+function restoreScroll(y){
+  if (y == null) y = SCROLL[navKey()] || 0;
+  window.scrollTo({top:y});
+  if (y){ requestAnimationFrame(() => window.scrollTo({top:y})); setTimeout(() => window.scrollTo({top:y}), 250); setTimeout(() => window.scrollTo({top:y}), 900); }
+}
 function go(tab, sub){
+  rememberScroll();
   nav.tab = tab; if (sub) nav.sub[tab] = sub;
   try { sessionStorage.setItem('monmon-nav', JSON.stringify(nav)); } catch(e){}
-  render(); window.scrollTo({top:0});
+  render(); restoreScroll();
 }
+addEventListener('pagehide', rememberScroll);
+document.addEventListener('visibilitychange', () => { if (document.hidden) rememberScroll(); });
 function segHTML(t){
   const T = TABS.find(x => x.id === t); if (!T.subs) return '';
   return '<div class="seg" role="tablist">' + T.subs.map(s => '<button data-sub="' + s[0] + '" aria-pressed="' + (nav.sub[t] === s[0]) + '">' + s[1] + '</button>').join('') + '</div>';
@@ -4796,6 +4808,7 @@ function readerVars(){
 function ensureAmiri(){ if (S.reader.font !== 'amiri' || $('#amiriFont')) return; const l = document.createElement('link'); l.id = 'amiriFont'; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap'; document.head.appendChild(l); }
 function openReader(id, at){
   const b = bookById(id); if (!b) return;
+  const backY = window.scrollY;
   const x = S.books[b.id];
   const shell = document.createElement('div'); shell.className = 'reader rt-' + S.reader.theme; shell.id = 'reader'; shell.setAttribute('data-notr', '');
   shell.setAttribute('style', readerVars());
@@ -4807,7 +4820,7 @@ function openReader(id, at){
     '<button data-hnote>💬 ' + L2('تعليق', 'Note') + '</button><button data-hask>🤔 ' + L2('اسألي كلود', 'Ask Claude') + '</button><button data-hcopy>📋</button></div>';
   document.body.appendChild(shell); document.documentElement.classList.add('reading');
   ensureAmiri();
-  RD = {b, el:shell, P:null};
+  RD = {b, el:shell, P:null, back:backY};
   if (typeof narrManifest === 'function') narrManifest(b);
   try { if (document.fullscreenEnabled && !navigator.standalone && window.innerWidth > 700) document.documentElement.requestFullscreen().catch(() => {}); } catch(e){}
   $('[data-rclose]', shell).onclick = closeReader;
@@ -4835,9 +4848,9 @@ function drawReader(at){
 function closeReader(){
   if (typeof narrStop === 'function') narrStop();
   if (!RD) return; readerTrack(true); saveNow();
-  RD.el.remove(); RD = null; document.documentElement.classList.remove('reading');
+  const back = RD.back; RD.el.remove(); RD = null; document.documentElement.classList.remove('reading');
   try { if (document.fullscreenElement) document.exitFullscreen(); } catch(e){}
-  render();
+  render(); restoreScroll(back);
 }
 function saveNow(){ save(); }
 let rdTick = 0, rdSaveT = 0;
@@ -6019,8 +6032,9 @@ narrMigrate();
 podMigrate();
 applyLang();
 render();
+restoreScroll();
 syncNative();
-document.addEventListener('visibilitychange', () => { if (!document.hidden){ if (nav.tab === 'today') render(); syncNative(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden){ if (nav.tab === 'today' && !RD && !$('.sheet')){ const y = window.scrollY; render(); restoreScroll(y); } syncNative(); } });
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 
 </script>

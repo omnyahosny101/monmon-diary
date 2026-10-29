@@ -15,6 +15,7 @@ narrMigrate();
 podMigrate();
 applyLang();
 render();
+restoreScroll();
 syncNative();
-document.addEventListener('visibilitychange', () => { if (!document.hidden){ if (nav.tab === 'today') render(); syncNative(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden){ if (nav.tab === 'today' && !RD && !$('.sheet')){ const y = window.scrollY; render(); restoreScroll(y); } syncNative(); } });
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
