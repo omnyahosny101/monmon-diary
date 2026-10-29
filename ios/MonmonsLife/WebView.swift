@@ -24,6 +24,9 @@ struct WebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .default()
+        // sound may start from code (the narrator moving to the next paragraph), not only from a tap
+        config.allowsInlineMediaPlayback = true
+        config.mediaTypesRequiringUserActionForPlayback = []
         config.userContentController.add(context.coordinator, name: "app")
 
         // Hand the saved copy to the page before its script runs.

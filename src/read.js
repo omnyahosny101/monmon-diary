@@ -109,6 +109,7 @@ function openReader(id, at){
   document.body.appendChild(shell); document.documentElement.classList.add('reading');
   ensureAmiri();
   RD = {b, el:shell, P:null};
+  if (typeof narrManifest === 'function') narrManifest(b);
   try { if (document.fullscreenEnabled && !navigator.standalone && window.innerWidth > 700) document.documentElement.requestFullscreen().catch(() => {}); } catch(e){}
   $('[data-rclose]', shell).onclick = closeReader;
   $('[data-raa]', shell).onclick = readerSettings;

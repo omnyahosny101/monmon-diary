@@ -4626,6 +4626,7 @@ function openReader(id, at){
   document.body.appendChild(shell); document.documentElement.classList.add('reading');
   ensureAmiri();
   RD = {b, el:shell, P:null};
+  if (typeof narrManifest === 'function') narrManifest(b);
   try { if (document.fullscreenEnabled && !navigator.standalone && window.innerWidth > 700) document.documentElement.requestFullscreen().catch(() => {}); } catch(e){}
   $('[data-rclose]', shell).onclick = closeReader;
   $('[data-raa]', shell).onclick = readerSettings;
@@ -5261,11 +5262,19 @@ function narrManifest(b){
 const narrUsesAudio = () => RD && S.nar.engine === 'salma' && !!NAR_AUDIO[RD.b.id];
 function narrAudioURL(b, f){ return new URL('books/audio/' + b.id + '/' + f, location.protocol.startsWith('http') ? location.href : LIVE).href; }
 let narrEl = null;
+// iPhones only let sound start from a tap, so the first tap on 🎧 or ▶️ wakes both players up
+const NAR_SILENT = 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAAA//OEwAAAAAAAAAAAAEluZm8AAAAPAAAACQAABCAARUVFRUVFRUVFRUVdXV1dXV1dXV1dXXR0dHR0dHR0dHR0i4uLi4uLi4uLi4uioqKioqKioqKiorq6urq6urq6urq60dHR0dHR0dHR0dHo6Ojo6Ojo6Ojo6P//////////////AAAAAExhdmM2MC4zMQAAAAAAAAAAAAAAACQD8AAAAAAAAAQgDeb0IwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//NExAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExFMAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKYAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NExKwAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NExKwAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+function narrUnlock(){
+  try { if (!narrEl){ narrEl = new Audio(); narrEl.preload = 'auto'; } if (!narrEl.src || narrEl.src.startsWith('data:')){ narrEl.src = NAR_SILENT; const pr = narrEl.play(); if (pr) pr.catch(() => {}); } } catch(e){}
+  try { if (!VOX.native && window.speechSynthesis && !NAR.ttsUnlocked){ const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); NAR.ttsUnlocked = true; } } catch(e){}
+}
 function narrWebAudio(i){
   const x = NAR.q[i]; if (!x) return;
   if (!narrEl){ narrEl = new Audio(); narrEl.preload = 'auto'; }
   narrEl.onended = () => { narrDone(x.id); if (NAR.q[i + 1] && NAR.playing) narrWebAudio(i + 1); };
-  narrEl.src = x.url; narrEl.playbackRate = S.nar.rate; narrEl.play().then(() => narrStart(x.id)).catch(() => toast(L2('الصوت محتاج نت', 'The audio needs internet')));
+  narrEl.src = x.url; narrEl.playbackRate = S.nar.rate; narrEl.play().then(() => narrStart(x.id)).catch(e => {
+    if (e && e.name === 'NotAllowedError'){ NAR.paused = true; narrLabel(); toast(L2('دوسي ▶️ عشان الصوت يشتغل', 'Tap ▶️ to start the sound')); }
+    else toast(L2('الصوت محتاج نت', 'The audio needs internet')); });
 }
 function narrSplit(t){
   const out = [];
@@ -5371,7 +5380,10 @@ function narrStop(){
   if (RD){ $$('.rd-now', RD.el).forEach(e => e.classList.remove('rd-now')); const bar = $('#rdNar', RD.el); if (bar) bar.remove(); RD.el.classList.remove('narr'); }
 }
 function narrPause(){
+  narrUnlock();
   if (!NAR.playing) return narrFrom(NAR.at >= 0 ? NAR.q[NAR.at].p : S.books[RD.b.id].pos);
+  if (!VOX.native && !(NAR.q[0] && NAR.q[0].url) && window.speechSynthesis && !speechSynthesis.speaking && !speechSynthesis.pending) return narrFrom(NAR.at >= 0 ? NAR.q[NAR.at].p : S.books[RD.b.id].pos);
+  if (NAR.paused && narrEl && !VOX.native && NAR.q[0] && NAR.q[0].url && narrEl.src.startsWith('data:')) return narrFrom(NAR.at >= 0 ? NAR.q[NAR.at].p : S.books[RD.b.id].pos);
   NAR.paused = !NAR.paused;
   try {
     if (narrEl && !VOX.native && NAR.q[0] && NAR.q[0].url){ if (NAR.paused) narrEl.pause(); else narrEl.play(); }
@@ -5395,6 +5407,7 @@ function narrLabel(){
 function narrBar(){
   if (!RD || !RD.P) return;
   if (NAR.bar) return narrStop();
+  narrUnlock();
   NAR.bar = true; RD.el.classList.add('narr');
   RD.el.insertAdjacentHTML('beforeend', '<div class="rd-nar" id="rdNar"><span class="nl"></span><div class="nb">' +
     '<button data-nv aria-label="Voice">🗣️</button><button data-nk="-1" aria-label="Previous paragraph">⏮️</button><button class="big" data-np aria-label="Play or pause">⏸️</button><button data-nk="1" aria-label="Next paragraph">⏭️</button><button data-nr aria-label="Speed">1×</button><button data-nx aria-label="Stop">✕</button></div></div>');
@@ -5404,7 +5417,8 @@ function narrBar(){
   $('[data-nr]', bar).onclick = () => { const i = NAR_RATES.indexOf(S.nar.rate); S.nar.rate = NAR_RATES[(i + 1) % NAR_RATES.length]; save(); if (NAR.playing && NAR.at >= 0) narrFrom(NAR.q[NAR.at].p); else narrLabel(); };
   $('[data-nx]', bar).onclick = narrStop;
   $('[data-nv]', bar).onclick = narrVoiceSheet;
-  narrManifest(RD.b).then(() => { if (RD && NAR.bar) narrFrom(S.books[RD.b.id].pos || 0); });
+  const go = () => { if (RD && NAR.bar) narrFrom(S.books[RD.b.id].pos || 0); };
+  if (NAR_AUDIO[RD.b.id] !== undefined) go(); else narrManifest(RD.b).then(go);
 }
 function narrVoiceSheet(){
   const nat = VOX.native, list = nat ? VOX.ar : webVoices('ar').map(v => ({id:v.name, name:v.name, lang:v.lang, q:/premium/i.test(v.name) ? 3 : /enhanced|natural|neural/i.test(v.name) ? 2 : 1}));
