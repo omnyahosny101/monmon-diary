@@ -191,7 +191,6 @@ VIEWS.today = function(el){
   coming.sort((a, b) => a.d < b.d ? -1 : 1);
   el.innerHTML =
     emergencyHTML() +
-    cycleHomeHTML() +
     weddingTrackerHTML() +
     '<div class="card wisdom"><span class="src">\u{1F4DA} ' + esc(wz.src) + '</span><p class="idea">' + esc(wz.idea) + '</p><p class="todo"><b>Try this today</b>' + esc(wz.advice) + '</p><button class="linkbtn" id="wzNext" style="align-self:flex-start;background:var(--surface);color:var(--berry)">Another one</button></div>' +
     mashawerHTML() +
@@ -204,7 +203,6 @@ VIEWS.today = function(el){
       '<label class="field" style="flex:2 1 150px"><span>Category</span><select class="in" id="qCat">' + CATS.map(c => '<option value="' + c.id + '">' + c.e + ' ' + c.name + '</option>').join('') + '</select></label></div>' +
       '<div class="row"><label class="field"><span>Note</span><input class="in" id="qNote" placeholder="What was it?"></label><label class="field" style="flex:1 1 120px"><span>Day</span><input class="in" id="qDate" type="date" value="' + day + '"></label></div><button class="btn full" id="qAdd">Add</button>' +
       '<div class="list">' + (todaySpend.length ? todaySpend.map(spendRow).join('') : '<div class="empty">' + (past ? 'Nothing spent that day.' : 'Nothing spent yet today.') + '</div>') + '</div></div>' +
-    '<div class="card"><h2>' + (past ? 'What did I do that day?' : 'What did I do today?') + '</h2><div class="chips">' + DAYLOG.map(x => '<button class="chip' + (logs.includes(x.id) ? ' on' : '') + '" data-l="' + x.id + '">' + x.e + ' ' + x.name + '</button>').join('') + '</div></div>' +
     '<div class="card"><div class="card-head"><h2>Dear diary</h2><span class="small muted">' + nice(day) + '</span></div>' +
       '<div class="moods">' + MOODS.map((m, i) => '<button class="mood' + (diary.mood === i + 1 ? ' on' : '') + '" data-mood="' + (i + 1) + '" aria-label="' + m.t + '">' + m.e + '<span>' + m.t + '</span></button>').join('') + '</div>' +
       '<h3>Today’s 3 questions</h3>' + qs.map(q => '<label class="field"><span class="qlab">' + esc(QUESTIONS[q]) + '</span><textarea class="in" data-q="' + q + '" placeholder="My answer…" style="min-height:50px">' + esc(qa[q] || '') + '</textarea></label>').join('') +

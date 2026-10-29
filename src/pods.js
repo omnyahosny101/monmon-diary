@@ -209,6 +209,7 @@ function bindPodHome(el){
 const _todayPod = VIEWS.today;
 VIEWS.today = function(el){
   _todayPod(el);
+  const db = $('.daybar', el); if (db) el.appendChild(db); // "log a past day" lives at the very end
   const html = podHomeHTML(); if (!html) return;
   const anchor = $('.readhome', el) || $('.frhome', el);
   if (anchor) anchor.insertAdjacentHTML('afterend', html); else el.insertAdjacentHTML('beforeend', html);
