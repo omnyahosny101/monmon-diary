@@ -5791,6 +5791,7 @@ function podMigrate(){
   S.pods = S.pods && typeof S.pods === 'object' ? S.pods : {};
   if (!Array.isArray(S.pods.subs)){ S.pods.subs = POD_SEED.slice(); }
   S.pods.prog = S.pods.prog || {}; S.pods.rate = S.pods.rate || 1;
+  S.music = Array.isArray(S.music) ? S.music : [];
 }
 function jsonp(url){
   return new Promise((res, rej) => {
@@ -5907,11 +5908,14 @@ VIEWS['grow.listen'] = function(el){
   el.innerHTML = '<div class="card tint"><div class="greet">🎧 ' + L2('أسمع من غير تشتيت', 'Listen without distractions') + '</div><span class="small" style="font-weight:700;line-height:1.6">' +
       L2('بودكاستاتك هنا من غير يوتيوب ولا مقترحات. في التطبيق بتكمّل والشاشة مقفولة (بعد تحديث Xcode الجاي).', 'Your podcasts, no YouTube, no feed. In the app they keep playing with the screen locked (after the next Xcode update).') + '</span>' +
       '<div class="row"><input class="in" id="podQ" placeholder="' + L2('دوّري على بودكاست أو الزقي لينك Apple Podcasts', 'Search, or paste an Apple Podcasts link') + '" style="flex:1"><button class="btn" id="podGo">' + L2('دوّري', 'Search') + '</button></div><div id="podRes"></div></div>' +
+    '<div class="card"><div class="card-head"><h2>🎵 ' + L2('بلاي ليستاتي (يوتيوب ميوزك)', 'My playlists (YouTube Music)') + '</h2><button class="linkbtn" id="mAdd">➕ ' + L2('ضيفي', 'Add') + '</button></div>' + musicHTML(true) +
+      '<span class="small muted" style="font-weight:700">' + L2('بتفتح في تطبيق يوتيوب ميوزك على البلاي ليست على طول، فتشتغل بالبريميم والشاشة مقفولة.', 'Opens straight in the YouTube Music app, so Premium keeps playing with the screen locked.') + '</span></div>' +
     (last && lp && !lp.done && lp.pos > 5 ? '<div class="card"><div class="card-head"><h2>▶️ ' + L2('كمّلي', 'Continue') + '</h2><span class="small muted" style="font-weight:800">' + tfmt(lp.pos) + (lp.dur ? ' / ' + tfmt(lp.dur) : '') + '</span></div><button class="podep" data-pk="last"><span class="t" data-notr><b>' + esc(last.t) + '</b><span class="s">' + esc(last.st) + '</span></span><span class="pp">▶️</span></button></div>' : '') +
     (subs.length ? '<div class="chips">' + subs.map(s => '<button class="chip' + (s.id === cur ? ' on' : '') + '" data-ps="' + s.id + '" data-notr>' + (s.art ? '<img src="' + esc(s.art) + '" alt="" class="pchip">' : '🎧 ') + esc(s.t || s.id) + '</button>').join('') + '</div>' : '') +
     '<div class="card" id="podEps"><div class="empty">' + (cur ? L2('بنجيب الحلقات…', 'Loading episodes…') : L2('تابعي بودكاست من البحث فوق', 'Follow a podcast from the search above')) + '</div></div>';
   const again = () => VIEWS['grow.listen'](el);
   $$('[data-ps]', el).forEach(b => b.onclick = () => { ui.podShow = b.dataset.ps; again(); });
+  $('#mAdd', el).onclick = () => musicAddSheet(again); bindMusic(el, again);
   const lk = $('[data-pk="last"]', el); if (lk) lk.onclick = () => podPlay(last);
   const search = () => { const v = $('#podQ', el).value.trim(); if (!v) return; const link = podIdFromLink(v), box = $('#podRes', el);
     if (link){ podFollow({id:link.id}); ui.podEp = link.ep; again(); return; }
@@ -5936,17 +5940,68 @@ VIEWS['grow.listen'] = function(el){
   }).catch(() => { const box = $('#podEps', el); if (box) box.innerHTML = '<div class="empty">' + L2('الحلقات محتاجة نت. جربي تاني.', 'Episodes need internet. Try again.') + '</div>'; });
 };
 if (growTab && !growTab.subs.some(x => x[0] === 'listen')) growTab.subs.splice(2, 0, ['listen', 'Listen']);
-// the podcast habit on the home page opens the player
+/* ---------- YouTube Music: one tap opens a playlist in the YouTube Music app (Premium keeps playing locked) ---------- */
+const MUSIC_EMO = ['🎵', '🏋️', '💃', '💻', '🧘', '🚗', '😴', '💍', '🌸', '🔥'];
+function musicHTML(manage){
+  const L = S.music;
+  return '<div class="music">' + (L.length ? L.map(m => '<span class="mchip"><button class="chip" data-mopen="' + m.id + '" data-notr>' + m.e + ' ' + esc(m.name) + '</button>' + (manage ? delBtn('data-mdel', m.id) : '') + '</span>').join('') : '<span class="small muted" style="font-weight:700">' + L2('لسه مفيش بلاي ليستات. ضيفيها من «اسمعي» في تطوير.', 'No playlists yet. Add them in Grow › Listen.') + '</span>') + '</div>';
+}
+function bindMusic(el, again){
+  $$('[data-mopen]', el).forEach(b => b.onclick = () => { const m = S.music.find(x => x.id === b.dataset.mopen); if (!m) return; m.last = todayStr(); save(); openExternal(m.url); });
+  armDelete(el, 'data-mdel', id => { S.music = S.music.filter(m => m.id !== id); save(); again(); });
+}
+function musicAddSheet(again){
+  let emo = MUSIC_EMO[0];
+  sheet('<div style="text-align:center;font-size:36px">🎵</div><h2 class="plain" style="justify-content:center">' + L2('بلاي ليست يوتيوب ميوزك', 'YouTube Music playlist') + '</h2>' +
+    '<p class="small muted" style="margin:0;font-weight:700">' + L2('في يوتيوب ميوزك: افتحي البلاي ليست ← ⋯ ← Share ← Copy link، والزقيه هنا.', 'In YouTube Music: open the playlist ← ⋯ ← Share ← Copy link, then paste here.') + '</p>' +
+    '<label class="field"><span>' + L2('اللينك', 'Link') + '</span><input class="in" data-u dir="ltr" placeholder="https://music.youtube.com/playlist?list=…"></label>' +
+    '<label class="field"><span>' + L2('الاسم', 'Name') + '</span><input class="in" data-n placeholder="' + L2('الجيم، تركيز، بول دانس…', 'Gym, focus…') + '"></label>' +
+    '<div class="emopick">' + MUSIC_EMO.map(e => '<button type="button" data-me="' + e + '" aria-pressed="' + (e === emo) + '">' + e + '</button>').join('') + '</div>' +
+    '<button class="btn full" data-save>' + L2('ضيفيها', 'Add') + '</button>',
+  (sh, close) => {
+    $$('[data-me]', sh).forEach(b => b.onclick = () => { emo = b.dataset.me; $$('[data-me]', sh).forEach(x => x.setAttribute('aria-pressed', x === b)); });
+    $('[data-save]', sh).onclick = () => { const u = $('[data-u]', sh).value.trim(), n = $('[data-n]', sh).value.trim();
+      if (!/^https?:\/\/(music\.youtube\.com|(www\.|m\.)?youtube\.com|youtu\.be)\//i.test(u)) return toast(L2('الزقي لينك من يوتيوب ميوزك', 'Paste a YouTube Music link'));
+      S.music.push({id:uid(), name:n || L2('بلاي ليست', 'Playlist'), e:emo, url:u.replace('://www.youtube.com', '://music.youtube.com')}); save(); close(); again && again(); };
+  });
+}
+
+/* ---------- home: what to listen to ---------- */
+function podHomeEpisodes(){
+  const out = [], seen = new Set(), last = S.pods.last, lp = last && S.pods.prog[last.k];
+  if (last && lp && !lp.done && lp.pos > 5){ out.push(Object.assign({resume:true}, last)); seen.add(last.k); }
+  S.pods.subs.forEach(sub => { const c = POD_CACHE[sub.id]; if (!c) return;
+    c.eps.filter(e => !(S.pods.prog[e.k] || {}).done && !seen.has(e.k)).slice(0, 1).forEach(e => { out.push(e); seen.add(e.k); }); });
+  return out.slice(0, 3);
+}
+function podHomeHTML(){
+  if (!S.pods.subs.length && !S.music.length) return '';
+  const eps = podHomeEpisodes();
+  return '<div class="card podhome"><div class="card-head"><h2>🎧 ' + L2('اسمعي', 'Listen') + '</h2><button class="linkbtn" data-go="grow:listen">' + L2('الكل', 'All') + '</button></div>' +
+    '<div class="list" id="podHomeEps">' + (eps.length ? eps.map((e, i) => { const p = S.pods.prog[e.k] || {};
+      return '<button class="podep" data-phe="' + i + '"><span class="t" data-notr><b>' + esc(e.t) + '</b><span class="s">' + (e.resume ? '▶️ ' + L2('كمّلي من ', 'Resume at ') + tfmt(p.pos) + ' · ' : L2('جديد · ', 'New · ')) + esc(e.st) + (e.ms ? ' · ' + Math.round(e.ms / 60000) + L2(' د', ' min') : '') + '</span>' + (e.resume && p.dur ? '<i class="pbar"><i style="width:' + Math.min(100, p.pos / p.dur * 100) + '%"></i></i>' : '') + '</span><span class="pp">▶️</span></button>'; }).join('')
+      : (S.pods.subs.length ? '<div class="empty">' + L2('بنجيب الحلقات الجديدة…', 'Loading new episodes…') + '</div>' : '')) + '</div>' +
+    (S.music.length ? '<h3 style="margin:4px 0 0">🎵 ' + L2('مزيكا (يوتيوب ميوزك)', 'Music (YouTube Music)') + '</h3>' + musicHTML(false) : '') + '</div>';
+}
+function bindPodHome(el){
+  const eps = podHomeEpisodes();
+  $$('[data-phe]', el).forEach(b => b.onclick = () => { const e = eps[+b.dataset.phe]; if (e) podPlay(e); });
+  $$('.podhome [data-go]', el).forEach(b => b.onclick = () => { const p = b.dataset.go.split(':'); go(p[0], p[1]); });
+  bindMusic(el);
+}
 const _todayPod = VIEWS.today;
 VIEWS.today = function(el){
   _todayPod(el);
-  const last = S.pods && S.pods.last, lp = last && S.pods.prog[last.k];
-  if (last && lp && !lp.done && lp.pos > 5 && lp.at && lp.at >= addDays(todayStr(), -7)){
-    const anchor = $('.readhome', el) || $('.frhome', el);
-    const html = '<div class="card podhome"><div class="card-head"><h2>🎧 ' + L2('كمّلي الحلقة', 'Continue listening') + '</h2><span class="small muted" style="font-weight:800">' + tfmt(lp.pos) + (lp.dur ? ' / ' + tfmt(lp.dur) : '') + '</span></div><button class="podep" data-podlast><span class="t" data-notr><b>' + esc(last.t) + '</b><span class="s">' + esc(last.st) + '</span></span><span class="pp">▶️</span></button></div>';
-    if (anchor) anchor.insertAdjacentHTML('afterend', html); else el.insertAdjacentHTML('beforeend', html);
-    const b = $('[data-podlast]', el); if (b) b.onclick = () => podPlay(last);
-  }
+  const html = podHomeHTML(); if (!html) return;
+  const anchor = $('.readhome', el) || $('.frhome', el);
+  if (anchor) anchor.insertAdjacentHTML('afterend', html); else el.insertAdjacentHTML('beforeend', html);
+  bindPodHome(el);
+  // fetch the latest episodes once, then fill the card in place
+  const missing = S.pods.subs.filter(s => !POD_CACHE[s.id]);
+  if (missing.length) Promise.all(missing.map(s => podEpisodes(s.id).catch(() => null))).then(() => {
+    const card = $('.podhome', el); if (!card || !document.body.contains(card) || nav.tab !== 'today') return;
+    const fresh = document.createElement('div'); fresh.innerHTML = podHomeHTML(); card.replaceWith(fresh.firstChild); bindPodHome(el);
+  });
 };
 /* ============ boot ============ */
 lifeMigrate();
