@@ -66,6 +66,13 @@ struct WebView: UIViewRepresentable {
         weak var webView: WKWebView?
         private var usedFallback = false
 
+        // No pinch or double-tap zoom: the app keeps its own size.
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            webView.scrollView.minimumZoomScale = 1
+            webView.scrollView.maximumZoomScale = 1
+            webView.scrollView.pinchGestureRecognizer?.isEnabled = false
+        }
+
         // No internet or the site is down: open the copy inside the app.
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { fallback(webView) }
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { fallback(webView) }
