@@ -559,7 +559,7 @@ function spendRow(s){
   const c = catOf(s.cat);
   return '<div class="item"><span style="font-size:20px">' + c.e + '</span><span class="t">' + (s.store ? '<span class="pill">' + esc(s.store) + '</span>' : '') + esc(s.note || c.name) + '<span class="s">' + nice(s.date) + ' · ' + esc(c.name) + '</span></span><span style="display:flex;align-items:center;gap:4px"><span class="amt">' + fmt(s.amount) + '</span>' + delBtn('data-sdel', s.id) + '</span></div>';
 }
-function bindSpendDeletes(el, again){ armDelete(el, 'data-sdel', id => { S.spend = S.spend.filter(s => s.id !== id); S.sadaqa = S.sadaqa.filter(x => x.spendId !== id); if (S.valu) S.valu.paid = S.valu.paid.filter(x => x.spendId !== id); save(); again(); }); }
+function bindSpendDeletes(el, again){ armDelete(el, 'data-sdel', id => { S.spend = S.spend.filter(s => s.id !== id); S.sadaqa = S.sadaqa.filter(x => x.spendId !== id); if (S.valu) S.valu.paid = S.valu.paid.filter(x => x.spendId !== id); if (S.sympl) S.sympl.paid = S.sympl.paid.filter(x => x.spendId !== id); save(); again(); }); }
 VIEWS['money.overview'] = function(el){
   const k = ui.moneyMonth, list = S.spend.filter(s => inMonth(s, k));
   const spent = sum(list, s => s.amount), sal = +S.salary[k] || 0;

@@ -1870,7 +1870,7 @@ Object.assign(AR, {
   // ---------- categories ----------
   "Food & groceries": "أكل وبقالة", "Eating out & outings": "أكل بره وخروجات", "Talabat, Noon, Amazon": "طلبات، نون، أمازون", "Self-care": "العناية بنفسي", "Pets": "حيواناتي",
   "Subscriptions": "اشتراكات", "Gifts & occasions": "هدايا ومناسبات", "Transport": "مواصلات", "Sadaqa & donations": "صدقة وتبرعات", "Wedding": "الفرح", "Shein + customs": "شي إن + الجمارك",
-  "Clothes & shopping": "هدوم وشوبينج", "Courses & hobbies": "كورسات وهوايات", "valU installment": "قسط valU", "Phone & internet": "موبايل ونت", "Lashes": "رموش", "Bills": "فواتير", "Other": "تاني",
+  "Clothes & shopping": "هدوم وشوبينج", "Courses & hobbies": "كورسات وهوايات", "valU installment": "قسط valU", "Sympl installment": "قسط Sympl", "Phone & internet": "موبايل ونت", "Lashes": "رموش", "Bills": "فواتير", "Other": "تاني",
 
   // ---------- habits ----------
   "Shower": "شاور", "Vitamins": "الفيتامينات", "No sugar or junk": "من غير سكر ولا أكل مضر", "Read 5+ pages": "اقري ٥ صفحات أو أكتر", "Wake up on time": "اصحي في ميعادي",
@@ -3089,7 +3089,7 @@ function spendRow(s){
   const c = catOf(s.cat);
   return '<div class="item"><span style="font-size:20px">' + c.e + '</span><span class="t">' + (s.store ? '<span class="pill">' + esc(s.store) + '</span>' : '') + esc(s.note || c.name) + '<span class="s">' + nice(s.date) + ' · ' + esc(c.name) + '</span></span><span style="display:flex;align-items:center;gap:4px"><span class="amt">' + fmt(s.amount) + '</span>' + delBtn('data-sdel', s.id) + '</span></div>';
 }
-function bindSpendDeletes(el, again){ armDelete(el, 'data-sdel', id => { S.spend = S.spend.filter(s => s.id !== id); S.sadaqa = S.sadaqa.filter(x => x.spendId !== id); if (S.valu) S.valu.paid = S.valu.paid.filter(x => x.spendId !== id); save(); again(); }); }
+function bindSpendDeletes(el, again){ armDelete(el, 'data-sdel', id => { S.spend = S.spend.filter(s => s.id !== id); S.sadaqa = S.sadaqa.filter(x => x.spendId !== id); if (S.valu) S.valu.paid = S.valu.paid.filter(x => x.spendId !== id); if (S.sympl) S.sympl.paid = S.sympl.paid.filter(x => x.spendId !== id); save(); again(); }); }
 VIEWS['money.overview'] = function(el){
   const k = ui.moneyMonth, list = S.spend.filter(s => inMonth(s, k));
   const spent = sum(list, s => s.amount), sal = +S.salary[k] || 0;
@@ -3445,7 +3445,7 @@ VIEWS['me.settings'] = function(el){
 CATS.splice(CATS.findIndex(c => c.id === 'shopping'), 0,
   {id:'shein', name:'Shein + customs', e:'\u{1F6CD}\u{FE0F}'});
 CATS.splice(CATS.findIndex(c => c.id === 'bills'), 0,
-  {id:'valu', name:'valU installment', e:'\u{1F4B3}'}, {id:'phone', name:'Phone & internet', e:'\u{1F4F6}'}, {id:'lashes', name:'Lashes', e:'\u{1F441}\u{FE0F}'});
+  {id:'valu', name:'valU installment', e:'\u{1F4B3}'}, {id:'sympl', name:'Sympl installment', e:'\u{1F4B3}'}, {id:'phone', name:'Phone & internet', e:'\u{1F4F6}'}, {id:'lashes', name:'Lashes', e:'\u{1F441}\u{FE0F}'});
 const PROTECTED = ['donations', 'pets', 'gifts'];
 CATS.forEach(c => { if (PROTECTED.includes(c.id)) c.protected = true; });
 
@@ -3482,6 +3482,9 @@ function lifeMigrate(){
   S.income = Array.isArray(S.income) ? S.income : [];
   if (!S.incomeMigrated){ Object.keys(S.salary || {}).forEach(k => { if (+S.salary[k] > 0) S.income.push({id:uid(), date:k + '-01', job:'other', amount:+S.salary[k]}); }); S.incomeMigrated = true; }
   S.valu = S.valu || {total:7100, monthly:2367, paid:[]};
+  // Sympl: Rush Brush Air Wrapper X2, ordered 30 Oct 2026. 300 down + 3 × 2,325, no interest or fees.
+  // Each installment can be paid from the 25th to the 1st of the next month with no fees.
+  S.sympl = S.sympl || {item:'Rush Brush Air Wrapper X2', bought:'2026-10-30', down:300, monthly:2325, n:3, total:7275, dues:['2026-11-25', '2026-12-25', '2027-01-25'], paid:[]};
   S.worth = S.worth || {gold:80000, thndr:10090, lent:61031, bank:1617, valuCard:5586, asOf:'2026-10-21'};
   S.wait = Array.isArray(S.wait) ? S.wait : [];
   S.savedByWaiting = +S.savedByWaiting || 0;
@@ -3524,6 +3527,30 @@ function paydayWindow(){
 }
 const incomeIn = k => S.income.filter(i => inMonth(i, k));
 const valuLeft = () => Math.max(0, S.valu.total - sum(S.valu.paid, p => p.amount));
+const symplLast = d => { const x = parseD(d); return ymd(new Date(x.getFullYear(), x.getMonth() + 1, 1)); };   // fee-free until the 1st of the next month
+const symplLeft = () => Math.max(0, S.sympl.monthly * S.sympl.n - sum(S.sympl.paid, p => p.amount));
+function symplHTML(){
+  const Y = S.sympl, left = symplLeft(), owed = Y.monthly * Y.n, pct = Math.min(100, (owed - left) / owed * 100), i = Y.paid.length, due = Y.dues[i];
+  const m = v => L2(fmt(v) + ' جنيه', money(v));
+  return '<div class="card" data-notr><div class="card-head"><h2>' + L2('قسط سيمبل', 'Sympl payoff') + '</h2><span class="amt">' + (left ? L2('فاضل ', '') + m(left) + L2('', ' left') : L2('خلص \u{1F389}', 'Paid off \u{1F389}')) + '</span></div>' +
+    '<span class="small muted" style="font-weight:700">\u{1FAAE} <bdi>' + esc(Y.item) + '</bdi><br>' + L2('الإجمالي ' + m(Y.total) + ': مقدم ' + m(Y.down) + ' + 3 أقساط من غير فوايد', 'Total ' + m(Y.total) + ': ' + m(Y.down) + ' down + 3 interest-free installments') + '</span>' +
+    '<div class="bar good"><i style="width:' + pct + '%"></i></div>' +
+    (left ? '<div class="row"><span class="small muted" style="font-weight:700;flex:1">' + L2('دفعتي ' + i + ' من 3 · القسط الجاي من ' + nice(due) + ' لحد ' + nice(symplLast(due)) + ' من غير رسوم', i + ' of 3 paid · next one ' + nice(due) + ' to ' + nice(symplLast(due)) + ', no fees') + '</span><button class="btn" id="yPay">' + L2('دفعت ', 'Paid ') + fmt(Math.min(left, Y.monthly)) + '</button></div>' : '') + '</div>';
+}
+function bindSympl(el, again){
+  const b = $('#yPay', el); if (!b) return;
+  b.onclick = () => { const a = Math.min(symplLeft(), S.sympl.monthly), sid = uid();
+    S.spend.push({id:sid, date:todayStr(), amount:a, cat:'sympl', note:'Sympl · ' + S.sympl.item}); S.sympl.paid.push({id:uid(), date:todayStr(), amount:a, spendId:sid}); save();
+    if (!symplLeft()) celebrate({key:'sympl-free', e:'\u{1F513}', title:L2('Sympl خلص!', 'Sympl paid off!'), msg:L2('الفرشة بقت بتاعتك بالكامل ♡', 'The brush is all yours now ♡')}); else toast(L2('القسط اتسجل ♡ فاضل ', 'Installment logged ♡ ') + money(symplLeft()));
+    again(); };
+}
+function symplReminders(push, at){
+  const Y = S.sympl; if (!Y) return;
+  Y.dues.forEach((d, i) => { if (i < Y.paid.length) return;
+    push('sy-a-' + i, L2('\u{1F4B3} قسط Sympl ' + (i + 1) + ' من 3', '\u{1F4B3} Sympl installment ' + (i + 1) + ' of 3'), L2('ادفعي ' + fmt(Y.monthly) + ' جنيه من النهارده لحد يوم 1 من غير رسوم.', 'Pay ' + fmt(Y.monthly) + ' EGP between today and the 1st, no fees.'), at(parseD(d), 10, 0));
+    push('sy-b-' + i, L2('⏰ آخر يوم لقسط Sympl', '⏰ Last day for the Sympl installment'), L2('النهارده آخر يوم تدفعي ' + fmt(Y.monthly) + ' من غير رسوم. ولو دفعتي، علّمي عليه في الفلوس.', 'Today is the last fee-free day to pay ' + fmt(Y.monthly) + '. Tick it in Money once paid.'), at(parseD(symplLast(d)), 10, 0));
+  });
+}
 const jarByName = n => S.jars.find(j => j.name.toLowerCase() === n.toLowerCase());
 const jarTotal = j => sum(j.deposits, d => d.amount);
 function deposit(j, a, why){
@@ -3599,6 +3626,7 @@ VIEWS['money.overview'] = function(el){
       '<button class="item" data-sub2="savings"><span style="font-size:20px">\u{1FAD9}</span><span class="t">Saved into jars this month<span class="s">Emergency fund, car, wedding</span></span><span class="amt">' + fmt(saved) + '</span></button></div>' +
     '<div class="card"><div class="card-head"><h2>valU payoff</h2><span class="amt">' + (left ? money(left) + ' left' : 'Paid off \u{1F389}') + '</span></div><div class="bar good"><i style="width:' + paidPct + '%"></i></div>' +
       (left ? '<div class="row"><span class="small muted" style="font-weight:700;flex:1">' + S.valu.paid.length + ' of 3 installments paid · no new valU purchases</span><button class="btn" id="vPay">Pay ' + fmt(Math.min(left, S.valu.monthly)) + '</button></div>' : '<span class="small muted" style="font-weight:700">Debt-free. That ' + fmt(S.valu.monthly) + ' a month can go to your car fund now.</span>') + '</div>' +
+    symplHTML() +
     (list.length >= 5 ? '<div class="card"><h2>My patterns this month</h2><div class="list">' +
       (pays.length ? '<div class="item"><span style="font-size:20px">\u{1F4B8}</span><span class="t">Spent within 2 days of a salary<span class="s">Last month it was 63%</span></span><span class="amt">' + Math.round(sum(inWindow, s => s.amount) / spent * 100) + '%</span></div>' : '') +
       '<div class="item"><span style="font-size:20px">\u{1FA99}</span><span class="t">Small purchases under 100 EGP<span class="s">They add up quietly</span></span><span class="amt">' + small + '</span></div>' +
@@ -3610,6 +3638,7 @@ VIEWS['money.overview'] = function(el){
   const again = () => VIEWS['money.overview'](el);
   bindMonthNav(el, 'moneyMonth', again);
   bindInvest(el, again);
+  bindSympl(el, again);
   $$('[data-sub2]', el).forEach(b => b.onclick = () => go('money', b.dataset.sub2));
   const vp = $('#vPay', el); if (vp) vp.onclick = () => { const a = Math.min(valuLeft(), S.valu.monthly), sid = uid();
     S.spend.push({id:sid, date:todayStr(), amount:a, cat:'valu', note:'valU installment'}); S.valu.paid.push({id:uid(), date:todayStr(), amount:a, spendId:sid}); save();
@@ -3845,6 +3874,7 @@ function lifeReminders(R, repeat, push, at){
   frReminders(repeat);
   if (R.learn !== false) learnReminders(push, at);
   if (R.gym !== false) gymReminders(push, at);
+  if (R.money !== false) symplReminders(push, at);
   if (typeof readReminders === 'function') readReminders(repeat);
   if (R.plans !== false) emergencyReminders(push, at);
   const P = S.profile, hm = s => s.split(':').map(Number);

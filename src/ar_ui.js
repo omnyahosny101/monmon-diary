@@ -58,7 +58,7 @@ Object.assign(AR, {
   // ---------- categories ----------
   "Food & groceries": "أكل وبقالة", "Eating out & outings": "أكل بره وخروجات", "Talabat, Noon, Amazon": "طلبات، نون، أمازون", "Self-care": "العناية بنفسي", "Pets": "حيواناتي",
   "Subscriptions": "اشتراكات", "Gifts & occasions": "هدايا ومناسبات", "Transport": "مواصلات", "Sadaqa & donations": "صدقة وتبرعات", "Wedding": "الفرح", "Shein + customs": "شي إن + الجمارك",
-  "Clothes & shopping": "هدوم وشوبينج", "Courses & hobbies": "كورسات وهوايات", "valU installment": "قسط valU", "Phone & internet": "موبايل ونت", "Lashes": "رموش", "Bills": "فواتير", "Other": "تاني",
+  "Clothes & shopping": "هدوم وشوبينج", "Courses & hobbies": "كورسات وهوايات", "valU installment": "قسط valU", "Sympl installment": "قسط Sympl", "Phone & internet": "موبايل ونت", "Lashes": "رموش", "Bills": "فواتير", "Other": "تاني",
 
   // ---------- habits ----------
   "Shower": "شاور", "Vitamins": "الفيتامينات", "No sugar or junk": "من غير سكر ولا أكل مضر", "Read 5+ pages": "اقري ٥ صفحات أو أكتر", "Wake up on time": "اصحي في ميعادي",
