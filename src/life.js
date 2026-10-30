@@ -45,6 +45,8 @@ function lifeMigrate(){
   S.valu = S.valu || {total:7100, monthly:2367, paid:[]};
   // 30 Oct: November is settled; after borrowing last month, what's left is 4,605 in December and 3,095 in January
   if (!S.valu.v2){ S.valu = {v2:true, plan:[{m:'2026-12', a:4605}, {m:'2027-01', a:3095}], total:7700, paid:[]}; }
+  // November's 2,713 is already paid
+  if (!S.valu.v3){ S.valu.plan.unshift({m:'2026-11', a:2713}); S.valu.total += 2713; S.valu.paid.unshift({id:uid(), date:'2026-10-30', amount:2713, spendId:''}); S.valu.v3 = true; }
   // Sympl: Rush Brush Air Wrapper X2, ordered 30 Oct 2026. 300 down + 3 × 2,325, no interest or fees.
   // Each installment can be paid from the 25th to the 1st of the next month with no fees.
   S.sympl = S.sympl || {item:'Rush Brush Air Wrapper X2', bought:'2026-10-30', down:300, monthly:2325, n:3, total:7275, dues:['2026-11-25', '2026-12-25', '2027-01-25'], paid:[]};
