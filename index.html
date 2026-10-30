@@ -4444,6 +4444,49 @@ function novMigrate(){
   if (ym(new Date()) < '2026-11' && ui.moneyMonth < '2026-11') ui.moneyMonth = '2026-11';
 }
 
+/* ---------- November 2026 beauty plan, as Monmon sent it on 30 Oct (replaces the older guesses, no doubles) ---------- */
+function prepNov26(){
+  if (S.seed9) return;
+  const placed = new Set(), live = k => ['2026-10', '2026-11'].includes(k);
+  const all = () => Object.keys(S.selfcare).flatMap(k => (S.selfcare[k] || []).map(s => ({k, s})));
+  const put = (key, re, name, e, price, date, note) => {
+    let x = all().find(y => y.s.key === key && !y.s.done) || all().find(y => live(y.k) && !y.s.done && !placed.has(y.s.id) && re.test(y.s.name));
+    const k = date.slice(0, 7);
+    if (!x){ const s = {id:uid(), key, name, e, price:'', planned:'', done:'', spendId:''}; (S.selfcare[k] = S.selfcare[k] || []).push(s); x = {k, s}; }
+    else if (x.k !== k){ S.selfcare[x.k] = S.selfcare[x.k].filter(y => y !== x.s); (S.selfcare[k] = S.selfcare[k] || []).push(x.s); }
+    Object.assign(x.s, {name, e, price, planned:date, note, wedding:true});
+    placed.add(x.s.id);
+    // anything else still open in Oct/Nov that is the same session goes away
+    Object.keys(S.selfcare).filter(live).forEach(m => { S.selfcare[m] = S.selfcare[m].filter(y => y === x.s || y.done || !re.test(y.name) || placed.has(y.id)); });
+  };
+  const notPS = /pico|بيكو|spider|سبايدر|bikini|بيكيني|under ?arm|أندر|اندر/i;
+  put('hl1', {test:n => /hair laser|laser hair|full body|فول بادي|ليزر (الجسم|إزالة|ازالة)|^laser/i.test(n) && !notPS.test(n)}, 'ليزر فول بادي · جلسة 1', '✨', 6000, '2026-11-02', 'في أوزيل. قبلها: شيفنج فول بادي وكريم بريدوكايين المخدر');
+  put('dy', {test:n => /yasser|ياسر/i.test(n) && !/spider|سبايدر|laser|ليزر/i.test(n)}, 'دكتور ياسر · جلسة الريتاتش', '\u{1FA7A}', '', '2026-11-03', 'جلسة الريتاتش');
+  put('bp', /peel|تقشير|بيلينج/i, 'تقشير للـ butt', '\u{1F351}', 3000, '2026-11-04', 'في أوزيل أو عند دكتور، أو دكتورة شيماء الشافعي: 011533307996');
+  put('sv1', /spider|سبايدر/i, 'ليزر سبايدر فينز · جلسة 1', '\u{1F9B5}', 6000, '2026-11-07', 'مع دكتور ياسر في العيادة');
+  put('dp', /dermapen|derma pen|ديرما/i, 'ديرما بن', '\u{1FAA1}', 2500, '2026-11-09', 'عند دكتورة دينا');
+  put('hl2', {test:n => /bikini|بيكيني|under ?arm|أندر|اندر/i.test(n) || (/hair laser · session 2/i.test(n))}, 'ليزر بيكيني وأندر آرم · جلسة 2', '✨', 600, '2026-11-16', 'بعد جلسة الفول بادي بأسبوعين تقريبًا');
+  // getting ready for the laser on Monday
+  const task = (title, due, prio) => { if (!S.tasks.some(t => !t.done && t.title === title)) S.tasks.push({id:uid(), title, kind:'personal', job:'', prio, due, time:'', done:false}); };
+  task('احجزي ليزر الفول بادي مع أوزيل (2 نوفمبر · 6,000)', '2026-10-31', 'high');
+  task('هاتي كريم بريدوكايين المخدر لليزر', '2026-11-01', 'high');
+  task('شيفنج فول بادي قبل الليزر', '2026-11-01', 'high');
+  task('كلمي دكتورة شيماء الشافعي عن تقشير الـ butt: 011533307996', '2026-11-02', 'normal');
+  // things to buy
+  S.wedding.shopping = S.wedding.shopping || [];
+  [['\u{1F9F4}', 'سيروم يوسرين للتصبغات (Anti-Pigment Dual Serum)', /eucerin|يوسرين|يوسيرين/i],
+   ['\u{1F9F4}', 'كريم هيدروكينون 4% (اسألي الدكتور الأول)', /hydroquinone|هيدروكينون/i],
+   ['\u{1FA92}', 'Braun Silk-épil 9 من أمازون (في العرض)', /silk.?[eé]pil|silkapel|سيلك/i]].forEach(([e, title, re]) => {
+    if (!S.wedding.shopping.some(x => !x.done && re.test(x.title))) S.wedding.shopping.push({id:uid(), e, title, done:false}); });
+  // the skin routine: serum in the morning, hydroquinone at night
+  [{id:'sk-am', name:'سيروم يوسرين الصبح', e:'☀\u{FE0F}', freq:'daily', target:1, reward:''}, {id:'sk-pm', name:'كريم الهيدروكينون بالليل', e:'\u{1F319}', freq:'daily', target:1, reward:''}]
+    .forEach(h => { if (!S.habits.some(x => x.id === h.id)) S.habits.push(h); });
+  S.myrem = S.myrem || [];
+  [['سيروم يوسرين للتصبغات ☀️', '09:15'], ['كريم الهيدروكينون قبل النوم 🌙', '00:30']].forEach(([title, time]) => {
+    if (!S.myrem.some(r => r.title === title)) S.myrem.push({id:uid(), title, date:'2026-10-31', time, repeat:'daily', ref:''}); });
+  S.seed9 = true;
+}
+
 /* ---------- Thndr and gold: log the real amount ---------- */
 const INV = {thndr:{e:'\u{1F4C8}', name:'Thndr'}, gold:{e:'✨', name:'Gold'}};
 function investHTML(k){
@@ -6193,6 +6236,7 @@ weddingMigrate();
 hobbyMigrate();
 remMigrate();
 novMigrate();
+prepNov26();
 cycleMigrate();
 cycleImportFlo();
 photoMigrate();
