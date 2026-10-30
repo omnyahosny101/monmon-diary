@@ -630,6 +630,23 @@ function picoButt26(){
   S.seed10 = true;
 }
 
+/* 30 Oct: the butt peel is out, the butt pico laser takes its day (4 Nov, about 5,000); today's to-dos */
+function fix30Oct(){
+  if (S.seed11) return;
+  const sc = S.selfcare['2026-11'] = S.selfcare['2026-11'] || [];
+  Object.keys(S.selfcare).forEach(k => { S.selfcare[k] = S.selfcare[k].filter(s => s.done || !(s.key === 'bp' || /peel|تقشير|بيلينج/i.test(s.name))); });
+  let p = null; Object.keys(S.selfcare).forEach(k => S.selfcare[k].forEach(s => { if (s.key === 'pcb') p = {k, s}; }));
+  if (p && p.k !== '2026-11') S.selfcare[p.k] = S.selfcare[p.k].filter(s => s !== p.s);
+  const s = p ? p.s : {id:uid(), key:'pcb', name:'بيكو ليزر للـ butt', e:'\u{1F48E}', done:'', spendId:'', wedding:true};
+  if (!S.selfcare['2026-11'].includes(s)) S.selfcare['2026-11'].push(s);
+  Object.assign(s, {price:5000, planned:'2026-11-04', note:'مكان جلسة التقشير'});
+  S.tasks = S.tasks.filter(t => t.done || !/شيماء|تقشير/.test(t.title));
+  const t = '2026-10-30';
+  [['أعمل شعري وأقصه في شيري', '\u{1F487}‍♀\u{FE0F}'], ['أعمل رجلي وإيدي في البيت', '\u{1F485}'], ['ألزق رموش في البيت', '\u{1F441}\u{FE0F}']].forEach(([title]) => {
+    if (!S.tasks.some(x => x.title === title)) S.tasks.push({id:uid(), title, kind:'personal', job:'', prio:'normal', due:t, time:'', done:false}); });
+  S.seed11 = true;
+}
+
 /* ---------- Thndr and gold: log the real amount ---------- */
 const INV = {thndr:{e:'\u{1F4C8}', name:'Thndr'}, gold:{e:'✨', name:'Gold'}};
 function investHTML(k){

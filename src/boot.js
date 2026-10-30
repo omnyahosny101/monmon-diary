@@ -7,6 +7,7 @@ remMigrate();
 novMigrate();
 prepNov26();
 picoButt26();
+fix30Oct();
 cycleMigrate();
 cycleImportFlo();
 photoMigrate();
