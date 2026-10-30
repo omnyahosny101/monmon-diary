@@ -4487,6 +4487,16 @@ function prepNov26(){
   S.seed9 = true;
 }
 
+/* pico laser on the same area as the butt peel, a few days before November's period is due */
+function picoButt26(){
+  if (S.seed10) return;
+  let d = '2026-11-21';
+  try { const st = cycleStats(), first = st.early || st.next; if (first && first.slice(0, 7) === '2026-11'){ const x = addDays(first, -3); if (x >= '2026-11-18') d = x; } } catch(e){}
+  const k = d.slice(0, 7), list = S.selfcare[k] = S.selfcare[k] || [];
+  if (!list.some(s => s.key === 'pcb')) list.push({id:uid(), key:'pcb', name:'بيكو ليزر للـ butt', e:'\u{1F48E}', price:'', planned:d, done:'', spendId:'', wedding:true, note:'نفس منطقة التقشير · قبل ميعاد البيريود المتوقع بكام يوم'});
+  S.seed10 = true;
+}
+
 /* ---------- Thndr and gold: log the real amount ---------- */
 const INV = {thndr:{e:'\u{1F4C8}', name:'Thndr'}, gold:{e:'✨', name:'Gold'}};
 function investHTML(k){
@@ -6237,6 +6247,7 @@ hobbyMigrate();
 remMigrate();
 novMigrate();
 prepNov26();
+picoButt26();
 cycleMigrate();
 cycleImportFlo();
 photoMigrate();
