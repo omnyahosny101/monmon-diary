@@ -3482,6 +3482,8 @@ function lifeMigrate(){
   S.income = Array.isArray(S.income) ? S.income : [];
   if (!S.incomeMigrated){ Object.keys(S.salary || {}).forEach(k => { if (+S.salary[k] > 0) S.income.push({id:uid(), date:k + '-01', job:'other', amount:+S.salary[k]}); }); S.incomeMigrated = true; }
   S.valu = S.valu || {total:7100, monthly:2367, paid:[]};
+  // 30 Oct: November is settled; after borrowing last month, what's left is 4,605 in December and 3,095 in January
+  if (!S.valu.v2){ S.valu = {v2:true, plan:[{m:'2026-12', a:4605}, {m:'2027-01', a:3095}], total:7700, paid:[]}; }
   // Sympl: Rush Brush Air Wrapper X2, ordered 30 Oct 2026. 300 down + 3 × 2,325, no interest or fees.
   // Each installment can be paid from the 25th to the 1st of the next month with no fees.
   S.sympl = S.sympl || {item:'Rush Brush Air Wrapper X2', bought:'2026-10-30', down:300, monthly:2325, n:3, total:7275, dues:['2026-11-25', '2026-12-25', '2027-01-25'], paid:[]};
@@ -3527,6 +3529,11 @@ function paydayWindow(){
 }
 const incomeIn = k => S.income.filter(i => inMonth(i, k));
 const valuLeft = () => Math.max(0, S.valu.total - sum(S.valu.paid, p => p.amount));
+const valuNext = () => S.valu.plan ? (S.valu.plan[S.valu.paid.length] || {a:valuLeft()}).a : S.valu.monthly;
+function valuReminders(push, at){
+  (S.valu.plan || []).forEach((p, i) => { if (i < S.valu.paid.length) return;
+    push('vu-' + p.m, L2('\u{1F4B3} قسط valU الشهر ده', '\u{1F4B3} valU due this month'), L2('المطلوب ' + fmt(p.a) + ' جنيه. ادفعيه وعلّمي عليه في الفلوس.', fmt(p.a) + ' EGP is due. Pay it and tick it in Money.'), at(parseD(p.m + '-01'), 10, 15)); });
+}
 const symplLast = d => { const x = parseD(d); return ymd(new Date(x.getFullYear(), x.getMonth() + 1, 1)); };   // fee-free until the 1st of the next month
 const symplLeft = () => Math.max(0, S.sympl.monthly * S.sympl.n - sum(S.sympl.paid, p => p.amount));
 function symplHTML(){
@@ -3625,7 +3632,7 @@ VIEWS['money.overview'] = function(el){
       investHTML(k) +
       '<button class="item" data-sub2="savings"><span style="font-size:20px">\u{1FAD9}</span><span class="t">Saved into jars this month<span class="s">Emergency fund, car, wedding</span></span><span class="amt">' + fmt(saved) + '</span></button></div>' +
     '<div class="card"><div class="card-head"><h2>valU payoff</h2><span class="amt">' + (left ? money(left) + ' left' : 'Paid off \u{1F389}') + '</span></div><div class="bar good"><i style="width:' + paidPct + '%"></i></div>' +
-      (left ? '<div class="row"><span class="small muted" style="font-weight:700;flex:1">' + S.valu.paid.length + ' of 3 installments paid · no new valU purchases</span><button class="btn" id="vPay">Pay ' + fmt(Math.min(left, S.valu.monthly)) + '</button></div>' : '<span class="small muted" style="font-weight:700">Debt-free. That ' + fmt(S.valu.monthly) + ' a month can go to your car fund now.</span>') + '</div>' +
+      (left ? '<div class="row"><span class="small muted" style="font-weight:700;flex:1">' + S.valu.paid.length + ' of ' + (S.valu.plan ? S.valu.plan.length : 3) + ' installments paid · no new valU purchases</span><button class="btn" id="vPay">Pay ' + fmt(Math.min(left, valuNext())) + '</button></div>' : '<span class="small muted" style="font-weight:700">Debt-free. That ' + fmt(S.valu.monthly) + ' a month can go to your car fund now.</span>') + '</div>' +
     symplHTML() +
     (list.length >= 5 ? '<div class="card"><h2>My patterns this month</h2><div class="list">' +
       (pays.length ? '<div class="item"><span style="font-size:20px">\u{1F4B8}</span><span class="t">Spent within 2 days of a salary<span class="s">Last month it was 63%</span></span><span class="amt">' + Math.round(sum(inWindow, s => s.amount) / spent * 100) + '%</span></div>' : '') +
@@ -3640,7 +3647,7 @@ VIEWS['money.overview'] = function(el){
   bindInvest(el, again);
   bindSympl(el, again);
   $$('[data-sub2]', el).forEach(b => b.onclick = () => go('money', b.dataset.sub2));
-  const vp = $('#vPay', el); if (vp) vp.onclick = () => { const a = Math.min(valuLeft(), S.valu.monthly), sid = uid();
+  const vp = $('#vPay', el); if (vp) vp.onclick = () => { const a = Math.min(valuLeft(), valuNext()), sid = uid();
     S.spend.push({id:sid, date:todayStr(), amount:a, cat:'valu', note:'valU installment'}); S.valu.paid.push({id:uid(), date:todayStr(), amount:a, spendId:sid}); save();
     if (!valuLeft()) celebrate({key:'valu-free', e:'\u{1F513}', title:'valU paid off!', msg:'Debt-free, Monmon. From now on that money goes to your future, starting with the car fund.'}); else toast('Installment logged ♡ ' + money(valuLeft()) + ' left');
     again(); };
@@ -3874,7 +3881,7 @@ function lifeReminders(R, repeat, push, at){
   frReminders(repeat);
   if (R.learn !== false) learnReminders(push, at);
   if (R.gym !== false) gymReminders(push, at);
-  if (R.money !== false) symplReminders(push, at);
+  if (R.money !== false){ symplReminders(push, at); valuReminders(push, at); }
   if (typeof readReminders === 'function') readReminders(repeat);
   if (R.plans !== false) emergencyReminders(push, at);
   const P = S.profile, hm = s => s.split(':').map(Number);
