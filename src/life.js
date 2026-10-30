@@ -36,6 +36,7 @@ const SHEIN_X = 1.61;
 
 /* ---------- migration: fills in her profile once, never overwrites her own edits ---------- */
 function lifeMigrate(){
+  if (S.settings.rem.gym === undefined) S.settings.rem.gym = true;
   if (!S.remV2){ Object.assign(S.settings.rem, {checkin:false, work:false, night:false, learn:true}); S.remV2 = true; }
   S.profile = Object.assign({name:'Omnya', birthday:'2002-01-07', wedding:'', wake:'09:00', workStart:'10:00', workEnd:'18:00'}, S.profile || {});
   if (!Array.isArray(S.jobs) || !S.jobs.length) S.jobs = JSON.parse(JSON.stringify(JOBS_DEFAULT));
@@ -378,7 +379,7 @@ VIEWS['me.settings'] = function(el){
     '<div class="card"><h2>Reminders</h2>' + (native() ? '' : '<p class="small" style="margin:0;font-weight:800;color:var(--berry)">Reminders work in the iPhone app. In the browser these switches are saved for when you use the app.</p>') +
       sw('wake', L2('الصحيان', 'Wake-up'), L2('الساعة ', 'At ') + esc(P.wake)) + sw('work', 'Work hours', 'Start and log-off, Sunday to Thursday') +
       sw('payday', 'Paydays', 'Pay yourself first on each salary day') + sw('friday', 'Friday money check-in', 'Fridays at 12:00') + sw('night', 'Shop-free hours', '11 PM: no shopping until 9 AM') +
-      sw('meals', 'Meals', '9:00, 14:00, 17:30, 20:30 with that day’s meal') + sw('water', 'Water', '11:00, 13:00, 16:00, 19:00') + sw('diary', 'Diary', L2('12 بالليل', '12:00 am')) + sw('learn', L2('دروس ومعلومات \u{1F4A1}', 'Lessons and facts \u{1F4A1}'), L2('حكمة 9:30 الصبح، درس النهارده 12 الضهر، و6 معلومات على مدار اليوم', 'A quote at 9:30, today’s lesson at 12:00 and 6 facts through the day')) + sw('checkin', 'Evening check-in', '10:00 pm: habits, spending, day log') +
+      sw('meals', 'Meals', '9:00, 14:00, 17:30, 20:30 with that day’s meal') + sw('water', 'Water', '11:00, 13:00, 16:00, 19:00') + sw('gym', L2('الجيم \u{1F351}', 'Gym \u{1F351}'), L2('6:15 و7:45 و9:15 بالليل (آخر فرصة قبل ما يقفل 11) · بتسكت لو سجلتي تمرينة النهارده', '18:15, 19:45, 21:15 (last call before 11 pm) · quiet once you log a workout')) + sw('diary', 'Diary', L2('12 بالليل', '12:00 am')) + sw('learn', L2('دروس ومعلومات \u{1F4A1}', 'Lessons and facts \u{1F4A1}'), L2('حكمة 9:30 الصبح، درس النهارده 12 الضهر، و6 معلومات على مدار اليوم', 'A quote at 9:30, today’s lesson at 12:00 and 6 facts through the day')) + sw('checkin', 'Evening check-in', '10:00 pm: habits, spending, day log') +
       sw('money', 'Start of the month', 'Invest, buy gold, plan self-care') + sw('plans', 'Tasks and plans', 'Urgent tasks, mashawer, beauty and self-care sessions') + '</div>' +
     '<div class="card"><h2>Backup</h2><p class="small muted" style="margin:0;font-weight:600">Everything is saved on this phone. Copy a backup now and then and keep it in Notes.</p>' +
       '<div class="row"><button class="btn soft" id="bkCopy">Copy backup</button><button class="btn soft" id="bkShow">Restore from backup</button></div>' +
@@ -404,6 +405,7 @@ function lifeReminders(R, repeat, push, at){
   cycleReminders(push, at);
   frReminders(repeat);
   if (R.learn !== false) learnReminders(push, at);
+  if (R.gym !== false) gymReminders(push, at);
   if (typeof readReminders === 'function') readReminders(repeat);
   if (R.plans !== false) emergencyReminders(push, at);
   const P = S.profile, hm = s => s.split(':').map(Number);

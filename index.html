@@ -3475,6 +3475,7 @@ const SHEIN_X = 1.61;
 
 /* ---------- migration: fills in her profile once, never overwrites her own edits ---------- */
 function lifeMigrate(){
+  if (S.settings.rem.gym === undefined) S.settings.rem.gym = true;
   if (!S.remV2){ Object.assign(S.settings.rem, {checkin:false, work:false, night:false, learn:true}); S.remV2 = true; }
   S.profile = Object.assign({name:'Omnya', birthday:'2002-01-07', wedding:'', wake:'09:00', workStart:'10:00', workEnd:'18:00'}, S.profile || {});
   if (!Array.isArray(S.jobs) || !S.jobs.length) S.jobs = JSON.parse(JSON.stringify(JOBS_DEFAULT));
@@ -3817,7 +3818,7 @@ VIEWS['me.settings'] = function(el){
     '<div class="card"><h2>Reminders</h2>' + (native() ? '' : '<p class="small" style="margin:0;font-weight:800;color:var(--berry)">Reminders work in the iPhone app. In the browser these switches are saved for when you use the app.</p>') +
       sw('wake', L2('الصحيان', 'Wake-up'), L2('الساعة ', 'At ') + esc(P.wake)) + sw('work', 'Work hours', 'Start and log-off, Sunday to Thursday') +
       sw('payday', 'Paydays', 'Pay yourself first on each salary day') + sw('friday', 'Friday money check-in', 'Fridays at 12:00') + sw('night', 'Shop-free hours', '11 PM: no shopping until 9 AM') +
-      sw('meals', 'Meals', '9:00, 14:00, 17:30, 20:30 with that day’s meal') + sw('water', 'Water', '11:00, 13:00, 16:00, 19:00') + sw('diary', 'Diary', L2('12 بالليل', '12:00 am')) + sw('learn', L2('دروس ومعلومات \u{1F4A1}', 'Lessons and facts \u{1F4A1}'), L2('حكمة 9:30 الصبح، درس النهارده 12 الضهر، و6 معلومات على مدار اليوم', 'A quote at 9:30, today’s lesson at 12:00 and 6 facts through the day')) + sw('checkin', 'Evening check-in', '10:00 pm: habits, spending, day log') +
+      sw('meals', 'Meals', '9:00, 14:00, 17:30, 20:30 with that day’s meal') + sw('water', 'Water', '11:00, 13:00, 16:00, 19:00') + sw('gym', L2('الجيم \u{1F351}', 'Gym \u{1F351}'), L2('6:15 و7:45 و9:15 بالليل (آخر فرصة قبل ما يقفل 11) · بتسكت لو سجلتي تمرينة النهارده', '18:15, 19:45, 21:15 (last call before 11 pm) · quiet once you log a workout')) + sw('diary', 'Diary', L2('12 بالليل', '12:00 am')) + sw('learn', L2('دروس ومعلومات \u{1F4A1}', 'Lessons and facts \u{1F4A1}'), L2('حكمة 9:30 الصبح، درس النهارده 12 الضهر، و6 معلومات على مدار اليوم', 'A quote at 9:30, today’s lesson at 12:00 and 6 facts through the day')) + sw('checkin', 'Evening check-in', '10:00 pm: habits, spending, day log') +
       sw('money', 'Start of the month', 'Invest, buy gold, plan self-care') + sw('plans', 'Tasks and plans', 'Urgent tasks, mashawer, beauty and self-care sessions') + '</div>' +
     '<div class="card"><h2>Backup</h2><p class="small muted" style="margin:0;font-weight:600">Everything is saved on this phone. Copy a backup now and then and keep it in Notes.</p>' +
       '<div class="row"><button class="btn soft" id="bkCopy">Copy backup</button><button class="btn soft" id="bkShow">Restore from backup</button></div>' +
@@ -3843,6 +3844,7 @@ function lifeReminders(R, repeat, push, at){
   cycleReminders(push, at);
   frReminders(repeat);
   if (R.learn !== false) learnReminders(push, at);
+  if (R.gym !== false) gymReminders(push, at);
   if (typeof readReminders === 'function') readReminders(repeat);
   if (R.plans !== false) emergencyReminders(push, at);
   const P = S.profile, hm = s => s.split(':').map(Number);
@@ -4512,6 +4514,40 @@ function fix30Oct(){
   [['أعمل شعري وأقصه في شيري', '\u{1F487}‍♀\u{FE0F}'], ['أعمل رجلي وإيدي في البيت', '\u{1F485}'], ['ألزق رموش في البيت', '\u{1F441}\u{FE0F}']].forEach(([title]) => {
     if (!S.tasks.some(x => x.title === title)) S.tasks.push({id:uid(), title, kind:'personal', job:'', prio:'normal', due:t, time:'', done:false}); });
   S.seed11 = true;
+}
+
+/* 🍑 three gym nudges a day until the wedding; a day with a logged workout stays quiet */
+const GYM_LAST = [
+  ['آخر فرصة للجيم النهارده ⏰', 'الجيم بيقفل 11 والتمرينة ساعة ونص. لو نزلتي دلوقتي لسه تلحقي. فاضل {d} يوم على الفرح.'],
+  ['يلا دلوقتي \u{1F351}', 'لو نزلتي دلوقتي هتلحقي ساعة ونص قبل ما يقفل 11. جلوتس الفرح مستنياكي.'],
+  ['آخر نداء \u{1F6A8}\u{1F4AA}', 'الجيم مفتوح لحد 11. ساعة ونص دلوقتي أحسن من ندم بكرة.'],
+];
+const GYM_MSG = [
+  ['الجيم مستنيكي \u{1F351}', 'فاضل {d} يوم على الفرح. كل تمرينة النهارده = جلوتس أحلى في الفستان.'],
+  ['جسمك بيتبني بإيدك \u{1F4AA}', 'مش محتاجة مونجارو. محتاجة تمرين ثابت وبروتين. يلا روحي.'],
+  ['هيب ثرست تايم \u{1F351}', 'الجلوتس بتكبر بالوزن التقيل والاستمرار. النهارده زوّدي شوية عن المرة اللي فاتت.'],
+  ['فستان الفرح بيسأل عليكي \u{1F470}‍♀\u{FE0F}', 'فاضل {d} يوم. التمرينة اللي هتعمليها النهارده هتبان يوم 31 ديسمبر.'],
+  ['انتي أقوى من الكسل ✨', 'حتى لو 40 دقيقة بس، روحي. الاستمرار أهم من الكمال.'],
+  ['جلوت داي ولا كواد داي؟ \u{1F3CB}\u{FE0F}‍♀\u{FE0F}', 'افتحي الأبلكيشن، اختاري تمرينة النهارده، وانزلي الجيم.'],
+  ['جسم أحلى من غير إبر \u{1F497}', 'العضل اللي بتبنيه بيفضل معاكي، مش بيروح لما توقفي حاجة. ده جسمك انتي.'],
+  ['ميعاد الجيم قرّب ⏰', 'جهّزي الشنطة والمية والسماعات. أصعب خطوة هي باب البيت.'],
+  ['بعد الجيم هتحسي إنك ملكة \u{1F451}', 'محدش بيندم على تمرينة عملها. يلا يا مونمون.'],
+  ['كل عدّة بتفرق \u{1F351}', 'جلوتس مرفوعة وجسم مشدود للفرح والهاني مون. روحي.'],
+  ['وقت الحركة \u{1F525}', 'كل ما تبني عضل أكتر، جسمك بيحرق أكتر حتى وانتي قاعدة. ده الطريق من غير مونجارو.'],
+  ['احنا بنعرق مش بنستسهل \u{1F4A6}', 'الجيم النهارده = جسم الفرح اللي في دماغك. فاضل {d} يوم.'],
+  ['ملكة الفرح بتتمرن \u{1F48D}', 'كل يوم بتروحي فيه بيقربك من الشكل اللي نفسك فيه في الصور.'],
+  ['إنتي اللي اخترتي ده \u{1F338}', 'جسم أقوى، طاقة أعلى، ثقة أكبر. ساعة واحدة النهارده.'],
+  ['متكسريش السلسلة ⛓\u{FE0F}', 'كل تمرينة ورا التانية هي اللي بتعمل الفرق، مش تمرينة واحدة جامدة.'],
+];
+function gymReminders(push, at){
+  const slots = [[18,15],[19,45],[21,15]], W = S.profile.wedding || '2026-12-31';   // gym 7 am – 11 pm, a session is about 1½ h
+  for (let o = 0; o < 3; o++){
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + o);
+    const ds = ymd(d); if (ds > W) break;
+    if ((S.workouts || []).some(w => w.date === ds)) continue;
+    const left = daysBetween(ds, W), base = dayOfYear(d) * 3;
+    slots.forEach(([h, m], j) => { const [t, b] = j === 2 ? GYM_LAST[dayOfYear(d) % GYM_LAST.length] : GYM_MSG[(base + j) % GYM_MSG.length]; push('gym-' + ds + '-' + j, t, b.replace('{d}', left), at(d, h, m)); });
+  }
 }
 
 /* ---------- Thndr and gold: log the real amount ---------- */
