@@ -3543,6 +3543,23 @@ function valuReminders(push, at){
   (S.valu.plan || []).forEach((p, i) => { if (i < S.valu.paid.length) return;
     push('vu-' + p.m, L2('\u{1F4B3} قسط valU الشهر ده', '\u{1F4B3} valU due this month'), L2('المطلوب ' + fmt(p.a) + ' جنيه. ادفعيه وعلّمي عليه في الفلوس.', fmt(p.a) + ' EGP is due. Pay it and tick it in Money.'), at(parseD(p.m + '-01'), 10, 15)); });
 }
+/* 1 Nov: match the app to the cash in hand. From Lenme she has 1,030 + 561 = 1,591 left, plus 1,000 left over from valU.
+   valU's November 2,714 and Sympl's 300 down came out of Lenme; whatever else is missing was spent without being logged. */
+function cashCheck1Nov(){
+  if (S.seed13 || !S.seed12 || !S.valu || !S.sympl) return;
+  const N = '2026-11', add = (amount, cat, note, date) => { const id = uid(); S.spend.push({id, date, m:N, amount, cat, note}); return id; };
+  const vp = S.valu.paid[0];
+  if (vp && !vp.spendId){ S.valu.total += 2714 - vp.amount; if (S.valu.plan && S.valu.plan[0]) S.valu.plan[0].a = 2714; vp.amount = 2714; vp.spendId = add(2714, 'valu', 'valU · قسط نوفمبر', '2026-10-30'); }
+  if (!S.spend.some(x => x.cat === 'sympl' && x.amount === 300)) add(300, 'sympl', 'سيمبل · المقدم', '2026-10-30');
+  const lenme = sum(S.income.filter(i => i.job === 'lenme' && inMonth(i, N)), i => i.amount);
+  if (lenme){
+    const spent = sum(S.spend.filter(x => inMonth(x, N)), x => x.amount), saved = sum(S.jars.flatMap(j => j.deposits.filter(d => inMonth(d, N))), d => d.amount) + sum((S.invest || []).filter(x => inMonth(x, N)), x => x.amount);
+    const gap = Math.round(lenme - spent - saved - 1591);
+    if (gap > 0) add(gap, 'other', 'مصاريف مش متسجلة (من 28 أكتوبر لـ1 نوفمبر)', '2026-11-01');
+  }
+  if (!S.income.some(i => i.note === 'باقي فلوس valU')) S.income.push({id:uid(), date:'2026-11-01', job:'other', amount:1000, note:'باقي فلوس valU'});
+  S.seed13 = true;
+}
 const symplLast = d => { const x = parseD(d); return ymd(new Date(x.getFullYear(), x.getMonth() + 1, 1)); };   // fee-free until the 1st of the next month
 const symplLeft = () => Math.max(0, S.sympl.monthly * S.sympl.n - sum(S.sympl.paid, p => p.amount));
 function symplHTML(){
@@ -3674,7 +3691,7 @@ VIEWS['money.salary'] = function(el){
         (got.length ? '<span class="amt" style="color:var(--mint)">✓ ' + fmt(amt) + '</span>' : '<button class="btn" data-paid="' + j.id + '" style="padding:8px 12px">Paid</button>') + '</div>'; }).join('') + '</div></div>' +
     '<div class="card"><h2>Bonus or other income</h2><div class="row"><label class="field"><span>Amount</span><input class="in num" id="oA" type="number" inputmode="decimal" min="0" placeholder="0"></label><label class="field"><span>From</span><select class="in" id="oJ">' + S.jobs.map(j => '<option value="' + j.id + '">' + esc(j.name) + '</option>').join('') + '<option value="other">Other</option></select></label></div>' +
       '<div class="row"><label class="field"><span>Date</span><input class="in" id="oD" type="date" value="' + todayStr() + '"></label><button class="btn" id="oAdd">Add bonus</button></div></div>' +
-    '<div class="card"><div class="card-head"><h3>' + MONTHS_L[d.getMonth()] + ' total</h3><span class="amt">' + money(sum(inc, i => i.amount)) + '</span></div><div class="list">' + (inc.length ? inc.map(i => '<div class="item"><span style="font-size:18px">' + (i.bonus ? '\u{1F381}' : '\u{1F4B5}') + '</span><span class="t">' + esc(jobName(i.job)) + (i.bonus ? ' bonus' : '') + '<span class="s">' + nice(i.date) + '</span></span><span style="display:flex;align-items:center;gap:4px"><span class="amt">' + fmt(i.amount) + '</span>' + delBtn('data-idel', i.id) + '</span></div>').join('') : '<div class="empty">Nothing logged for ' + monthLabel(k) + ' yet.</div>') + '</div></div>';
+    '<div class="card"><div class="card-head"><h3>' + MONTHS_L[d.getMonth()] + ' total</h3><span class="amt">' + money(sum(inc, i => i.amount)) + '</span></div><div class="list">' + (inc.length ? inc.map(i => '<div class="item"><span style="font-size:18px">' + (i.bonus ? '\u{1F381}' : '\u{1F4B5}') + '</span><span class="t">' + esc(jobName(i.job)) + (i.bonus ? ' bonus' : '') + (i.note ? ' · ' + esc(i.note) : '') + '<span class="s">' + nice(i.date) + '</span></span><span style="display:flex;align-items:center;gap:4px"><span class="amt">' + fmt(i.amount) + '</span>' + delBtn('data-idel', i.id) + '</span></div>').join('') : '<div class="empty">Nothing logged for ' + monthLabel(k) + ' yet.</div>') + '</div></div>';
   const again = () => VIEWS['money.salary'](el);
   bindMonthNav(el, 'moneyMonth', again);
   $$('[data-paid]', el).forEach(b => b.onclick = () => { const j = S.jobs.find(x => x.id === b.dataset.paid);
@@ -6349,6 +6366,7 @@ novMigrate();
 prepNov26();
 picoButt26();
 fix30Oct();
+cashCheck1Nov();
 cycleMigrate();
 cycleImportFlo();
 photoMigrate();
