@@ -135,6 +135,12 @@ function valuDouble1Nov(){
   if (S.settings.budgets && +S.settings.budgets.valu) S.settings.budgets.valu = 0;   // installments change every month; tracked in the valU card instead
   S.seed14 = true;
 }
+/* 1 Nov: she asked to remove the "not logged" line altogether */
+function dropGap1Nov(){
+  if (S.seed15) return;
+  S.spend = S.spend.filter(x => !/^مصاريف مش متسجلة/.test(x.note || ''));
+  S.seed15 = true;
+}
 const symplLast = d => { const x = parseD(d); return ymd(new Date(x.getFullYear(), x.getMonth() + 1, 1)); };   // fee-free until the 1st of the next month
 const symplLeft = () => Math.max(0, S.sympl.monthly * S.sympl.n - sum(S.sympl.paid, p => p.amount));
 function symplHTML(){
