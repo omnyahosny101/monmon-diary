@@ -3560,6 +3560,20 @@ function cashCheck1Nov(){
   if (!S.income.some(i => i.note === 'باقي فلوس valU')) S.income.push({id:uid(), date:'2026-11-01', job:'other', amount:1000, note:'باقي فلوس valU'});
   S.seed13 = true;
 }
+/* 1 Nov, later: she had already logged November's valU herself, so the 2,714 added by cashCheck1Nov was a double.
+   Drop it, and give that amount back to the "not logged" line so the total still matches the cash in hand. */
+function valuDouble1Nov(){
+  if (S.seed14 || !S.seed13) return;
+  const N = '2026-11', vs = S.spend.filter(x => x.cat === 'valu' && inMonth(x, N)), mine = vs.find(x => x.note === 'valU · قسط نوفمبر'), hers = vs.find(x => x !== mine);
+  if (mine && hers){
+    S.spend = S.spend.filter(x => x !== mine);
+    if (S.valu.paid[0] && S.valu.paid[0].spendId === mine.id){ S.valu.paid[0].spendId = hers.id; S.valu.paid[0].amount = hers.amount; S.valu.plan[0].a = hers.amount; S.valu.total = sum(S.valu.plan, p => p.a); }
+    const gap = S.spend.find(x => inMonth(x, N) && /^مصاريف مش متسجلة/.test(x.note || ''));
+    if (gap) gap.amount += mine.amount; else S.spend.push({id:uid(), date:'2026-11-01', m:N, amount:mine.amount, cat:'other', note:'مصاريف مش متسجلة (من 28 أكتوبر لـ1 نوفمبر)'});
+  }
+  if (S.settings.budgets && +S.settings.budgets.valu) S.settings.budgets.valu = 0;   // installments change every month; tracked in the valU card instead
+  S.seed14 = true;
+}
 const symplLast = d => { const x = parseD(d); return ymd(new Date(x.getFullYear(), x.getMonth() + 1, 1)); };   // fee-free until the 1st of the next month
 const symplLeft = () => Math.max(0, S.sympl.monthly * S.sympl.n - sum(S.sympl.paid, p => p.amount));
 function symplHTML(){
@@ -6367,6 +6381,7 @@ prepNov26();
 picoButt26();
 fix30Oct();
 cashCheck1Nov();
+valuDouble1Nov();
 cycleMigrate();
 cycleImportFlo();
 photoMigrate();
