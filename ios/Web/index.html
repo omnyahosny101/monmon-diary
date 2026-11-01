@@ -3576,9 +3576,24 @@ function valuDouble1Nov(){
 }
 /* 1 Nov: she asked to remove the "not logged" line altogether */
 function dropGap1Nov(){
+  if (!S.seed16){ if (!S.cash) S.cash = {amount:2744, note:'2,591 كاش + 153 في كارت valU', date:'2026-11-01'}; S.seed16 = true; }
   if (S.seed15) return;
   S.spend = S.spend.filter(x => !/^مصاريف مش متسجلة/.test(x.note || ''));
   S.seed15 = true;
+}
+/* 💵 the money actually in hand, next to what the app works out, so a gap shows without inventing spending */
+function cashHTML(appLeft){
+  const C = S.cash; if (!C) return '<div class="card"><button class="linkbtn" id="cashEdit">\u{1F4B5} ' + L2('سجّلي الفلوس اللي معاكي فعلًا', 'Log the money you actually have') + '</button></div>';
+  const diff = Math.round(appLeft - C.amount);
+  return '<div class="card" data-notr><div class="card-head"><h2>\u{1F4B5} ' + L2('معايا فعلًا', 'Money in hand') + '</h2><button class="linkbtn" id="cashEdit">' + L2('تعديل', 'Edit') + '</button></div>' +
+    '<div class="statrow" style="color:var(--ink)"><span>' + esc(C.note || '') + '<span class="small muted" style="display:block;font-weight:700">' + L2('اتحدّث ', 'Updated ') + nice(C.date) + '</span></span><span class="num" style="font-size:20px;font-weight:900">' + fmt(C.amount) + '</span></div>' +
+    (Math.abs(diff) >= 50 ? '<p class="small" style="margin:0;font-weight:800;color:var(--berry)">' + (diff > 0 ? L2('الأبلكيشن حاسب إن الباقي ' + fmt(appLeft) + '، يعني فيه ' + fmt(diff) + ' جنيه اتصرفوا ومش متسجلين لسه.', 'The app works out ' + fmt(appLeft) + ' left, so ' + fmt(diff) + ' EGP was spent and not logged yet.') : L2('معاكي ' + fmt(-diff) + ' أكتر من اللي الأبلكيشن حاسبه، فيه دخل مش متسجل.', 'You have ' + fmt(-diff) + ' more than the app works out: some income isn’t logged.')) + '</p>' : '<p class="small muted" style="margin:0;font-weight:700">' + L2('مطابق للأبلكيشن ✓', 'Matches the app ✓') + '</p>') + '</div>';
+}
+function bindCash(el, again){
+  const b = $('#cashEdit', el); if (!b) return;
+  b.onclick = () => sheet('<h2 class="plain">\u{1F4B5} ' + L2('معايا فعلًا', 'Money in hand') + '</h2><label class="field"><span>' + L2('المبلغ كله (كاش + كروت)', 'Total (cash + cards)') + '</span><input class="in num" data-ca type="number" inputmode="decimal" min="0" value="' + (S.cash ? S.cash.amount : '') + '"></label>' +
+    '<label class="field"><span>' + L2('ملاحظة', 'Note') + '</span><input class="in" data-cn value="' + esc(S.cash ? S.cash.note || '' : '') + '"></label><button class="btn full" data-ok>' + L2('حفظ', 'Save') + '</button>', (sh, close) => {
+      $('[data-ok]', sh).onclick = () => { const a = +$('[data-ca]', sh).value; if (!(a >= 0)) return; S.cash = {amount:a, note:$('[data-cn]', sh).value.trim(), date:todayStr()}; save(); close(); again(); }; });
 }
 const symplLast = d => { const x = parseD(d); return ymd(new Date(x.getFullYear(), x.getMonth() + 1, 1)); };   // fee-free until the 1st of the next month
 const symplLeft = () => Math.max(0, S.sympl.monthly * S.sympl.n - sum(S.sympl.paid, p => p.amount));
@@ -3673,6 +3688,7 @@ VIEWS['money.overview'] = function(el){
   const small = list.filter(s => +s.amount < 100).length, delivery = list.filter(s => s.cat === 'delivery' || s.cat === 'out').length;
   el.innerHTML = monthNav('moneyMonth') +
     '<div class="money3"><div class="mbox"><b>' + fmt(inc) + '</b><span>income</span></div><div class="mbox"><b>' + fmt(spent) + '</b><span>spent</span></div><div class="mbox"><b style="color:' + (inc - spent - saved < 0 ? 'var(--warn)' : 'var(--mint)') + '">' + fmt(inc - spent - saved) + '</b><span>left after saving</span></div></div>' +
+    (k === ym(new Date()) ? cashHTML(inc - spent - saved) : '') +
     (budTotal ? '<div class="card"><div class="statrow" style="color:var(--ink)"><span>Monthly budget</span><span class="num">' + fmt(budSpent) + ' / ' + fmt(budTotal) + '</span></div><div class="bar' + (budSpent > budTotal ? ' over' : ' good') + '"><i style="width:' + Math.min(100, budSpent / budTotal * 100) + '%"></i></div></div>' : '') +
     '<div class="card tint"><h2>Money goals</h2>' +
       investHTML(k) +
@@ -3693,6 +3709,7 @@ VIEWS['money.overview'] = function(el){
   bindMonthNav(el, 'moneyMonth', again);
   bindInvest(el, again);
   bindSympl(el, again);
+  bindCash(el, again);
   $$('[data-sub2]', el).forEach(b => b.onclick = () => go('money', b.dataset.sub2));
   const vp = $('#vPay', el); if (vp) vp.onclick = () => { const a = Math.min(valuLeft(), valuNext()), sid = uid();
     S.spend.push({id:sid, date:todayStr(), amount:a, cat:'valu', note:'valU installment'}); S.valu.paid.push({id:uid(), date:todayStr(), amount:a, spendId:sid}); save();
