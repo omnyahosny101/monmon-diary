@@ -290,7 +290,7 @@ function armDelete(el, attr, onDel){
 function monthNav(key){ const d = parseD(ui[key] + '-01'); return '<div class="monthnav"><button data-mn="-1" aria-label="Previous month">‹</button><b>' + MONTHS_L[d.getMonth()] + ' ' + d.getFullYear() + '</b><button data-mn="1" aria-label="Next month">›</button></div>'; }
 function bindMonthNav(el, key, again){ $$('[data-mn]', el).forEach(b => b.onclick = () => { const d = parseD(ui[key] + '-01'); d.setMonth(d.getMonth() + +b.dataset.mn); ui[key] = ym(d); again(); }); }
 const monthLabel = k => { const d = parseD(k + '-01'); return MONTHS_L[d.getMonth()] + ' ' + d.getFullYear(); };
-const inMonth = (s, k) => s.date && s.date.slice(0, 7) === k;
+const inMonth = (s, k) => (s.m || (s.date && s.date.slice(0, 7))) === k;   // s.m: the month it counts for, when that isn't the calendar month
 const spentOn = day => sum(S.spend.filter(s => s.date === day), s => s.amount);
 const catOf = id => CATS.find(c => c.id === id) || CATS[CATS.length - 1];
 function sheet(html, bind){

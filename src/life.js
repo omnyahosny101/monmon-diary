@@ -49,6 +49,13 @@ function lifeMigrate(){
   if (!S.valu.v3){ S.valu.plan.unshift({m:'2026-11', a:2713}); S.valu.total += 2713; S.valu.paid.unshift({id:uid(), date:'2026-10-30', amount:2713, spendId:''}); S.valu.v3 = true; }
   // Sympl: Rush Brush Air Wrapper X2, ordered 30 Oct 2026. 300 down + 3 × 2,325, no interest or fees.
   // Each installment can be paid from the 25th to the 1st of the next month with no fees.
+  // 1 Nov: Lenme's 28 Oct salary is November's money, and everything spent or saved from it on 28–31 Oct counts in November too
+  if (!S.seed12){
+    const late = x => x && x.date >= '2026-10-28' && x.date <= '2026-10-31';
+    S.income.forEach(i => { if (i.job === 'lenme' && i.date >= '2026-10-25' && i.date <= '2026-10-31') i.m = '2026-11'; });
+    [S.spend || [], S.sadaqa || [], S.invest || [], ...(S.jars || []).map(j => j.deposits || [])].forEach(L => L.forEach(x => { if (late(x)) x.m = '2026-11'; }));
+    S.seed12 = true;
+  }
   S.sympl = S.sympl || {item:'Rush Brush Air Wrapper X2', bought:'2026-10-30', down:300, monthly:2325, n:3, total:7275, dues:['2026-11-25', '2026-12-25', '2027-01-25'], paid:[]};
   S.worth = S.worth || {gold:80000, thndr:10090, lent:61031, bank:1617, valuCard:5586, asOf:'2026-10-21'};
   S.wait = Array.isArray(S.wait) ? S.wait : [];
