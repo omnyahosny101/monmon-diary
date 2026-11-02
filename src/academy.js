@@ -9,6 +9,8 @@ function academyMigrate(){
   if (A.remind == null) A.remind = '22:00';
   if (A.on == null) A.on = true;
   if (A.timer === undefined) A.timer = null;
+  A.bk = A.bk && typeof A.bk === 'object' ? A.bk : {};
+  A.bk.read = A.bk.read || {}; A.bk.marks = A.bk.marks || {}; A.bk.fs = A.bk.fs || 16;
   S.askq = S.askq || [];
 }
 ASK_SRC.course = ['🎯', 'الأكاديمية', 'Academy'];
@@ -186,7 +188,7 @@ function acRing(pct, mid, sub){
 }
 function acCatalog(el){
   const due = acDue().length, mins = acMinsTotal(), certs = Object.values(S.acad.final).filter(f => f.pass).length, t = todayStr(), todayM = S.acad.mins[t] || 0;
-  el.innerHTML = '<div class="card tint achero"><div class="greet">🎓 الأكاديمية</div><span class="small" style="font-weight:700;line-height:1.6">ساعة كل يوم. درس، تطبيق، كويز، كروت مراجعة، ملاحظات، وشهادة في الآخر. الكتاب الكامل مفتوح في أي وقت.</span>' +
+  el.innerHTML = '<div class="card tint achero"><div class="greet">🎓 الأكاديمية</div><span class="small" style="font-weight:700;line-height:1.6">ساعة كل يوم: شرح بالتفصيل، أمثلة محلولة، تطبيق عملي، كويز، كروت مراجعة، ملاحظات، وشهادة في الآخر. والكتاب كامل جوه التطبيق.</span>' +
       '<div class="acstats"><div><b>' + acStreak() + '🔥</b><span>أيام ورا بعض</span></div><div><b>' + acHrs(todayM) + '</b><span>النهارده</span></div><div><b>' + acHrs(mins) + '</b><span>كل المذاكرة</span></div><div><b>' + certs + '</b><span>شهادات</span></div></div>' +
       '<div class="row"><button class="btn" data-acrev style="flex:2"' + (due ? '' : ' disabled') + '>🃏 راجعي الكروت (' + due + ')</button><button class="btn soft" data-acbook style="flex:1">📘 الكتاب</button></div></div>' +
     ACAD.map(c => { const n = acDoneN(c), pct = Math.round(n / c.days.length * 100), nx = acNextIdx(c), ti = acTodayIdx(c), f = S.acad.final[c.id];
@@ -194,17 +196,17 @@ function acCatalog(el){
       const line = nx < 0 ? '✅ خلصتي الكورس' + (f && f.pass ? ' · 🎓 ' + f.pct + '%' : ' · فاضل الاختبار النهائي') :
         acDated(c) ? (started ? 'النهارده: اليوم ' + (ti + 1) + ' · ' + c.days[ti].t : 'بيبدأ ' + niceDM(S.acad.start) + ' · تقدري تبدئي اليوم 1 دلوقتي') : 'الجاي: ' + c.days[nx].t;
       return '<button class="card accourse" data-acc="' + c.id + '" data-notr><div class="card-head"><h2 class="plain">' + c.e + ' ' + esc(c.t) + '</h2><span class="num" style="font-weight:800">' + n + ' / ' + c.days.length + '</span></div>' +
-        '<span class="small muted" style="font-weight:700">' + esc(c.st) + '</span><div class="bar good"><i style="width:' + pct + '%"></i></div><span class="small" style="font-weight:800">' + esc(line) + '</span></button>'; }).join('') +
+        '<span class="small muted" style="font-weight:700">' + esc(c.st) + '</span><div class="bar good"><i style="width:' + pct + '%"></i></div><span class="small" style="font-weight:800">' + esc(line) + '</span></button>'; }).join('') + acBookCard() +
     '<div class="card"><h2 class="plain">💡 إزاي تستفيدي أقصى حاجة</h2><div class="small" style="font-weight:700;line-height:1.8">• ابدئي تايمر الساعة أول ما تفتحي الدرس.<br>• اعملي المهام بإيدك على Ads Manager، مش قراية بس.<br>• الكروت بتظهر تاني في الوقت اللي هتنسيها فيه، فراجعيها كل يوم.<br>• اكتبي ملاحظة بكلامك في آخر كل درس.<br>• أي حاجة مش فاهماها دوسي 🤔 وتتحفظ لكلود.</div></div>';
   $$('[data-acc]', el).forEach(b => b.onclick = () => { ui.acC = b.dataset.acc; ui.acL = null; VIEWS['grow.academy'](el); scrollTo({top:0}); });
   $('[data-acrev]', el).onclick = () => acReview(null, () => VIEWS['grow.academy'](el));
-  $('[data-acbook]', el).onclick = () => openExternal(ACAD_DOC);
+  $$('[data-acbook]', el).forEach(b => b.onclick = () => acOpenBook(el));
 }
 function acCourseView(el, c){
   const n = acDoneN(c), pct = Math.round(n / c.days.length * 100), avg = acAvg(c), ti = acTodayIdx(c), nx = acNextIdx(c), f = S.acad.final[c.id], t = todayStr();
   const mins = c.days.reduce((a, d, i) => a + (S.acad.lmins[acKey(c.id, i)] || 0), 0), dueN = acDue().filter(x => x.cid === c.id).length;
   const finalOpen = n >= c.days.length - 2, weeks = [...new Set(c.days.map(d => d.w))];
-  const WN = {1:'اللغة والنظام', 2:'الإعدادات والتتبع', 3:'الكريتيف والإطلاق', 4:'التحسين والتوسيع والخبرة'};
+  const WN = acDated(c) ? Object.fromEntries(ACAD_WEEKS.map(x => [x.w, x.t])) : {1:'الأساس وميتا', 2:'الكريتيف والتشغيل', 3:'السوق ومستوى الخبراء', 4:'منصات تانية'};
   const go2 = acDated(c) ? (nx >= 0 && nx < ti ? nx : ti) : Math.max(0, nx);
   el.innerHTML = '<button class="linkbtn" data-acback>→ الأكاديمية</button>' +
     '<div class="card tint" data-notr><div class="greet">' + c.e + ' ' + esc(c.t) + '</div><span class="small" style="font-weight:700">' + esc(c.st) + '</span>' +
@@ -214,7 +216,9 @@ function acCourseView(el, c){
       '<div class="row"><button class="btn soft" data-acrev style="flex:1"' + (dueN ? '' : ' disabled') + '>🃏 الكروت (' + dueN + ')</button><button class="btn soft" data-acbook style="flex:1">📘 الكتاب</button>' + (acDated(c) ? '<button class="btn soft" data-acset aria-label="إعدادات">⚙️</button>' : '') + '</div></div>' +
     '<div class="card"><h2 class="plain">🏅 الإنجازات</h2><div class="acbadges">' + AC_BADGES.filter(b => acDated(c) || !/^w\d$/.test(b[0])).map(b => { const on = S.acad.badges[c.id + '-' + b[0]]; return '<div class="acbadge' + (on ? ' on' : '') + '"><span>' + b[1] + '</span><small>' + b[2] + '</small></div>'; }).join('') + '</div></div>' +
     weeks.map(w => { const list = c.days.map((d, i) => [d, i]).filter(x => x[0].w === w), wd = list.filter(x => acDone(c.id, x[1])).length;
-      return '<div class="card"><div class="card-head"><h2 class="plain">' + (acDated(c) ? 'الأسبوع ' + w + ': ' + WN[w] : 'الجزء ' + w) + '</h2><span class="num" style="font-weight:800">' + wd + ' / ' + list.length + '</span></div><div class="list">' +
+      const W = acDated(c) && ACAD_WEEKS.find(x => x.w === w);
+      return '<div class="card"><div class="card-head"><h2 class="plain">' + (acDated(c) ? 'الأسبوع ' + w + ': ' : 'الجزء ' + w + ': ') + WN[w] + '</h2><span class="num" style="font-weight:800">' + wd + ' / ' + list.length + '</span></div>' +
+        (W ? '<details class="acwk"><summary>🎯 هتطلعي من الأسبوع ده قادرة على…</summary><ul>' + W.o.map(o => '<li>' + esc(o) + '</li>').join('') + '</ul><p><b>مشروع الأسبوع:</b> ' + esc(W.p) + '</p></details>' : '') + '<div class="list">' +
         list.map(([d, i]) => { const done = acDone(c.id, i), open = acOpen(c, i), isT = acDated(c) && i === ti, best = S.acad.best[acKey(c.id, i)];
           return '<button class="item aclrow' + (done ? ' fin' : '') + (isT ? ' now' : '') + '" data-acl="' + i + '"' + (open ? '' : ' data-locked') + ' style="text-align:start" data-notr><span class="acdot">' + (done ? '✅' : !open ? '🔒' : isT ? '▶️' : (i + 1)) + '</span><span class="t">' + (acDated(c) ? 'اليوم ' + (i + 1) + ' · ' : '') + esc(d.t) +
             '<span class="s">' + (acDated(c) ? niceDM(acDateOf(c, i)) + (isT ? ' · النهارده' : '') : esc(d.goal)) + (best != null ? ' · 📝 ' + best + '%' : '') + '</span></span><span class="muted" style="font-size:18px">‹</span></button>'; }).join('') + '</div></div>'; }).join('') +
@@ -225,7 +229,7 @@ function acCourseView(el, c){
   $('[data-acback]', el).onclick = () => { ui.acC = null; again(); scrollTo({top:0}); };
   $$('[data-acl]', el).forEach(b => b.onclick = () => { if (b.hasAttribute('data-locked')) return toast('🔒 الدرس ده بيفتح يوم ' + niceDM(acDateOf(c, +b.dataset.acl)) + '، أو لما تخلّصي اللي قبله'); ui.acL = +b.dataset.acl; again(); scrollTo({top:0}); });
   $('[data-acrev]', el).onclick = () => acReview(acDue().filter(x => x.cid === c.id), again);
-  $('[data-acbook]', el).onclick = () => openExternal(ACAD_DOC);
+  $('[data-acbook]', el).onclick = () => acOpenBook(el);
   const fb = $('[data-acfin]', el); if (fb) fb.onclick = () => acFinal(c, again);
   const cb = $('[data-accert]', el); if (cb) cb.onclick = () => acCert(c);
   const sb = $('[data-acset]', el); if (sb) sb.onclick = () => acSettings(again);
@@ -235,12 +239,17 @@ function acLesson(el, c, i){
   const ctx = d.t + ': ' + d.read.join(' ');
   el.innerHTML = '<button class="linkbtn" data-acback>→ ' + esc(c.t) + '</button>' +
     '<div class="card tint aclhead" data-notr><span class="small muted" style="font-weight:900">' + (acDated(c) ? 'اليوم ' + (i + 1) + ' من ' + c.days.length + ' · الأسبوع ' + d.w + ' · ' + niceDM(acDateOf(c, i)) : 'الدرس ' + (i + 1) + ' من ' + c.days.length) + (done ? ' · ✅ خلصتيه' : '') + '</span>' +
-      '<div class="greet" style="font-size:21px;line-height:1.5">' + esc(d.t) + '</div><p class="acgoal">🎯 ' + esc(d.goal) + '</p>' +
+      '<div class="greet" style="font-size:21px;line-height:1.5">' + esc(d.t) + '</div><p class="acgoal">🎯 ' + esc(d.goal) + '</p>' + (acDated(c) ? '<span class="small muted" style="font-weight:800">⏱️ 20 د شرح وقراية · 25 د تطبيق · 10 د كويز وكروت · 5 د ملاحظات</span>' : '') +
       '<div class="acsteps"><span class="' + (S.acad.lmins[k] ? 'on' : '') + '">📖 قراية</span><span class="' + (nTasks ? 'on' : '') + '">🛠️ تطبيق ' + nTasks + '/' + d.tasks.length + '</span><span class="' + (best != null ? 'on' : '') + '">📝 كويز' + (best != null ? ' ' + best + '%' : '') + '</span><span class="' + (S.acad.notes[k] ? 'on' : '') + '">✍️ ملاحظات</span></div></div>' +
     '<div class="card actimer" data-actimer data-cid="' + c.id + '" data-i="' + i + '"><div class="card-head"><h2 class="plain">⏱️ ساعة المذاكرة</h2><span class="actime num">60:00</span></div><div class="bar"><i></i></div><span class="small acphase" style="font-weight:800"></span>' +
       '<div class="row"><button class="btn" data-tgo style="flex:2">▶ ابدئي الساعة</button><button class="btn soft" data-tstop style="flex:1" hidden>⏹ خلّصت</button></div><span class="small muted" style="font-weight:700">اتسجّل للدرس ده: ' + acHrs(S.acad.lmins[k] || 0) + '</span></div>' +
-    '<div class="card" data-notr><h2 class="plain">📖 الدرس</h2>' + d.read.map(p => '<p class="acp">' + esc(p) + '</p>').join('') +
-      '<button class="btn soft full" data-acbook>📘 اقري بالتفصيل في الكتاب: ' + esc(d.ref) + '</button><div class="row" style="justify-content:flex-end">' + askBtn('course', d.t, ctx, false) + '</div></div>' +
+    (d.why ? '<div class="card acwhy" data-notr><h2 class="plain">❓ ليه الدرس ده مهم</h2><p class="acp" style="margin:0">' + esc(d.why) + '</p></div>' : '') +
+    '<div class="card" data-notr><h2 class="plain">💡 الفكرة في دقيقة</h2><ul class="acsum">' + d.read.map(p => '<li>' + esc(p) + '</li>').join('') + '</ul></div>' +
+    (d.deep && d.deep.length ? '<div class="card" data-notr><h2 class="plain">🧠 الشرح بالتفصيل</h2>' + d.deep.map(p => '<p class="acp">' + esc(p) + '</p>').join('') + '<div class="row" style="justify-content:flex-end">' + askBtn('course', d.t, ctx, false) + '</div></div>' : '') +
+    (d.ex ? '<div class="card acex" data-notr><h2 class="plain">🧮 مثال محلول: ' + esc(d.ex.t) + '</h2><ol>' + d.ex.s.map(x => '<li>' + esc(x) + '</li>').join('') + '</ol></div>' : '') +
+    (d.err && d.err.length ? '<div class="card acerr" data-notr><h2 class="plain">⚠️ غلطات شائعة</h2><ul>' + d.err.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>' : '') +
+    (d.pro && d.pro.length ? '<div class="card acpro" data-notr><h2 class="plain">⭐ من خبرة المحترفين</h2><ul>' + d.pro.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>' : '') +
+    acReadHTML(d) +
     '<div class="card" data-notr><div class="card-head"><h2 class="plain">🛠️ التطبيق العملي</h2><span class="num" style="font-weight:800">' + nTasks + ' / ' + d.tasks.length + '</span></div><div class="list">' +
       d.tasks.map((x, j) => '<button class="item' + (tk[j] ? ' done' : '') + '" data-tk="' + j + '" style="text-align:start"><span class="tick' + (tk[j] ? ' on' : '') + '">' + CHECK + '</span><span class="t">' + esc(x) + '</span><span></span></button>').join('') + '</div>' +
       '<p class="todo" style="margin:0"><b>المطلوب تسلّميه</b> ' + esc(d.out) + '</p></div>' +
@@ -252,7 +261,7 @@ function acLesson(el, c, i){
     '<div class="row">' + (i > 0 ? '<button class="btn soft" data-acgo="' + (i - 1) + '" style="flex:1">→ اللي قبله</button>' : '') + (i < c.days.length - 1 ? '<button class="btn soft" data-acgo="' + (i + 1) + '" style="flex:1">اللي بعده ←</button>' : '') + '</div>';
   const again = () => VIEWS['grow.academy'](el);
   $('[data-acback]', el).onclick = () => { ui.acL = null; again(); scrollTo({top:0}); };
-  $('[data-acbook]', el).onclick = () => openExternal(ACAD_DOC);
+  acBindRead(el);
   $('[data-tgo]', el).onclick = () => acTimerStart(c.id, i);
   $('[data-tstop]', el).onclick = () => acTimerStop(acElapsed() >= 50 * 60);
   acTimerUI(); if (S.acad.timer && S.acad.timer.start) acEnsureTick();
@@ -288,7 +297,103 @@ function acSettings(again){
       if (st) S.acad.start = st; if (rt) S.acad.remind = rt; S.acad.on = $('.sw', sh).getAttribute('aria-checked') === 'true'; save(); close(); toast('اتحفظ ✓'); again(); };
   });
 }
+/* ---------- the book, inside the app ----------
+   S.acad.bk = {read:{secId:date}, marks:{secId:true}, last:secId, fs} ; ui.acBk = {ch, sec, ret:{c, l}} */
+let acBkFlat = null;
+const acRetLabel = (r, def) => !r ? def : r.l != null ? 'رجوع للدرس' : 'رجوع للكورس';
+function acBkAll(){
+  if (!acBkFlat){ acBkFlat = []; ACAD_BOOK.forEach((P, pi) => P.ch.forEach(C => C.s.forEach(s => acBkFlat.push({s, C, P, pi})))); }
+  return acBkFlat;
+}
+const acSec = id => acBkAll().find(x => x.s.id === id);
+const acCh = id => { for (const P of ACAD_BOOK) for (const C of P.ch) if (C.id === id) return C; return null; };
+const acSecH = (C, s) => s.h === 'مقدمة' && C.s.length === 1 ? C.t : s.h;
+const acSecL = (C, s) => s.h === 'مقدمة' ? C.t + (C.s.length > 1 ? ' · مقدمة' : '') : s.h;
+const acPlain = h => h.replace(/<[^>]+>/g, ' ').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/\s+/g, ' ');
+const acMinsOf = w => Math.max(1, Math.round(w / 170));
+const acChRead = C => C.s.filter(s => S.acad.bk.read[s.id]).length;
+function acBkPct(){ const all = acBkAll(); return Math.round(all.filter(x => S.acad.bk.read[x.s.id]).length / all.length * 100); }
+function acOpenBook(el, ch, sec){
+  const ret = ui.acBk && ui.acBk.ret || (ui.acC ? {c:ui.acC, l:ui.acL} : null);
+  ui.acBk = {ch:ch || null, sec:sec || null, ret:ch ? ret : (ui.acBk && ui.acBk.ret) || ret};
+  VIEWS['grow.academy'](el); if (!sec) scrollTo({top:0});
+}
+function acBookCard(){
+  const pct = acBkPct(), last = S.acad.bk.last && acSec(S.acad.bk.last), nCh = ACAD_BOOK.reduce((a, P) => a + P.ch.length, 0);
+  return '<button class="card accourse acbookcard" data-acbook data-notr><div class="card-head"><h2 class="plain">📘 الكتاب الكامل</h2><span class="num" style="font-weight:800">' + pct + '%</span></div>' +
+    '<span class="small muted" style="font-weight:700">' + ACAD_BOOK.length + ' أجزاء · ' + nCh + ' فصل · جداول ومعادلات ورسومات وأمثلة. بيتعلّم لوحده على اللي قريتيه.</span><div class="bar good"><i style="width:' + pct + '%"></i></div>' +
+    '<span class="small" style="font-weight:800">' + (last ? 'كمّلي من: ' + esc(acSecL(last.C, last.s)) : 'ابدئي من الجزء الأول') + '</span></button>';
+}
+function acReadHTML(d){
+  const ids = d.sec && d.sec.length ? d.sec : (d.chs || []).flatMap(ch => { const C = acCh(ch); return C ? [C.s[0].id] : []; });
+  if (!ids.length) return '';
+  const chips = ids.map(id => { const x = acSec(id); if (!x) return ''; const isCh = !(d.sec && d.sec.length), r = isCh ? acChRead(x.C) === x.C.s.length : S.acad.bk.read[id];
+    const label = isCh ? x.C.t : acSecL(x.C, x.s), mins = isCh ? acMinsOf(x.C.s.reduce((a, s) => a + s.w, 0)) : acMinsOf(x.s.w);
+    return '<button class="acrd' + (r ? ' on' : '') + '" data-bkopen="' + x.C.id + '|' + (isCh ? '' : id) + '"><span>' + (r ? '✅' : '📖') + '</span><span class="t">' + esc(label) + '<small>' + esc(x.C.t) + ' · ' + mins + ' د</small></span><span class="muted">‹</span></button>'; }).join('');
+  return '<div class="card" data-notr><h2 class="plain">📘 اقري في الكتاب</h2><span class="small muted" style="font-weight:700">' + (d.sec && d.sec.length ? 'الأجزاء دي من الكتاب بتكمّل الدرس بالجداول والتفاصيل. بتتعلّم ✅ لوحدها لما توصلي لآخرها.' : 'الفصل كامل جوه التطبيق، وفي آخره «اختبري نفسك».') + '</span><div class="acrds">' + chips + '</div></div>';
+}
+function acBindRead(el){ $$('[data-bkopen]', el).forEach(b => b.onclick = () => { const [ch, sec] = b.dataset.bkopen.split('|'); acOpenBook(el, ch, sec || null); }); }
+function acBookHome(el){
+  const pct = acBkPct(), last = S.acad.bk.last && acSec(S.acad.bk.last), marks = Object.keys(S.acad.bk.marks).map(acSec).filter(Boolean);
+  const ret = ui.acBk && ui.acBk.ret;
+  el.innerHTML = '<button class="linkbtn" data-bkback>→ ' + acRetLabel(ret, 'الأكاديمية') + '</button>' +
+    '<div class="card tint achero" data-notr><div class="greet">📘 كورس الميديا باينج: من الصفر للاحتراف</div><span class="small" style="font-weight:700;line-height:1.6">الكتاب مترتب على طريق التعلم: الأساس، القياس، ميتا كاملة، الكريتيف، التشغيل، السياسات والسوق، مستوى الخبراء، وبعدين المنصات التانية والمراجع.</span>' +
+      '<div class="bar good"><i style="width:' + pct + '%"></i></div><span class="small" style="font-weight:800">قريتي ' + pct + '% من الكتاب</span>' +
+      (last ? '<button class="btn full" data-bkgo="' + last.C.id + '|' + last.s.id + '">▶ كمّلي من: ' + esc(acSecL(last.C, last.s)) + '</button>' : '<button class="btn full" data-bkgo="m1|">▶ ابدئي القراية</button>') +
+      '<input class="in" data-bkq type="search" placeholder="🔎 دوّري في الكتاب… (مثلًا CAPI، Breakdown، رمضان)"><div data-bkres></div></div>' +
+    (marks.length ? '<div class="card" data-notr><h2 class="plain">🔖 علاماتي</h2><div class="acrds">' + marks.map(x => '<button class="acrd" data-bkgo="' + x.C.id + '|' + x.s.id + '"><span>🔖</span><span class="t">' + esc(acSecL(x.C, x.s)) + '<small>' + esc(x.C.t) + '</small></span><span class="muted">‹</span></button>').join('') + '</div></div>' : '') +
+    ACAD_BOOK.map((P, pi) => '<div class="card" data-notr><h2 class="plain"><span class="bkpn">' + (pi + 1) + '</span> ' + esc(P.t) + '</h2><div class="list">' +
+      P.ch.map(C => { const r = acChRead(C), n = C.s.length, w = C.s.reduce((a, s) => a + s.w, 0);
+        return '<button class="item aclrow' + (r === n ? ' fin' : '') + '" data-bkgo="' + C.id + '|" style="text-align:start"><span class="acdot">' + (r === n ? '✅' : r ? Math.round(r / n * 100) + '%' : '📖') + '</span><span class="t">' + esc(C.t) + '<span class="s">' + n + ' أجزاء · ' + acMinsOf(w) + ' د قراية' + (r && r < n ? ' · قريتي ' + r : '') + '</span></span><span class="muted" style="font-size:18px">‹</span></button>'; }).join('') + '</div></div>').join('') +
+    '<button class="btn soft full" data-bkweb>🌐 افتحي نسخة الكتاب الأونلاين (للطباعة أو التعليقات)</button>';
+  $('[data-bkback]', el).onclick = () => { const r = ui.acBk && ui.acBk.ret; ui.acBk = null; if (r){ ui.acC = r.c; ui.acL = r.l; } else { ui.acC = null; ui.acL = null; } VIEWS['grow.academy'](el); scrollTo({top:0}); };
+  const bindGo = root => $$('[data-bkgo]', root).forEach(b => b.onclick = () => { const [ch, sec] = b.dataset.bkgo.split('|'); acOpenBook(el, ch, sec || null); });
+  bindGo(el);
+  $('[data-bkweb]', el).onclick = () => openExternal(ACAD_DOC);
+  const q = $('[data-bkq]', el), res = $('[data-bkres]', el); let st;
+  q.oninput = () => { clearTimeout(st); st = setTimeout(() => {
+    const v = q.value.trim().toLowerCase(); if (v.length < 2){ res.innerHTML = ''; return; }
+    const hits = acBkAll().map(x => { const txt = acPlain(x.s.h + ' ' + x.s.html), at = txt.toLowerCase().indexOf(v); return at < 0 ? null : {x, snip:txt.slice(Math.max(0, at - 50), at + v.length + 70), at}; }).filter(Boolean).slice(0, 12);
+    res.innerHTML = hits.length ? '<div class="acrds" style="margin-top:8px">' + hits.map(h => { const sn = esc(h.snip), i2 = sn.toLowerCase().indexOf(esc(v));
+      return '<button class="acrd" data-bkgo="' + h.x.C.id + '|' + h.x.s.id + '"><span>🔎</span><span class="t">' + esc(acSecL(h.x.C, h.x.s)) + '<small>…' + (i2 < 0 ? sn : sn.slice(0, i2) + '<mark>' + sn.slice(i2, i2 + esc(v).length) + '</mark>' + sn.slice(i2 + esc(v).length)) + '…</small></span><span class="muted">‹</span></button>'; }).join('') + '</div>'
+      : '<p class="small muted" style="margin:8px 0 0;font-weight:700">مفيش نتايج. جربي كلمة تانية.</p>';
+    bindGo(res); }, 250); };
+}
+let acBkObs = null, acBkSaveT = null;
+function acChapter(el, chId, secId){
+  const C = acCh(chId); if (!C){ ui.acBk = {ret:ui.acBk && ui.acBk.ret}; return acBookHome(el); }
+  const all = ACAD_BOOK.flatMap(P => P.ch.map(ch => ({ch, P}))), ix = all.findIndex(x => x.ch.id === chId), P = all[ix].P, prev = all[ix - 1], next = all[ix + 1];
+  const unitI = ACAD[1].days.findIndex(u => (u.chs || []).includes(chId)), unit = ACAD[1].days[unitI], w = C.s.reduce((a, s) => a + s.w, 0), ret = ui.acBk.ret;
+  el.innerHTML = '<div class="row" style="justify-content:space-between"><button class="linkbtn" data-bkback>→ ' + (ret ? 'رجوع للدرس' : 'فهرس الكتاب') + '</button>' + (ret ? '<button class="linkbtn" data-bkhome>📘 الفهرس</button>' : '') + '</div>' +
+    '<div class="card tint" data-notr><span class="small muted" style="font-weight:900">الجزء ' + (ACAD_BOOK.indexOf(P) + 1) + ': ' + esc(P.t) + '</span><div class="greet" style="font-size:21px;line-height:1.5">' + esc(C.t) + '</div>' +
+      '<span class="small" style="font-weight:800">' + C.s.length + ' أجزاء · ' + acMinsOf(w) + ' دقيقة · قريتي ' + acChRead(C) + '</span>' +
+      '<div class="row"><button class="btn soft" data-fs="-1" aria-label="خط أصغر">A−</button><button class="btn soft" data-fs="1" aria-label="خط أكبر">A+</button><select class="in" data-bktoc style="flex:1"><option value="">الأجزاء…</option>' + C.s.map(s => '<option value="' + s.id + '">' + esc(acSecH(C, s)) + (S.acad.bk.read[s.id] ? ' ✓' : '') + '</option>').join('') + '</select></div></div>' +
+    '<div class="bkwrap" data-notr style="--bkfs:' + S.acad.bk.fs + 'px">' + C.s.map(s => '<section class="card bksec" id="bk-' + s.id + '"><h2 class="plain">' + esc(acSecH(C, s)) + '</h2><div class="bkbody">' + s.html + '</div>' +
+      '<div class="row bkfoot"><button class="linkbtn" data-bkread="' + s.id + '">' + (S.acad.bk.read[s.id] ? '✅ قريته' : '◻️ علّمي إنك قريتيه') + '</button><button class="linkbtn" data-bkmark="' + s.id + '">' + (S.acad.bk.marks[s.id] ? '🔖 متعلّم' : '🔖 علامة') + '</button>' +
+      askBtn('course', C.t + ' · ' + acSecH(C, s), acPlain(s.html).slice(0, 900), true) + '</div><i class="bkend" data-bkend="' + s.id + '"></i></section>').join('') + '</div>' +
+    (unit ? '<div class="card acex"><h2 class="plain">📝 اختبري نفسك في الفصل ده</h2><span class="small" style="font-weight:700">' + unit.q.length + ' أسئلة بشرح.' + (S.acad.best['mb-' + unitI] != null ? ' أحسن نتيجة ' + S.acad.best['mb-' + unitI] + '%.' : '') + '</span><button class="btn full" data-bkquiz>📝 ابدئي</button></div>' : '') +
+    '<div class="row">' + (prev ? '<button class="btn soft" data-bkgo="' + prev.ch.id + '" style="flex:1">→ ' + esc(prev.ch.t) + '</button>' : '') + (next ? '<button class="btn" data-bkgo="' + next.ch.id + '" style="flex:1">' + esc(next.ch.t) + ' ←</button>' : '') + '</div>';
+  const again = () => acChapter(el, chId);
+  $('[data-bkback]', el).onclick = () => { if (ret){ ui.acBk = null; ui.acC = ret.c; ui.acL = ret.l; VIEWS['grow.academy'](el); } else { ui.acBk = {ret:null}; acBookHome(el); } scrollTo({top:0}); };
+  const hb = $('[data-bkhome]', el); if (hb) hb.onclick = () => { ui.acBk = {ret}; acBookHome(el); scrollTo({top:0}); };
+  $$('[data-bkgo]', el).forEach(b => b.onclick = () => { ui.acBk = {ch:b.dataset.bkgo, ret}; acChapter(el, b.dataset.bkgo); scrollTo({top:0}); });
+  $$('[data-fs]', el).forEach(b => b.onclick = () => { S.acad.bk.fs = Math.max(13, Math.min(22, S.acad.bk.fs + +b.dataset.fs)); save(); $('.bkwrap', el).style.setProperty('--bkfs', S.acad.bk.fs + 'px'); });
+  $('[data-bktoc]', el).onchange = e => { const t = $('#bk-' + e.target.value); if (t) t.scrollIntoView({behavior:'smooth', block:'start'}); };
+  $$('[data-bkread]', el).forEach(b => b.onclick = () => { const id = b.dataset.bkread; if (S.acad.bk.read[id]) delete S.acad.bk.read[id]; else S.acad.bk.read[id] = todayStr(); save(); b.textContent = S.acad.bk.read[id] ? '✅ قريته' : '◻️ علّمي إنك قريتيه'; });
+  $$('[data-bkmark]', el).forEach(b => b.onclick = () => { const id = b.dataset.bkmark; if (S.acad.bk.marks[id]) delete S.acad.bk.marks[id]; else S.acad.bk.marks[id] = true; save(); b.textContent = S.acad.bk.marks[id] ? '🔖 متعلّم' : '🔖 علامة'; toast(S.acad.bk.marks[id] ? 'اتحطت علامة 🔖' : 'اتشالت العلامة'); });
+  $$('[data-ext]', el).forEach(a => a.onclick = () => openExternal(a.dataset.ext));
+  const qb = $('[data-bkquiz]', el); if (qb) qb.onclick = () => acQuizSheet(unit.q, {title:'اختبري نفسك: ' + C.t, onDone:pct => { const k = 'mb-' + unitI; S.acad.best[k] = Math.max(S.acad.best[k] || 0, pct); save(); }});
+  if (acBkObs) acBkObs.disconnect();
+  if ('IntersectionObserver' in window){
+    acBkObs = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; const id = e.target.dataset.bkend; S.acad.bk.last = id;
+      if (!S.acad.bk.read[id]){ S.acad.bk.read[id] = todayStr(); const b = $('[data-bkread="' + id + '"]', el); if (b) b.textContent = '✅ قريته'; }
+      clearTimeout(acBkSaveT); acBkSaveT = setTimeout(save, 800); }), {rootMargin:'0px 0px -15% 0px'});
+    $$('[data-bkend]', el).forEach(x => acBkObs.observe(x));
+  }
+  if (secId){ const go = () => { const t = $('#bk-' + secId); if (t) t.scrollIntoView({block:'start'}); }; requestAnimationFrame(go); setTimeout(go, 120); }
+}
 VIEWS['grow.academy'] = function(el){
+  if (ui.acBk){ if (ui.acBk.ch) acChapter(el, ui.acBk.ch, ui.acBk.sec); else acBookHome(el); return; }
   const c = ui.acC && ACAD.find(x => x.id === ui.acC);
   if (c && ui.acL != null && c.days[ui.acL]) acLesson(el, c, ui.acL);
   else if (c) acCourseView(el, c);
