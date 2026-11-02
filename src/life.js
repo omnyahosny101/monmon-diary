@@ -156,6 +156,15 @@ function bindCash(el, again){
     '<label class="field"><span>' + L2('ملاحظة', 'Note') + '</span><input class="in" data-cn value="' + esc(S.cash ? S.cash.note || '' : '') + '"></label><button class="btn full" data-ok>' + L2('حفظ', 'Save') + '</button>', (sh, close) => {
       $('[data-ok]', sh).onclick = () => { const a = +$('[data-ca]', sh).value; if (!(a >= 0)) return; S.cash = {amount:a, note:$('[data-cn]', sh).value.trim(), date:todayStr()}; save(); close(); again(); }; });
 }
+/* 2 Nov: the two meals she logged with 0 kcal get their real numbers */
+function mealsFix2Nov(){
+  if (S.seed17) return;
+  const fix = [[/اومليت|أومليت|omelet/i, 430, 21], [/مكرونة|مكرونه|pasta/i, 1000, 64]];
+  const apply = x => fix.forEach(([re, k, p]) => { if (re.test(x.name || '') && !(+x.kcal)){ x.kcal = k; x.protein = p; } });
+  ((S.extras || {})['2026-11-02'] || []).forEach(apply);
+  (S.dishes || []).filter(d => d.custom).forEach(apply);
+  S.seed17 = true;
+}
 const symplLast = d => { const x = parseD(d); return ymd(new Date(x.getFullYear(), x.getMonth() + 1, 1)); };   // fee-free until the 1st of the next month
 const symplLeft = () => Math.max(0, S.sympl.monthly * S.sympl.n - sum(S.sympl.paid, p => p.amount));
 function symplHTML(){
