@@ -220,7 +220,7 @@ Object.assign(AR, {
   "Photos": "الصور", "Photo": "صورة", "Add photo": "ضيفي صورة", "Adding photo…": "بنضيف الصورة…", "Photo saved": "الصورة اتحفظت", "That photo couldn’t be added": "الصورة دي مقدرتش تتضاف", "Delete photo": "امسحي الصورة", "Photo deleted": "الصورة اتمسحت",
   "Voice": "الصوت", "Previous paragraph": "الفقرة اللي فاتت", "Play or pause": "شغّلي أو وقفي", "Next paragraph": "الفقرة اللي بعدها", "Speed": "السرعة", "Stop": "وقفي",
   "Listen": "اسمعي", "Back 15 seconds": "رجوع 15 ثانية", "Forward 30 seconds": "قدام 30 ثانية",
-  "Reading": "القراية", "Ask Claude": "اسألي كلود", "Ask Claude later": "اسألي كلود بعدين", "Chapters": "الفصول", "My highlights": "علاماتي", "Text settings": "شكل الخط", "Highlight": "علّمي", "Colour": "لون", "Smaller": "أصغر", "Bigger": "أكبر", "Close": "اقفلي",
+  "Reading": "القراية", "Ask Claude": "اسألي كلود", "Academy": "الأكاديمية", "Ask Claude later": "اسألي كلود بعدين", "Chapters": "الفصول", "My highlights": "علاماتي", "Text settings": "شكل الخط", "Highlight": "علّمي", "Colour": "لون", "Smaller": "أصغر", "Bigger": "أكبر", "Close": "اقفلي",
   "French": "فرنساوي", "Learn": "اتعلّمي", "French lesson": "درس الفرنساوي", "A croissant date when you finish a week": "خروجة كرواسون لما تخلصي أسبوع", "Listen": "اسمعي", "Sound isn’t available here": "الصوت مش متاح هنا",
   "15 minutes of French today: one lesson and a short quiz.": "15 دقيقة فرنساوي النهارده: درس وكويز صغير.",
   "Period": "الدورة", "Period expected today": "الدورة متوقعة النهارده", "Tap to log flow and how you feel": "دوسي وسجّلي النزول وحاسة بإيه", "Keep pads, painkillers and a hot water bottle ready": "جهزي الفوط والمسكن وقربة المية السخنة",

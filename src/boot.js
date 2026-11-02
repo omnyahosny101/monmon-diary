@@ -20,6 +20,7 @@ frPlusMigrate();
 bookMigrate();
 narrMigrate();
 podMigrate();
+academyMigrate();
 applyLang();
 render();
 restoreScroll();
