@@ -299,6 +299,14 @@ function acSettings(again){
 }
 /* ---------- the book, inside the app ----------
    S.acad.bk = {read:{secId:date}, marks:{secId:true}, last:secId, fs} ; ui.acBk = {ch, sec, ret:{c, l}} */
+/* every book section also gets a simpler explanation and an example (academy_xp*.js) */
+const acXpMd = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+function acXpHTML(id){
+  const x = typeof ACAD_XP !== 'undefined' && ACAD_XP[id]; if (!x) return '';
+  return '<div class="bkxp"><div class="bkxs"><b class="bkxt">🌱 ببساطة</b>' + x.s.split('\n\n').map(p => '<p>' + acXpMd(p) + '</p>').join('') + '</div>' +
+    '<div class="bkxe"><b class="bkxt">🧮 مثال</b><p>' + acXpMd(x.e).replace(/\n/g, '<br>') + '</p></div></div>';
+}
+if (typeof ACAD_XP !== 'undefined') ACAD_BOOK.forEach(P => P.ch.forEach(C => C.s.forEach(s => { const x = ACAD_XP[s.id]; if (x) s.w += (x.s + ' ' + x.e).split(/\s+/).length; })));
 let acBkFlat = null;
 const acRetLabel = (r, def) => !r ? def : r.l != null ? 'رجوع للدرس' : 'رجوع للكورس';
 function acBkAll(){
@@ -353,7 +361,7 @@ function acBookHome(el){
   const q = $('[data-bkq]', el), res = $('[data-bkres]', el); let st;
   q.oninput = () => { clearTimeout(st); st = setTimeout(() => {
     const v = q.value.trim().toLowerCase(); if (v.length < 2){ res.innerHTML = ''; return; }
-    const hits = acBkAll().map(x => { const txt = acPlain(x.s.h + ' ' + x.s.html), at = txt.toLowerCase().indexOf(v); return at < 0 ? null : {x, snip:txt.slice(Math.max(0, at - 50), at + v.length + 70), at}; }).filter(Boolean).slice(0, 12);
+    const hits = acBkAll().map(x => { const xp = typeof ACAD_XP !== 'undefined' && ACAD_XP[x.s.id], txt = acPlain(x.s.h + ' ' + x.s.html + (xp ? ' ' + xp.s + ' ' + xp.e : '')), at = txt.toLowerCase().indexOf(v); return at < 0 ? null : {x, snip:txt.slice(Math.max(0, at - 50), at + v.length + 70), at}; }).filter(Boolean).slice(0, 12);
     res.innerHTML = hits.length ? '<div class="acrds" style="margin-top:8px">' + hits.map(h => { const sn = esc(h.snip), i2 = sn.toLowerCase().indexOf(esc(v));
       return '<button class="acrd" data-bkgo="' + h.x.C.id + '|' + h.x.s.id + '"><span>🔎</span><span class="t">' + esc(acSecL(h.x.C, h.x.s)) + '<small>…' + (i2 < 0 ? sn : sn.slice(0, i2) + '<mark>' + sn.slice(i2, i2 + esc(v).length) + '</mark>' + sn.slice(i2 + esc(v).length)) + '…</small></span><span class="muted">‹</span></button>'; }).join('') + '</div>'
       : '<p class="small muted" style="margin:8px 0 0;font-weight:700">مفيش نتايج. جربي كلمة تانية.</p>';
@@ -368,7 +376,7 @@ function acChapter(el, chId, secId){
     '<div class="card tint" data-notr><span class="small muted" style="font-weight:900">الجزء ' + (ACAD_BOOK.indexOf(P) + 1) + ': ' + esc(P.t) + '</span><div class="greet" style="font-size:21px;line-height:1.5">' + esc(C.t) + '</div>' +
       '<span class="small" style="font-weight:800">' + C.s.length + ' أجزاء · ' + acMinsOf(w) + ' دقيقة · قريتي ' + acChRead(C) + '</span>' +
       '<div class="row"><button class="btn soft" data-fs="-1" aria-label="خط أصغر">A−</button><button class="btn soft" data-fs="1" aria-label="خط أكبر">A+</button><select class="in" data-bktoc style="flex:1"><option value="">الأجزاء…</option>' + C.s.map(s => '<option value="' + s.id + '">' + esc(acSecH(C, s)) + (S.acad.bk.read[s.id] ? ' ✓' : '') + '</option>').join('') + '</select></div></div>' +
-    '<div class="bkwrap" data-notr style="--bkfs:' + S.acad.bk.fs + 'px">' + C.s.map(s => '<section class="card bksec" id="bk-' + s.id + '"><h2 class="plain">' + esc(acSecH(C, s)) + '</h2><div class="bkbody">' + s.html + '</div>' +
+    '<div class="bkwrap" data-notr style="--bkfs:' + S.acad.bk.fs + 'px">' + C.s.map(s => '<section class="card bksec" id="bk-' + s.id + '"><h2 class="plain">' + esc(acSecH(C, s)) + '</h2><div class="bkbody">' + s.html + acXpHTML(s.id) + '</div>' +
       '<div class="row bkfoot"><button class="linkbtn" data-bkread="' + s.id + '">' + (S.acad.bk.read[s.id] ? '✅ قريته' : '◻️ علّمي إنك قريتيه') + '</button><button class="linkbtn" data-bkmark="' + s.id + '">' + (S.acad.bk.marks[s.id] ? '🔖 متعلّم' : '🔖 علامة') + '</button>' +
       askBtn('course', C.t + ' · ' + acSecH(C, s), acPlain(s.html).slice(0, 900), true) + '</div><i class="bkend" data-bkend="' + s.id + '"></i></section>').join('') + '</div>' +
     (unit ? '<div class="card acex"><h2 class="plain">📝 اختبري نفسك في الفصل ده</h2><span class="small" style="font-weight:700">' + unit.q.length + ' أسئلة بشرح.' + (S.acad.best['mb-' + unitI] != null ? ' أحسن نتيجة ' + S.acad.best['mb-' + unitI] + '%.' : '') + '</span><button class="btn full" data-bkquiz>📝 ابدئي</button></div>' : '') +
