@@ -99,7 +99,7 @@ function save(){
   try { localStorage.setItem(LS, JSON.stringify(S)); } catch(e){}
   clearTimeout(saveTimer); saveTimer = setTimeout(syncNative, 500);
 }
-function syncNative(){ const n = native(); if (!n) return; try { n.postMessage({type:'sync', state:JSON.stringify(S), reminders:trReminders(buildReminders()), start:S.start}); } catch(e){} }
+function syncNative(){ const n = native(); if (!n) return; try { n.postMessage({type:'sync', state:JSON.stringify(S), reminders:trReminders(buildReminders()), start:S.start, widget:typeof widgetJSON === 'function' ? widgetJSON() : ''}); } catch(e){} }
 function toast(t){ $$('.toast').forEach(x => x.remove()); const el = document.createElement('div'); el.className = 'toast'; el.textContent = t; document.body.appendChild(el); setTimeout(() => el.remove(), 2000); }
 function hearts(x, y){
   if (x == null || matchMedia('(prefers-reduced-motion: reduce)').matches) return;

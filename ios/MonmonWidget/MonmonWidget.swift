@@ -145,7 +145,7 @@ struct MonmonWidget: Widget {
                         startPoint: .topLeading, endPoint: .bottomTrailing)
                 }
         }
-        .configurationDisplayName("Today's meals")
+        .configurationDisplayName("🍽️ Today's meals")
         .description("Your Monmon's Life meals for today.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
@@ -154,6 +154,12 @@ struct MonmonWidget: Widget {
 @main
 struct MonmonWidgetBundle: WidgetBundle {
     var body: some Widget {
+        DayWidget()
+        CourseWidget()
+        WeddingWidget()
+        TasksWidget()
+        QuoteWidget()
+        FactWidget()
         MonmonWidget()
     }
 }

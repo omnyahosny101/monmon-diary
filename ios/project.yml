@@ -34,6 +34,13 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UIApplicationSupportsIndirectInputEvents: true
+        CFBundleURLTypes:
+          - CFBundleURLName: com.monmon2026.monmonslife
+            CFBundleURLSchemes: [monmon]
+    entitlements:
+      path: MonmonsLife/MonmonsLife.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.monmon2026.monmonslife]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.monmon2026.monmonslife
@@ -53,6 +60,10 @@ targets:
         CFBundleDisplayName: "Monmon's Life"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: MonmonWidget/MonmonWidget.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.monmon2026.monmonslife]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.monmon2026.monmonslife.widget

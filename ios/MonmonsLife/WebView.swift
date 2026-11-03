@@ -67,7 +67,26 @@ struct WebView: UIViewRepresentable {
         private var usedFallback = false
 
         // No pinch or double-tap zoom: the app keeps its own size.
+        private var loaded = false
+        private var pendingOpen: String?
+
+        override init() {
+            super.init()
+            NotificationCenter.default.addObserver(forName: .monmonOpen, object: nil, queue: .main) { [weak self] note in
+                guard let self, let page = note.object as? String else { return }
+                if self.loaded { self.open(page) } else { self.pendingOpen = page }
+            }
+        }
+
+        /// A widget was tapped: go to its page (only known page names reach the page).
+        private func open(_ page: String) {
+            guard page.allSatisfy({ $0.isLetter }), page.count < 20 else { return }
+            webView?.evaluateJavaScript("window.monmonOpen && window.monmonOpen('\(page)')")
+        }
+
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            loaded = true
+            if let page = pendingOpen { pendingOpen = nil; DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { self.open(page) } }
             webView.scrollView.minimumZoomScale = 1
             webView.scrollView.maximumZoomScale = 1
             webView.scrollView.pinchGestureRecognizer?.isEnabled = false
@@ -179,6 +198,9 @@ struct WebView: UIViewRepresentable {
                 }
                 if let reminders = body["reminders"] as? [String: Any] {
                     Reminders.update(with: reminders)
+                }
+                if let widget = body["widget"] as? String, !widget.isEmpty, WidgetStore.save(widget) {
+                    WidgetCenter.shared.reloadAllTimelines()
                 }
                 if let start = body["start"] as? String, UserDefaults.standard.string(forKey: "start") != start {
                     UserDefaults.standard.set(start, forKey: "start")

@@ -22,4 +22,6 @@ To change the app, edit the files in `src/` (`app.html`, `app.js`, `life.js`, `b
 
 With a free Apple ID the app works for 7 days, then press Play again in Xcode to renew it. A paid Apple Developer account ($99 a year) makes it last a year.
 
-**Widget:** long-press the home screen, tap **+**, search **Monmon's Life**. Long-press the widget > **Edit Widget** to set your plan start date.
+**Widgets:** long-press the home screen, tap **+**, search **Monmon's Life**. There are 7: 🌸 My day (everything together), 🎓 Today's lesson (the academy), 💍 Wedding countdown (also on the lock screen), ✅ Tasks, 💭 Quote of the day, 💡 Daily info (six new facts a day) and 🍽️ Today's meals. Tapping a widget opens the app on that page. They fill in after the app is opened once, and update every time you save something. Long-press the meals widget > **Edit Widget** to set your plan start date.
+
+The widgets read the app's data through the app group `group.com.monmon2026.monmonslife` (Signing & Capabilities > App Groups on both targets). If Xcode can't create the group with a free Apple ID, remove App Groups from both targets: the app and the meals widget still work, and the other widgets ask you to open the app.
