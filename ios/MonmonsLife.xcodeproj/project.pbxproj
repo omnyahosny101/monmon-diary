@@ -11,9 +11,12 @@
 		3623A9CE0F5A2AE7E2A7267C /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9375BC4D8805CE1F0412D34 /* WebView.swift */; };
 		418AF869EDFBBE443020A147 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 60BD4F19977D2B04FE83BAAC /* Assets.xcassets */; };
 		51849095F0F640CF6CBE96F9 /* MonmonsLifeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB562F59562B632C8BFA9DAC /* MonmonsLifeApp.swift */; };
+		5484166BDD5CEF269DA5F6D3 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0565E8FFA2CE798550825D /* WidgetStore.swift */; };
 		6A2E39C5376C7CDD979BC5D5 /* PlanData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AE45457B0161BE455AFDF8 /* PlanData.swift */; };
+		8130C3ACF5144C71A22AE819 /* LifeWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EC55B7C51DFEA09A6EAF5DF /* LifeWidgets.swift */; };
 		856DEE4064EA50A6DB1F3896 /* MonmonWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C2743E30E258D9D287B6C95C /* MonmonWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		94DFC9A03DEBBD89BCFD54DD /* PlanData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AE45457B0161BE455AFDF8 /* PlanData.swift */; };
+		A475DB07449D447B21E5AD52 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0565E8FFA2CE798550825D /* WidgetStore.swift */; };
 		B587BA19B75CCDA5041F6CC3 /* Web in Resources */ = {isa = PBXBuildFile; fileRef = D57EE19CA91231F9FEA6AA8A /* Web */; };
 		C548BEC25B3ACF06979D907A /* plan.json in Resources */ = {isa = PBXBuildFile; fileRef = 17008C47C78166E0478EEC5B /* plan.json */; };
 		F7ACFD922F5A3861D149CE16 /* Reminders.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9CCD5EA40DF2C210F1AE10A /* Reminders.swift */; };
@@ -46,15 +49,19 @@
 
 /* Begin PBXFileReference section */
 		03D3636C3F7F9C17EE454D42 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		0EDAD84DB1CC3A03270D10C5 /* MonmonsLife.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MonmonsLife.entitlements; sourceTree = "<group>"; };
 		1220289DBE20B592CC3166B8 /* MonmonWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonmonWidget.swift; sourceTree = "<group>"; };
 		17008C47C78166E0478EEC5B /* plan.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = plan.json; sourceTree = "<group>"; };
 		23AE45457B0161BE455AFDF8 /* PlanData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanData.swift; sourceTree = "<group>"; };
+		3A0565E8FFA2CE798550825D /* WidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetStore.swift; sourceTree = "<group>"; };
 		60BD4F19977D2B04FE83BAAC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		69FBC139076E7084BF419596 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		8EC55B7C51DFEA09A6EAF5DF /* LifeWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeWidgets.swift; sourceTree = "<group>"; };
 		A9375BC4D8805CE1F0412D34 /* WebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebView.swift; sourceTree = "<group>"; };
 		C2743E30E258D9D287B6C95C /* MonmonWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = MonmonWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9CCD5EA40DF2C210F1AE10A /* Reminders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reminders.swift; sourceTree = "<group>"; };
 		D57EE19CA91231F9FEA6AA8A /* Web */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Web; sourceTree = SOURCE_ROOT; };
+		DF37E762100A2A14503D4CDE /* MonmonWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MonmonWidget.entitlements; sourceTree = "<group>"; };
 		EB562F59562B632C8BFA9DAC /* MonmonsLifeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonmonsLifeApp.swift; sourceTree = "<group>"; };
 		F74FE35398EE11690E76AFE9 /* MonmonsLife.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MonmonsLife.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -75,6 +82,8 @@
 			isa = PBXGroup;
 			children = (
 				69FBC139076E7084BF419596 /* Info.plist */,
+				8EC55B7C51DFEA09A6EAF5DF /* LifeWidgets.swift */,
+				DF37E762100A2A14503D4CDE /* MonmonWidget.entitlements */,
 				1220289DBE20B592CC3166B8 /* MonmonWidget.swift */,
 			);
 			path = MonmonWidget;
@@ -94,6 +103,7 @@
 			children = (
 				60BD4F19977D2B04FE83BAAC /* Assets.xcassets */,
 				03D3636C3F7F9C17EE454D42 /* Info.plist */,
+				0EDAD84DB1CC3A03270D10C5 /* MonmonsLife.entitlements */,
 				EB562F59562B632C8BFA9DAC /* MonmonsLifeApp.swift */,
 				C9CCD5EA40DF2C210F1AE10A /* Reminders.swift */,
 				A9375BC4D8805CE1F0412D34 /* WebView.swift */,
@@ -106,6 +116,7 @@
 			children = (
 				17008C47C78166E0478EEC5B /* plan.json */,
 				23AE45457B0161BE455AFDF8 /* PlanData.swift */,
+				3A0565E8FFA2CE798550825D /* WidgetStore.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -214,8 +225,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8130C3ACF5144C71A22AE819 /* LifeWidgets.swift in Sources */,
 				FC9C38DA1EBA8FC6283551E7 /* MonmonWidget.swift in Sources */,
 				94DFC9A03DEBBD89BCFD54DD /* PlanData.swift in Sources */,
+				5484166BDD5CEF269DA5F6D3 /* WidgetStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -227,6 +240,7 @@
 				6A2E39C5376C7CDD979BC5D5 /* PlanData.swift in Sources */,
 				F7ACFD922F5A3861D149CE16 /* Reminders.swift in Sources */,
 				3623A9CE0F5A2AE7E2A7267C /* WebView.swift in Sources */,
+				A475DB07449D447B21E5AD52 /* WidgetStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -244,6 +258,7 @@
 		05ADB6807D38AF19103E60FA /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MonmonWidget/MonmonWidget.entitlements;
 				INFOPLIST_FILE = MonmonWidget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -260,6 +275,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = MonmonsLife/MonmonsLife.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = MonmonsLife/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -276,6 +292,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = MonmonsLife/MonmonsLife.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = MonmonsLife/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -351,6 +368,7 @@
 		78F9A7F692835451EAD1BD0D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MonmonWidget/MonmonWidget.entitlements;
 				INFOPLIST_FILE = MonmonWidget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
