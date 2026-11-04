@@ -13,6 +13,7 @@ valuDouble1Nov();
 dropGap1Nov();
 mealsFix2Nov();
 dropBonus4Nov();
+connectalents4Nov();
 cycleMigrate();
 cycleImportFlo();
 photoMigrate();
