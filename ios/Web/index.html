@@ -4807,6 +4807,12 @@ function bindCash(el, again){
       $('[data-ok]', sh).onclick = () => { const a = +$('[data-ca]', sh).value; if (!(a >= 0)) return; S.cash = {amount:a, note:$('[data-cn]', sh).value.trim(), date:todayStr()}; save(); close(); again(); }; });
 }
 /* 2 Nov: the two meals she logged with 0 kcal get their real numbers */
+/* 4 Nov: the 6,000 bonus income was logged by mistake; she asked to remove it */
+function dropBonus4Nov(){
+  if (S.seed18) return;
+  S.income = (S.income || []).filter(i => !(i.date === '2026-11-04' && +i.amount === 6000 && i.bonus));
+  S.seed18 = true;
+}
 function mealsFix2Nov(){
   if (S.seed17) return;
   const fix = [[/اومليت|أومليت|omelet/i, 430, 21], [/مكرونة|مكرونه|pasta/i, 1000, 64]];
@@ -8118,6 +8124,7 @@ cashCheck1Nov();
 valuDouble1Nov();
 dropGap1Nov();
 mealsFix2Nov();
+dropBonus4Nov();
 cycleMigrate();
 cycleImportFlo();
 photoMigrate();
