@@ -14,6 +14,7 @@ dropGap1Nov();
 mealsFix2Nov();
 dropBonus4Nov();
 connectalents4Nov();
+dadClothes4Nov();
 cycleMigrate();
 cycleImportFlo();
 photoMigrate();

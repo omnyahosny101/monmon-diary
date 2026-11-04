@@ -172,6 +172,14 @@ function connectalents4Nov(){
   else S.income.push({id:uid(), date:'2026-11-04', job:'other', amount:6000, note:'فلوس Connectalents'});
   S.seed19 = true;
 }
+/* 4 Nov: the 19,000 from her dad is only for wedding clothes. It stays in the wedding-shopping jar,
+   but it is not her income and it is kept out of the month's money (ext = money from outside) */
+function dadClothes4Nov(){
+  if (S.seed20) return;
+  S.income = (S.income || []).filter(i => !(i.date === '2026-11-04' && +i.amount === 19000));
+  (S.jars || []).forEach(j => (j.deposits || []).forEach(d => { if (d.date === '2026-11-04' && +d.amount === 19000){ d.ext = true; d.why = 'فلوس بابا للهدوم'; } }));
+  S.seed20 = true;
+}
 function mealsFix2Nov(){
   if (S.seed17) return;
   const fix = [[/اومليت|أومليت|omelet/i, 430, 21], [/مكرونة|مكرونه|pasta/i, 1000, 64]];
@@ -262,7 +270,7 @@ function bindLifeToday(el, again){
 VIEWS['money.overview'] = function(el){
   const k = ui.moneyMonth, list = S.spend.filter(s => inMonth(s, k));
   const spent = sum(list, s => s.amount), inc = sum(incomeIn(k), i => i.amount);
-  const saved = sum(S.jars.flatMap(j => j.deposits.filter(d => inMonth(d, k))), d => d.amount) + sum((S.invest || []).filter(x => inMonth(x, k)), x => x.amount);
+  const saved = sum(S.jars.flatMap(j => j.deposits.filter(d => inMonth(d, k) && !d.ext)), d => d.amount) + sum((S.invest || []).filter(x => inMonth(x, k)), x => x.amount);
   const by = {}; list.forEach(s => by[s.cat] = (by[s.cat] || 0) + (+s.amount || 0));
   const B = S.settings.budgets || {}, budTotal = sum(Object.keys(B), c => B[c]);
   const budSpent = sum(Object.keys(B).filter(c => +B[c] > 0), c => by[c] || 0);

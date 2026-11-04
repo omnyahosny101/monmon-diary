@@ -563,7 +563,7 @@ function bindSpendDeletes(el, again){ armDelete(el, 'data-sdel', id => { S.spend
 VIEWS['money.overview'] = function(el){
   const k = ui.moneyMonth, list = S.spend.filter(s => inMonth(s, k));
   const spent = sum(list, s => s.amount), sal = +S.salary[k] || 0;
-  const saved = sum(S.jars.flatMap(j => j.deposits.filter(d => inMonth(d, k))), d => d.amount);
+  const saved = sum(S.jars.flatMap(j => j.deposits.filter(d => inMonth(d, k) && !d.ext)), d => d.amount);
   const by = {}; list.forEach(s => by[s.cat] = (by[s.cat] || 0) + (+s.amount || 0));
   const B = S.settings.budgets || {};
   const cats = CATS.filter(c => by[c.id] || B[c.id]).sort((a, b) => (by[b.id] || 0) - (by[a.id] || 0));
