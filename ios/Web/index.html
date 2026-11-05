@@ -4830,6 +4830,15 @@ function dadClothes4Nov(){
   (S.jars || []).forEach(j => (j.deposits || []).forEach(d => { if (d.date === '2026-11-04' && +d.amount === 19000){ d.ext = true; d.why = 'فلوس بابا للهدوم'; } }));
   S.seed20 = true;
 }
+/* 5 Nov: she wants dad's 19,000 shown after all, as income that goes straight into the wedding-shopping jar.
+   Income +19,000 and the jar deposit +19,000 cancel out, so what's left for the month doesn't change */
+function dadClothesBack5Nov(){
+  if (S.seed21) return;
+  S.income = S.income || [];
+  if (!S.income.some(i => i.date === '2026-11-04' && +i.amount === 19000)) S.income.push({id:uid(), date:'2026-11-04', job:'other', amount:19000, note:'فلوس بابا لهدوم الجواز بس'});
+  (S.jars || []).forEach(j => (j.deposits || []).forEach(d => { if (d.date === '2026-11-04' && +d.amount === 19000){ delete d.ext; d.why = 'فلوس بابا للهدوم'; } }));
+  S.seed21 = true;
+}
 function mealsFix2Nov(){
   if (S.seed17) return;
   const fix = [[/اومليت|أومليت|omelet/i, 430, 21], [/مكرونة|مكرونه|pasta/i, 1000, 64]];
@@ -8144,6 +8153,7 @@ mealsFix2Nov();
 dropBonus4Nov();
 connectalents4Nov();
 dadClothes4Nov();
+dadClothesBack5Nov();
 cycleMigrate();
 cycleImportFlo();
 photoMigrate();
