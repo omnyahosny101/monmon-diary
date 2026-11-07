@@ -205,6 +205,16 @@ function log56Nov(){
   });
   S.seed22 = true;
 }
+/* 7 Nov: instead of a hair treatment she bought a Rush Brush Air Wrapper X2. Swap the session and the checklist item, and tick both done. */
+function hairBrush7Nov(){
+  if (S.seed23) return;
+  const name = 'Rush Brush Air Wrapper X2';
+  Object.keys(S.selfcare || {}).forEach(k => (S.selfcare[k] || []).forEach(s => {
+    if ((s.key === 'ht' || /hair treatment|تريتمنت/i.test(s.name)) && !s.done){ Object.assign(s, {name, e:'\u{1F487}\u{200D}\u{2640}\u{FE0F}', price:'', done:'2026-11-07', planned:'2026-11-07', note:'اشتريتها بدل تريتمنت الشعر'}); if (k !== '2026-11'){ S.selfcare[k] = S.selfcare[k].filter(x => x !== s); (S.selfcare['2026-11'] = S.selfcare['2026-11'] || []).push(s); } }
+  }));
+  ((S.wedding && S.wedding.checklist) || []).forEach(c => { if (/تريتمنت|treatment/i.test(c.title)){ c.title = 'اشتري ' + name + ' (بدل التريتمنت)'; c.done = true; } });
+  S.seed23 = true;
+}
 function mealsFix2Nov(){
   if (S.seed17) return;
   const fix = [[/اومليت|أومليت|omelet/i, 430, 21], [/مكرونة|مكرونه|pasta/i, 1000, 64]];

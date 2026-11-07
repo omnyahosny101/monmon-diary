@@ -249,6 +249,10 @@ div.urgent{background:linear-gradient(135deg,var(--danger),var(--warn));color:#f
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .cday{aspect-ratio:1;max-width:100%;border-radius:14px;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--f-num);font-size:12px;position:relative}
 .cday .e{font-size:18px;line-height:1}
+.dmoney{background:var(--bg);border-radius:14px;padding:10px 12px}
+.dmoney summary{cursor:pointer;font-weight:700;list-style:none}
+.dmoney summary::-webkit-details-marker{display:none}
+.dmoney .list{margin-top:8px}
 .cday.today{outline:2px dashed var(--acc);outline-offset:-2px}
 .cday.blank{background:transparent}
 .cal5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
@@ -4592,10 +4596,14 @@ VIEWS['me.diary'] = function(el){
   let cells = ''; (isAr() ? ['ن','ث','ر','خ','ج','س','ح'] : ['M','T','W','T','F','S','S']).forEach(x => cells += '<div class="cday blank muted" style="font-weight:900">' + x + '</div>');
   for (let i = 0; i < lead; i++) cells += '<div class="cday blank"></div>';
   for (let d = 1; d <= last; d++){ const key = k + '-' + pad(d), m = S.diary[key] && S.diary[key].mood; cells += '<button class="cday' + (key === t ? ' today' : '') + '" data-day="' + key + '" aria-label="' + nice(key) + '">' + (m ? '<span class="e">' + MOODS[m - 1].e + '</span>' : '<span class="muted">' + d + '</span>') + '</button>'; }
-  const entries = Object.keys(S.diary).filter(d => d.slice(0, 7) === k && (S.diary[d].summary || S.diary[d].feelings || S.diary[d].mood)).sort().reverse();
-  const counts = [0,0,0,0,0]; entries.forEach(d => { const m = S.diary[d].mood; if (m) counts[m - 1]++; });
+  const spentOn = d => S.spend.filter(s => s.date === d);
+  const entries = [...new Set(Object.keys(S.diary).filter(d => d.slice(0, 7) === k && (S.diary[d].summary || S.diary[d].feelings || S.diary[d].mood)).concat(S.spend.filter(s => s.date && s.date.slice(0, 7) === k && s.date <= t).map(s => s.date)))].sort().reverse();
+  const moneyOf = d => { const L = spentOn(d); if (!L.length) return '';
+    return '<details class="dmoney"><summary>\u{1F4B8} ' + L2('صرفت', 'Spent') + ' <b>' + fmt(Math.round(sum(L, s => +s.amount))) + '</b> ' + L2('جنيه', 'EGP') + ' <span class="muted">· ' + L.length + ' ' + L2(L.length > 2 && L.length < 11 ? 'حاجات' : 'حاجة', L.length === 1 ? 'item' : 'items') + '</span></summary><div class="list">' +
+      L.map(s => '<div class="item"><span>' + catOf(s.cat).e + '</span><span class="t">' + esc(s.note || catOf(s.cat).name) + '</span><span class="amt">' + fmt(s.amount) + '</span></div>').join('') + '</div></details>'; };
+  const counts = [0,0,0,0,0]; entries.forEach(d => { const m = S.diary[d] && S.diary[d].mood; if (m) counts[m - 1]++; });
   el.innerHTML = monthNav('diaryMonth') + '<div class="card"><h2>Mood calendar</h2><div class="cal">' + cells + '</div><div class="chips" style="justify-content:center">' + MOODS.map((m, i) => '<span class="chip" style="cursor:default">' + m.e + ' <span class="cnt">' + counts[i] + '</span></span>').join('') + '</div><p class="small muted" style="margin:0;text-align:center">Tap a day to open its full record.</p></div>' +
-    (entries.length ? entries.map(d => { const e = S.diary[d]; return '<div class="card"><div class="card-head"><h3>' + nice(d) + '</h3><span style="font-size:22px">' + (e.mood ? MOODS[e.mood - 1].e : '') + '</span></div>' + (e.summary ? '<p style="margin:0;white-space:pre-wrap">' + esc(e.summary) + '</p>' : '') + (e.feelings ? '<p style="margin:0;white-space:pre-wrap;color:var(--muted)">' + esc(e.feelings) + '</p>' : '') + '</div>'; }).join('') : '<div class="card"><div class="empty">No diary entries in ' + monthLabel(k) + '. Write today’s on the Today tab.</div></div>');
+    (entries.length ? entries.map(d => { const e = S.diary[d] || {}; return '<div class="card"><div class="card-head"><h3>' + nice(d) + '</h3><span style="font-size:22px">' + (e.mood ? MOODS[e.mood - 1].e : '') + '</span></div>' + (e.summary ? '<p style="margin:0;white-space:pre-wrap">' + esc(e.summary) + '</p>' : '') + (e.feelings ? '<p style="margin:0;white-space:pre-wrap;color:var(--muted)">' + esc(e.feelings) + '</p>' : '') + moneyOf(d) + '</div>'; }).join('') : '<div class="card"><div class="empty">No diary entries in ' + monthLabel(k) + '. Write today’s on the Today tab.</div></div>');
   bindMonthNav(el, 'diaryMonth', () => VIEWS['me.diary'](el));
   $$('[data-day]', el).forEach(b => b.onclick = () => { if (b.dataset.day > t) return; ui.dayView = b.dataset.day; go('me', 'days'); });
 };
@@ -4854,6 +4862,16 @@ function log56Nov(){
     if (!S.spend.some(x => x.date === date && Math.abs(+x.amount - amount) < 0.01)) S.spend.push({id:uid(), date, amount, cat, note});
   });
   S.seed22 = true;
+}
+/* 7 Nov: instead of a hair treatment she bought a Rush Brush Air Wrapper X2. Swap the session and the checklist item, and tick both done. */
+function hairBrush7Nov(){
+  if (S.seed23) return;
+  const name = 'Rush Brush Air Wrapper X2';
+  Object.keys(S.selfcare || {}).forEach(k => (S.selfcare[k] || []).forEach(s => {
+    if ((s.key === 'ht' || /hair treatment|تريتمنت/i.test(s.name)) && !s.done){ Object.assign(s, {name, e:'\u{1F487}\u{200D}\u{2640}\u{FE0F}', price:'', done:'2026-11-07', planned:'2026-11-07', note:'اشتريتها بدل تريتمنت الشعر'}); if (k !== '2026-11'){ S.selfcare[k] = S.selfcare[k].filter(x => x !== s); (S.selfcare['2026-11'] = S.selfcare['2026-11'] || []).push(s); } }
+  }));
+  ((S.wedding && S.wedding.checklist) || []).forEach(c => { if (/تريتمنت|treatment/i.test(c.title)){ c.title = 'اشتري ' + name + ' (بدل التريتمنت)'; c.done = true; } });
+  S.seed23 = true;
 }
 function mealsFix2Nov(){
   if (S.seed17) return;
@@ -8171,6 +8189,7 @@ connectalents4Nov();
 dadClothes4Nov();
 dadClothesBack5Nov();
 log56Nov();
+hairBrush7Nov();
 cycleMigrate();
 cycleImportFlo();
 photoMigrate();

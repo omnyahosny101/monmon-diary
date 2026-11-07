@@ -17,6 +17,7 @@ connectalents4Nov();
 dadClothes4Nov();
 dadClothesBack5Nov();
 log56Nov();
+hairBrush7Nov();
 cycleMigrate();
 cycleImportFlo();
 photoMigrate();

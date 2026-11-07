@@ -249,6 +249,10 @@ div.urgent{background:linear-gradient(135deg,var(--danger),var(--warn));color:#f
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .cday{aspect-ratio:1;max-width:100%;border-radius:14px;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--f-num);font-size:12px;position:relative}
 .cday .e{font-size:18px;line-height:1}
+.dmoney{background:var(--bg);border-radius:14px;padding:10px 12px}
+.dmoney summary{cursor:pointer;font-weight:700;list-style:none}
+.dmoney summary::-webkit-details-marker{display:none}
+.dmoney .list{margin-top:8px}
 .cday.today{outline:2px dashed var(--acc);outline-offset:-2px}
 .cday.blank{background:transparent}
 .cal5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
