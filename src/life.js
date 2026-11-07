@@ -189,6 +189,22 @@ function dadClothesBack5Nov(){
   (S.jars || []).forEach(j => (j.deposits || []).forEach(d => { if (d.date === '2026-11-04' && +d.amount === 19000){ delete d.ext; d.why = 'فلوس بابا للهدوم'; } }));
   S.seed21 = true;
 }
+/* 5–6 Nov from her bank messages, logged as she asked. Skips any line she already logged herself (same day and amount). */
+function log56Nov(){
+  if (S.seed22) return;
+  S.spend = S.spend || [];
+  [['2026-11-05',132.99,'transport','أوبر رايحة العيادة'],['2026-11-05',136.64,'transport','أوبر العيادات'],
+   ['2026-11-05',136.28,'transport','أوبر راجعة من دكتورة دينا'],['2026-11-05',138.90,'transport','أوبر راجعة البيت'],
+   ['2026-11-05',150,'out','آيس سبانيش لاتيه · نبرز'],['2026-11-05',8000,'selfcare','دكتورة دينا (ليا ولماما)'],
+   ['2026-11-05',500,'other','استشارة مستر أحمد المحامي بخصوص الدكتور'],
+   ['2026-11-06',238.90,'delivery','طلبات · فطار مع أهلي'],['2026-11-06',226,'out','السيرك (وفّرها)'],
+   ['2026-11-06',285,'out','عزومة محمود · BRGR'],['2026-11-06',201,'out','نص دستة · ليا ولمحمود ولمحمد'],
+   ['2026-11-06',100,'donations','صدقة من الكاش القديم']
+  ].forEach(([date, amount, cat, note]) => {
+    if (!S.spend.some(x => x.date === date && Math.abs(+x.amount - amount) < 0.01)) S.spend.push({id:uid(), date, amount, cat, note});
+  });
+  S.seed22 = true;
+}
 function mealsFix2Nov(){
   if (S.seed17) return;
   const fix = [[/اومليت|أومليت|omelet/i, 430, 21], [/مكرونة|مكرونه|pasta/i, 1000, 64]];
