@@ -25,7 +25,7 @@ function widgetJSON(){
     const B = (S.wedding && S.wedding.beauty) || [], next = B.filter(b => b.planned && !b.done && b.planned >= t).sort((a, b) => a.planned < b.planned ? -1 : 1)[0];
     const W = S.wedding || {}, ck = W.checklist || [];
     const daily = S.habits.filter(x => x.freq === 'daily');
-    return JSON.stringify({v:1, at:t, wedding:S.profile.wedding || '2026-12-31',
+    return JSON.stringify({v:1, at:t, wedding:S.profile.wedding || '2027-01-04',
       wnext:next ? {t:cut(next.name, 40), e:next.e || '💗', d:next.planned} : null,
       wdone:B.filter(b => b.done).length + ck.filter(x => x.done).length, wtotal:B.length + ck.length,
       tasks, open:open.length, urgent:open.filter(x => x.prio === 'urgent').length,

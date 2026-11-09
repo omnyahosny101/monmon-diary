@@ -68,7 +68,7 @@ FR.push(
 );
 FR.push(
   {t:'الفرح! le mariage', w:[['le mariage','الفرح / الجواز','لُ مارياچ'],['la mariée','العروسة','لا ماريه'],['le marié','العريس','لُ مارييه'],['la robe de mariée','فستان الفرح','لا روب دُ ماريه'],['les alliances','الدبل','ليزالّيونس'],['la lune de miel','شهر العسل','لا لين دُ مييل'],['les invités','المعازيم','ليزانڤيتيه'],['Félicitations !','مبروك!','فيليسيتاسيون']],
-    p:[['Je me marie le trente et un décembre.','هتجوز يوم 31 ديسمبر.'],['Nous partons en lune de miel en Turquie.','رايحين شهر العسل في تركيا.'],['Félicitations aux mariés !','مبروك للعرسان!']],
+    p:[['Je me marie le quatre janvier.','هتجوز يوم 4 يناير.'],['Nous partons en lune de miel en Turquie.','رايحين شهر العسل في تركيا.'],['Félicitations aux mariés !','مبروك للعرسان!']],
     n:'"se marier avec quelqu’un" = يتجوز حد: Je vais me marier avec Ahmed. ودرس النهارده بتاعك انتي، احفظيه كله 💍'},
   {t:'السفر والفندق', w:[['l’hôtel','الفندق','لوتيل'],['une réservation','حجز','إين ريزيرڤاسيون'],['une chambre double','أوضة لاتنين','إين شومبر دوبل'],['le passeport','الباسبور','لُ پاسپور'],['la valise','الشنطة (سفر)','لا ڤاليز'],['l’aéroport','المطار','لاإيروپور'],['le petit-déjeuner est inclus ?','الفطار ضمن الحجز؟','لُ پُتي ديچُنيه إيتانكلي'],['la clé','المفتاح','لا كليه']],
     p:[['Bonjour, j’ai une réservation au nom de Hosny.','أهلًا، عندي حجز باسم حسني.'],['À quelle heure est le petit-déjeuner ?','الفطار الساعة كام؟']],
@@ -89,7 +89,7 @@ FR.push(
     p:[['À mon avis, Paris est plus belle au printemps.','في رأيي باريس أحلى في الربيع.'],['Bien sûr, avec plaisir !','طبعًا، بكل سرور!']],
     n:'اعملي حوار مع نفسك عن رحلة شهر العسل: الفندق، المطعم، والمقارنة بين مكانين.'},
   {t:'اكتبي رسالة قصيرة', w:[['Cher / Chère…','عزيزي / عزيزتي…','شير'],['Je t’écris pour…','بكتبلك عشان…','چُ تيكري پور'],['J’espère que tu vas bien.','أتمنى تكوني كويسة.','چيسپير كُ تي ڤا بيان'],['Je t’invite à…','بعزمك على…','چُ تانڤيت آ'],['Réponds-moi vite !','ردي عليا بسرعة!','ريپون موا ڤيت'],['Grosses bises','بوسات كتير','جروس بيز'],['une carte postale','كارت بوستال','إين كارت پوستال'],['d’ici là','لحد ساعتها','ديسي لا']],
-    p:[['Chère Sara, je t’invite à mon mariage le 31 décembre au Caire. J’espère que tu vas venir ! Grosses bises, Omnya','عزيزتي سارة، بعزمك على فرحي يوم 31 ديسمبر في القاهرة. أتمنى تيجي! بوسات، أمنية']],
+    p:[['Chère Sara, je t’invite à mon mariage le 4 janvier au Caire. J’espère que tu vas venir ! Grosses bises, Omnya','عزيزتي سارة، بعزمك على فرحي يوم 4 يناير في القاهرة. أتمنى تيجي! بوسات، أمنية']],
     n:'في امتحان A1 بيطلبوا رسالة قصيرة 40–50 كلمة: تحية، السبب، تفاصيل (إمتى، فين)، وختام. اكتبي رسالتك انتي النهارده.'},
   {t:'عرّفي نفسك كاملة', w:[['Je me présente.','أعرّفك بنفسي.','چُ مُ پريزونت'],['J’ai vingt-quatre ans.','عندي 24 سنة.','چيه ڤانت كاتر أون'],['Je suis fiancée.','أنا مخطوبة.','چُ سوي فيونسيه'],['Mes loisirs sont…','هواياتي…','ميه لوازير سون'],['mon rêve','حلمي','مون ريڤ']],
     p:[['Je me présente : je m’appelle Omnya, j’ai vingt-quatre ans et je suis égyptienne. J’habite au Caire. Je travaille dans le marketing, à distance. J’adore la peinture, la danse et les sorties. J’ai un chat qui s’appelle Toto. Je vais me marier en décembre. Mon rêve, c’est de voyager à Paris !','بعرّف نفسي: اسمي أمنية، عندي 24 سنة ومصرية. ساكنة في القاهرة. بشتغل في الماركتنج ريموت. بعشق الرسم والرقص والخروج. عندي قطة اسمها توتو. هتجوز في ديسمبر. حلمي أسافر باريس!']],

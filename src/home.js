@@ -20,7 +20,7 @@ function homeMigrate(){
   PREP_DEFAULTS.forEach(([e, t]) => { if (!have.includes(t.toLowerCase())) S.wedding.checklist.push({id:uid(), e, title:t, done:false}); });
   S.wedding.checklist.forEach(c => { if (!c.e) c.e = /shopping/i.test(c.title) ? '\u{1F6CD}\u{FE0F}' : '\u{1F48D}'; });
   if (!S.wedding.beauty.some(b => b.id === 'sb')) S.wedding.beauty.splice(Math.max(0, S.wedding.beauty.findIndex(b => b.id === 'fi')), 0, {id:'sb', name:'Skin booster', e:'\u{1F4A7}', price:'', note:'Price not known yet', planned:'', done:'', spendId:''});
-  const lastMonth = (S.profile.wedding || '2026-12-31').slice(0, 7);
+  const lastMonth = (S.profile.wedding || '2027-01-04').slice(0, 7);
   Object.keys(S.selfcare).forEach(k => { if (k <= lastMonth) S.selfcare[k].forEach(s => { if (s.wedding == null) s.wedding = true; }); });
   S.seed5 = true;
 }
@@ -296,7 +296,7 @@ VIEWS['plans.mashawer'] = function(el){
 };
 
 
-/* ============ WEDDING PLAN, MONTH BY MONTH (wedding 31 Dec 2026) ============
+/* ============ WEDDING PLAN, MONTH BY MONTH (wedding 4 Jan 2027, moved from 31 Dec 2026) ============
    Beauty sessions live in Self-care, in the month they happen, tagged 💍. The wedding page groups them by month. */
 const WED_PLAN = [
   // [key, name, emoji, price, date, note]
@@ -306,8 +306,8 @@ const WED_PLAN = [
   ['bp','Butt peeling','\u{1F351}','','2026-11-14'], ['dp','Dermapen','\u{1FAA1}','','2026-11-17'], ['mb1','Moroccan bath · 1','\u{1F6C1}','','2026-11-20'],
   ['fi','Filler: lips 0.5 ml, cheeks 1 ml','\u{1F48B}','','2026-11-24','Price per ml not known yet'], ['hl2','Hair laser · session 2','✨',5000,'2026-11-25'], ['ls2','Lashes · session 2','\u{1F441}\u{FE0F}','','2026-11-26'],
   ['pc2','Pico laser · session 2','\u{1F48E}',5000,'2026-12-01'], ['bo','Botox: crow’s feet, nose','\u{1F4AB}','','2026-12-05','Price not known yet'], ['sb','Skin booster','\u{1F4A7}','','2026-12-08'],
-  ['sv2','Spider veins laser · session 2','\u{1F9B5}',6000,'2026-12-10'], ['hl3','Hair laser · session 3','✨',5000,'2026-12-20'],
-  ['ls3','Lashes · session 3','\u{1F441}\u{FE0F}','','2026-12-27'], ['mb2','Moroccan bath · 2','\u{1F6C1}','','2026-12-29'],
+  ['sv2','Spider veins laser · session 2','\u{1F9B5}',6000,'2026-12-10'], ['hl3','Hair laser · session 3','✨',5000,'2026-12-24'],
+  ['ls3','Lashes · session 3','\u{1F441}\u{FE0F}','','2026-12-31'], ['mb2','Moroccan bath · 2','\u{1F6C1}','','2027-01-02'],
 ];
 const WED_MATCH = {hl:/hair laser|laser hair|^laser\b/i, ls:/lash/i, pc:/pico/i, hd:/dye/i, ht:/treatment/i, sv:/spider/i, bp:/peel/i, dp:/dermapen|derma pen/i, mb:/moroccan|bath/i, fi:/filler/i, bo:/botox/i, sb:/booster/i};
 const WED_SHOP = [['\u{1FA72}','Panties'],['\u{1F459}','More lingerie (cosplay)'],['\u{1F9F4}','Perfumes'],['\u{1F9F4}','Body lotion'],['\u{1F4A6}','Body splash'],['\u{1F6C1}','Body care'],
@@ -325,7 +325,7 @@ function scHabit(s){
 }
 function weddingMigrate(){
   if (S.seed6) return;
-  const t = todayStr(), W = S.profile.wedding = '2026-12-31';
+  const t = todayStr(), W = S.profile.wedding = '2027-01-04';
   const old = {}; (S.wedding.beauty || []).forEach(b => { old[b.id === 'sv' ? 'sv1' : b.id] = b; });
   const months = [...new Set(WED_PLAN.map(p => p[4].slice(0, 7)))], claimed = new Set();
   WED_PLAN.forEach(([key, name, e, price, date, note]) => {
@@ -657,7 +657,7 @@ const GYM_MSG = [
   ['الجيم مستنيكي \u{1F351}', 'فاضل {d} يوم على الفرح. كل تمرينة النهارده = جلوتس أحلى في الفستان.'],
   ['جسمك بيتبني بإيدك \u{1F4AA}', 'مش محتاجة مونجارو. محتاجة تمرين ثابت وبروتين. يلا روحي.'],
   ['هيب ثرست تايم \u{1F351}', 'الجلوتس بتكبر بالوزن التقيل والاستمرار. النهارده زوّدي شوية عن المرة اللي فاتت.'],
-  ['فستان الفرح بيسأل عليكي \u{1F470}‍♀\u{FE0F}', 'فاضل {d} يوم. التمرينة اللي هتعمليها النهارده هتبان يوم 31 ديسمبر.'],
+  ['فستان الفرح بيسأل عليكي \u{1F470}‍♀\u{FE0F}', 'فاضل {d} يوم. التمرينة اللي هتعمليها النهارده هتبان يوم 4 يناير.'],
   ['انتي أقوى من الكسل ✨', 'حتى لو 40 دقيقة بس، روحي. الاستمرار أهم من الكمال.'],
   ['جلوت داي ولا كواد داي؟ \u{1F3CB}\u{FE0F}‍♀\u{FE0F}', 'افتحي الأبلكيشن، اختاري تمرينة النهارده، وانزلي الجيم.'],
   ['جسم أحلى من غير إبر \u{1F497}', 'العضل اللي بتبنيه بيفضل معاكي، مش بيروح لما توقفي حاجة. ده جسمك انتي.'],
@@ -671,7 +671,7 @@ const GYM_MSG = [
   ['متكسريش السلسلة ⛓\u{FE0F}', 'كل تمرينة ورا التانية هي اللي بتعمل الفرق، مش تمرينة واحدة جامدة.'],
 ];
 function gymReminders(push, at){
-  const slots = [[18,15],[19,45],[21,15]], W = S.profile.wedding || '2026-12-31';   // gym 7 am – 11 pm, a session is about 1½ h
+  const slots = [[18,15],[19,45],[21,15]], W = S.profile.wedding || '2027-01-04';   // gym 7 am – 11 pm, a session is about 1½ h
   for (let o = 0; o < 3; o++){
     const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + o);
     const ds = ymd(d); if (ds > W) break;
@@ -887,7 +887,7 @@ VIEWS['me.cycle'] = function(el){
       '<span class="small muted" style="font-weight:700">' + L2('أو دوسي على أي يوم في الكالندر تحت وغيّري النزول بتاعه.', 'Or tap any day in the calendar below and set its flow.') + '</span></div>' +
     (W && st.next && !wedHit ? (() => { let s0 = st.next; while (s0 && addDays(s0, st.cyc) <= W) s0 = addDays(s0, st.cyc); const gap = s0 ? daysBetween(addDays(s0, st.plen - 1), W) : null;
       return s0 && gap != null && gap >= 0 && gap <= 14 ? '<div class="card" style="border-color:var(--gold);background:var(--gold-soft)"><h2>\u{1F48D} ' + L2('الدورة والفرح', 'Period and the wedding') + '</h2><p style="margin:0;font-weight:700">' + L2('المتوقع تنزل حوالي ' + niceDM(s0) + ' وتخلص حوالي ' + niceDM(addDays(s0, st.plen - 1)) + '، يعني قبل الفرح بحوالي ' + gap + (gap >= 3 && gap <= 10 ? ' أيام.' : ' يوم.') + ' ده تقدير، وممكن تتأخر أو تبدر كام يوم، فلو حابة تتأكدي كلّمي دكتورتك قبلها بكام أسبوع.', 'Expected around ' + niceDM(s0) + '–' + niceDM(addDays(s0, st.plen - 1)) + ', about ' + gap + ' days before the wedding. It can shift a few days.') + '</p></div>' : ''; })() : '') +
-    (wedHit ? '<div class="card" style="border-color:var(--gold);background:var(--gold-soft)"><h2>\u{1F48D} Heads-up for the wedding</h2><p style="margin:0;font-weight:700">Your period may come around 31 December. If you want to plan around it, talk to your gynaecologist a few weeks before.</p></div>' : '') +
+    (wedHit ? '<div class="card" style="border-color:var(--gold);background:var(--gold-soft)"><h2>\u{1F48D} Heads-up for the wedding</h2><p style="margin:0;font-weight:700">Your period may come around your wedding day. If you want to plan around it, talk to your gynaecologist a few weeks before.</p></div>' : '') +
     '<div class="monthnav"><button data-cm="-1" aria-label="Previous month">‹</button><b>' + MONTHS_L[first.getMonth()] + ' ' + first.getFullYear() + '</b><button data-cm="1" aria-label="Next month">›</button></div>' +
     '<div class="card"><div class="cal">' + cells + '</div><div class="chips" style="justify-content:center;font-size:12px"><span class="chip lg on-p">Period</span><span class="chip lg pr">Expected</span><span class="chip lg fe">Fertile (estimate)</span></div></div>' +
     '<div class="card"><div class="card-head"><h2>' + (sel === t ? 'Today' : nice(sel)) + '</h2><input class="in" id="cySel" type="date" value="' + sel + '" style="width:auto;padding:6px 8px;font-size:13px" aria-label="Day"></div>' +

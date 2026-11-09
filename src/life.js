@@ -215,6 +215,24 @@ function hairBrush7Nov(){
   ((S.wedding && S.wedding.checklist) || []).forEach(c => { if (/تريتمنت|treatment/i.test(c.title)){ c.title = 'اشتري ' + name + ' (بدل التريتمنت)'; c.done = true; } });
   S.seed23 = true;
 }
+/* 9 Nov: the wedding moved from 31 Dec 2026 to 4 Jan 2027. The countdown, widgets, reminders and wedding fund all read S.profile.wedding;
+   the sessions in the last two weeks before the wedding (laser 3, lashes 3, Moroccan bath 2) move 4 days later with it.
+   Also: the Eucerin anti-pigment serum cost 1,420. */
+function weddingJan4(){
+  if (S.seed24) return;
+  const OLD = '2026-12-31', NEW = '2027-01-04', shift = daysBetween(OLD, NEW);
+  S.profile = S.profile || {};
+  if (!S.profile.wedding || S.profile.wedding === OLD) S.profile.wedding = NEW;
+  const moves = [];
+  Object.keys(S.selfcare || {}).forEach(k => (S.selfcare[k] || []).forEach(x => { if (x.wedding && !x.done && x.planned && x.planned >= addDays(OLD, -14) && x.planned <= OLD) moves.push([k, x]); }));
+  moves.forEach(([k, x]) => { x.planned = addDays(x.planned, shift); const nk = x.planned.slice(0, 7);
+    if (nk !== k){ S.selfcare[k] = S.selfcare[k].filter(y => y !== x); (S.selfcare[nk] = S.selfcare[nk] || []).push(x); } });
+  (S.tasks || []).forEach(t => { if (!t.done && t.due === OLD) t.due = NEW; });
+  const eu = (S.spend || []).find(x => /eucerin|يوسرين|يوسيرين/i.test(x.note || '') && x.date === '2026-11-02');
+  if (eu){ eu.amount = 1420; eu.note = 'سيروم يوسيرين بتاع التصبغات'; }
+  ((S.wedding && S.wedding.shopping) || []).forEach(x => { if (/eucerin|يوسرين|يوسيرين/i.test(x.title)) x.done = true; });
+  S.seed24 = true;
+}
 function mealsFix2Nov(){
   if (S.seed17) return;
   const fix = [[/اومليت|أومليت|omelet/i, 430, 21], [/مكرونة|مكرونه|pasta/i, 1000, 64]];
@@ -259,7 +277,7 @@ function weddingDays(){ if (!S.profile.wedding) return null; return daysBetween(
 
 /* ---------- payday: pay yourself first ---------- */
 function paydaySheet(amount, label, after){
-  const before2027 = todayStr() < '2027-01-01';
+  const before2027 = todayStr() <= (S.profile.wedding || '2027-01-04');
   const def = jarByName(before2027 ? 'Wedding beauty' : 'Emergency fund') || S.jars[0];
   const pct = Math.round(amount * 0.3);
   sheet('<div style="text-align:center;font-size:46px">\u{1F4B8}</div><h2 class="plain" style="justify-content:center">Payday: pay yourself first</h2>' +
@@ -589,7 +607,7 @@ function lifeReminders(R, repeat, push, at){
   if (R.friday !== false) repeat.push({id:'friday', title:'Friday money check-in \u{1F4B0}', body:'10 minutes: log what you missed, check budgets, move savings.', weekday:6, hour:12, minute:0});
   if (R.night !== false) repeat.push({id:'night', title:'Shop-free hours \u{1F319}', body:'No shopping until 9 AM. Put wishes on the wait list and decide in the morning.', hour:23, minute:0});
   if (R.payday !== false) S.jobs.forEach(j => nextPaydays(j, 2).forEach(d => {
-    const body = d < '2027-01-01' ? 'Move what’s left after your budget to the wedding fund first.' : 'Move 30% to savings within the hour, before anything else.';
+    const body = d <= (S.profile.wedding || '2027-01-04') ? 'Move what’s left after your budget to the wedding fund first.' : 'Move 30% to savings within the hour, before anything else.';
     push('pay-' + j.id + '-' + d, j.name + ' payday \u{1F4B8}', body, at(parseD(d), 10, 0));
   }));
   if (R.plans){

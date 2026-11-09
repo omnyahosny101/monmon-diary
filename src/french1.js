@@ -37,7 +37,7 @@ FR.push(
     p:[['J’ai un frère, il s’appelle Mohamed.','عندي أخ اسمه محمد.'],['Ma mère s’appelle Eman.','ماما اسمها إيمان.'],['Mon fiancé est gentil.','خطيبي لطيف.']],
     n:'parents في الفرنساوي معناها الأب والأم، مش "الأقارب". والأقارب = la famille أو les proches.'},
   {t:'الأرقام من 11 لـ31', w:[['onze','11','أونز'],['douze','12','دوز'],['quinze','15','كانز'],['seize','16','سيز'],['dix-sept','17','ديس سيت'],['vingt','20','ڤان'],['vingt et un','21','ڤانتيه أَن'],['trente','30','ترونت']],
-    p:[['Le mariage est le trente et un décembre.','الفرح يوم 31 ديسمبر.'],['J’ai vingt-quatre ans.','عندي 24 سنة.']],
+    p:[['Le mariage est le quatre janvier.','الفرح يوم 4 يناير.'],['J’ai vingt-quatre ans.','عندي 24 سنة.']],
     n:'من 17 لـ19 بيقولوا "عشرة-سبعة": dix-sept, dix-huit, dix-neuf. ومن 21 لـ29: vingt-deux, vingt-trois… وفي 21 و31 بس بيزودوا "et": vingt et un, trente et un.'},
   {t:'أيام الأسبوع والشهور', w:[['lundi','الاتنين','لاندي'],['mardi','التلات','ماردي'],['mercredi','الأربع','ميركردي'],['jeudi','الخميس','چُدي'],['vendredi','الجمعة','ڤوندردي'],['samedi','السبت','سامدي'],['dimanche','الحد','ديمونش'],['décembre','ديسمبر','ديسومبر']],
     p:[['Aujourd’hui, c’est lundi.','النهارده الاتنين.'],['Le mariage est en décembre.','الفرح في ديسمبر.']],

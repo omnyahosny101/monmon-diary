@@ -55,7 +55,7 @@ struct WData: Codable {
 
 enum WidgetStore {
     static let group = "group.com.monmon2026.monmonslife"
-    static let weddingFallback = "2026-12-31"
+    static let weddingFallback = "2027-01-04"
 
     static var fileURL: URL? {
         FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group)?
