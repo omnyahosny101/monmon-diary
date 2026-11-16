@@ -12,8 +12,8 @@ function widgetJSON(){
     const days = [];
     for (let o = 0; o < 7; o++){
       const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + o);
-      const ds = ymd(d), k = daysBetween(LESSON_START, ds), wz = WL[(dayOfYear(d) + (S.wisdomShift || 0)) % WL.length];
-      days.push({d:ds, q:{src:cut(tr(wz.src), 60), idea:cut(tr(wz.idea), 240), tip:cut(tr(wz.advice), 160)}, lesson:item(k + (S.lessonShift || 0)), facts:[0, 1, 2, 3, 4, 5].map(j => item(k * 6 + j + 135))});
+      const ds = ymd(d), k = daysBetween(LESSON_START, ds), wz = wisdomFor(d);
+      days.push({d:ds, q:{src:cut(tr(wz.src), 60), idea:cut(tr(wz.idea), 240), tip:cut(tr(wz.advice), 160)}, lesson:item(k + (S.lessonShift || 0)), facts:[0, 1, 2, 3, 4, 5].map(j => factItem(daysBetween(FACT_START, ds) * 6 + j, s => cut(s, 220)))});
     }
     const prio = x => x.prio === 'urgent' ? 0 : x.prio === 'high' ? 1 : 2;
     const open = S.tasks.filter(x => !x.done).sort((a, b) => prio(a) - prio(b) || ((a.due || '9') < (b.due || '9') ? -1 : (a.due || '9') > (b.due || '9') ? 1 : 0));

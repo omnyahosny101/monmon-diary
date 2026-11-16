@@ -19,6 +19,7 @@ dadClothesBack5Nov();
 log56Nov();
 hairBrush7Nov();
 weddingJan4();
+freshQuotes16Nov();
 cycleMigrate();
 cycleImportFlo();
 photoMigrate();

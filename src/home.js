@@ -185,7 +185,7 @@ VIEWS.today = function(el){
   const n = planDayNum(new Date()), inPlan = n >= 1 && n <= 30;
   const diary = S.diary[day] || {}, logs = S.daylog[day] || [], qa = S.qa[day] || {};
   const qs = [0, 1, 2].map(i => (doy * 3 + i) % QUESTIONS.length);
-  const urg = urgentTasks(), ins = INSIGHTS[(doy + (S.insightShift || 0)) % INSIGHTS.length], WL = wisdomList(), wz = WL[(dayOfYear(new Date()) + (S.wisdomShift || 0)) % WL.length];
+  const urg = urgentTasks(), ins = INSIGHTS_NEW.concat(INSIGHTS)[(doy + (S.insightShift || 0)) % (INSIGHTS.length + INSIGHTS_NEW.length)], wz = wisdomFor(new Date());
   const todaySpend = S.spend.filter(s => s.date === day);
   const coming = [];
   S.exp.filter(x => !x.done && x.date && x.date >= day).forEach(x => coming.push({d:x.date, e:'✨', title:x.title, when:nice(x.date) + (x.with && x.with.length ? ' · with ' + x.with.join(', ') : '')}));
@@ -976,7 +976,17 @@ document.addEventListener('click', ev => {
 function photoMigrate(){ S.photos = S.photos && typeof S.photos === 'object' ? S.photos : {}; }
 
 /* ============ DAILY WISDOM (242) AND DAILY LESSON (301 lessons + facts) ============ */
-const wisdomList = () => isAr() ? WISDOM.concat(WISDOM_AR) : WISDOM;
+const wisdomList = () => isAr() ? WISDOM_NEW.concat(WISDOM, WISDOM_AR) : WISDOM;
+/* From 16 Nov 2026 the quotes run in order from the new batch, then the older ones; facts the same way. */
+const WZ_START = '2026-11-16', FACT_START = '2026-11-16';
+function wisdomFor(d){ const WL = wisdomList(), n = WL.length, k = daysBetween(WZ_START, typeof d === 'string' ? d : ymd(d)) + (S.wisdomShift || 0); return WL[((k % n) + n) % n]; }
+/* deal the facts round-robin by topic, so each day mixes marketing, Egypt, skin, animals… */
+function mixTopics(list){ const g = {}, order = []; list.forEach(f => { if (!g[f[0]]){ g[f[0]] = []; order.push(f[0]); } g[f[0]].push(f); });
+  const out = []; for (let i = 0; out.length < list.length; i++) order.forEach(c => { if (g[c][i]) out.push(g[c][i]); }); return out; }
+let _factPool = null;
+function factPool(){ return _factPool || (_factPool = mixTopics(INSIGHTS_NEW).concat(mixTopics(INSIGHTS.filter(f => f[0] !== 'Investing'))).map(f => ({f})).concat(LESSONS.filter(L => !LESSON_DONE.includes(L.f)).map(L => ({L})))); }
+function factItem(i, cut){ const P = factPool(), n = P.length, x = P[((i % n) + n) % n]; cut = cut || (s => s);
+  return x.L ? {t:x.L.t, x:cut(x.L.x)} : {t:L2('تعرفي إن', 'Did you know') + ' · ' + tr(x.f[0]), x:cut(tr(x.f[1]))}; }
 const LESSON_START = '2026-10-28';
 const LESSON_DONE = ['invest', 'gold'];   // fields Monmon finished: out of the daily rotation, still readable in Learn
 function lessonPool(){ return LESSONS.filter(L => !LESSON_DONE.includes(L.f)).map(L => ({L})).concat(INSIGHTS.filter(f => f[0] !== 'Investing').map(f => ({f}))); }
@@ -992,15 +1002,15 @@ function learnReminders(push, at){
   for (let o = 0; o < 3; o++){
     const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + o);
     const ds = ymd(d), k = daysBetween(LESSON_START, ds);
-    const wz = WL[(dayOfYear(d) + (S.wisdomShift || 0)) % WL.length];
+    const wz = wisdomFor(d);
     push('wz-' + ds, '\u{1F4AD} ' + tr(wz.src), cut(tr(wz.idea) + ' ' + L2('جربي النهارده: ', 'Try this today: ') + tr(wz.advice), 300), at(d, 9, 30));
     const ls = item(k + (S.lessonShift || 0));
     push('ls-' + ds, '\u{1F393} ' + L2('درس النهارده: ', 'Today’s lesson: ') + ls.t, cut(ls.x, 300), at(d, 12, 0));
-    slots.forEach(([h, m], j) => { const f = item(k * 6 + j + 135); push('nf-' + ds + '-' + j, '\u{1F4A1} ' + f.t, cut(f.x, 300), at(d, h, m)); });
+    slots.forEach(([h, m], j) => { const f = factItem(daysBetween(FACT_START, ds) * 6 + j); push('nf-' + ds + '-' + j, '\u{1F4A1} ' + f.t, cut(f.x, 300), at(d, h, m)); });
   }
 }
 function lessonCardHTML(){
-  if (!isAr()){ const doy = dayOfYear(new Date()), ins = INSIGHTS[(doy + (S.insightShift || 0)) % INSIGHTS.length];
+  if (!isAr()){ const doy = dayOfYear(new Date()), ins = INSIGHTS_NEW.concat(INSIGHTS)[(doy + (S.insightShift || 0)) % (INSIGHTS.length + INSIGHTS_NEW.length)];
     return '<div class="card insight"><span class="tag">Did you know · ' + ins[0] + '</span><p>' + esc(ins[1]) + '</p><button class="linkbtn" id="insNext" style="align-self:flex-start;background:var(--surface);color:var(--lilac)">Another one</button></div>'; }
   const P = lessonPool()[lessonIndex()];
   if (P.f){ const ins = P.f;

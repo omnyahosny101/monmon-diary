@@ -233,6 +233,8 @@ function weddingJan4(){
   ((S.wedding && S.wedding.shopping) || []).forEach(x => { if (/eucerin|يوسرين|يوسيرين/i.test(x.title)) x.done = true; });
   S.seed24 = true;
 }
+/* 16 Nov: new quotes and facts start today from the top, so clear any old 'next quote' skips. */
+function freshQuotes16Nov(){ if (S.seed25) return; S.wisdomShift = 0; S.insightShift = 0; S.seed25 = true; }
 function mealsFix2Nov(){
   if (S.seed17) return;
   const fix = [[/اومليت|أومليت|omelet/i, 430, 21], [/مكرونة|مكرونه|pasta/i, 1000, 64]];
