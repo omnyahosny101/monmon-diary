@@ -257,15 +257,25 @@ div.urgent{background:linear-gradient(135deg,var(--danger),var(--warn));color:#f
 .stn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line,#f0d6e4);background:var(--surface);font-weight:900;color:var(--muted)}
 .stn.on{background:var(--pink,#f48fb1);border-color:transparent;color:#fff}
 .sthome{background:linear-gradient(135deg,#3a2140,#5b2d55);color:#fbe9f2}.sthome h2{color:#fff;margin:2px 0}.sthome .tag{background:rgba(255,255,255,.14);color:#ffd6ea}.sthome .small{color:#f3cfe2}
-.stnight{margin:-16px -16px 0;padding:14px 18px 120px;min-height:100vh;background:linear-gradient(180deg,#2a1830,#1f1224);color:#f4e4ec;border-radius:0 0 24px 24px}
-.stbar{display:flex;gap:8px;align-items:center;position:sticky;top:0;padding:8px 0;background:#2a1830;z-index:2}.stsp{flex:1}
-.stx{background:rgba(255,255,255,.1);color:#ffd6ea;border:0;border-radius:999px;padding:8px 14px;font-weight:800;font-family:inherit}
-.stbody{line-height:2.05;font-weight:500}.stbody h1{font-size:1.35em;color:#ffc4df;margin:6px 0 18px;line-height:1.5}
-.stkick{font-size:13px;font-weight:800;color:#d9a8c4;margin-top:6px}
-.stbody p{margin:0 0 1em}.stbody p.stq{padding-inline-start:4px}.stbody b{color:#ffd6ea}
-.stbreak{text-align:center;color:#c98bb0;letter-spacing:8px;margin:1.4em 0}
-.stend{display:flex;flex-direction:column;gap:12px;margin-top:22px;border-top:1px solid rgba(255,255,255,.12);padding-top:18px}
-.stend .btn{background:#f48fb1;color:#2a1830}.stend .small{color:#f3cfe2;font-weight:800}.stsoft{text-align:center;opacity:.85}
+html.stlock,html.stlock body{overflow:hidden}
+.stov{--sb:#fff7fa;--sf:#3b2232;--sm:#9b6d86;--sa:#e2588f;--sx:rgba(226,88,143,.1);--sl:rgba(226,88,143,.18);position:fixed;inset:0;z-index:9999;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--sb);color:var(--sf);padding:0 22px calc(40px + env(safe-area-inset-bottom))}
+.stov.dark{--sb:#241526;--sf:#f1dfe9;--sm:#c39ab2;--sa:#ff9cc6;--sx:rgba(255,255,255,.09);--sl:rgba(255,255,255,.12)}
+.stbar{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:8px;margin:0 -22px;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;background:var(--sb);border-bottom:1px solid var(--sl)}
+.sttitle{flex:1;min-width:0;font-weight:900;font-size:15px;color:var(--sa);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}.sttitle small{display:block;font-size:12px;color:var(--sm);font-weight:800}
+.stx{flex:none;background:var(--sx);color:var(--sa);border:0;border-radius:999px;min-width:40px;height:40px;padding:0 12px;font-weight:900;font-size:15px;font-family:inherit}
+.stclose{font-size:17px}
+.stprog{position:absolute;bottom:-1px;right:0;height:3px;width:0;background:var(--sa);border-radius:3px;transition:width .15s}
+.stbody{max-width:640px;margin:0 auto;line-height:2.05;font-weight:500;padding-top:22px}
+.stkick{font-size:13px;font-weight:800;color:var(--sm)}
+.stbody h1{font-size:1.45em;color:var(--sa);margin:4px 0 22px;line-height:1.45}
+.stbody p{margin:0 0 1.05em}.stbody b{color:var(--sa)}
+.stbreak{text-align:center;color:var(--sm);letter-spacing:10px;margin:1.6em 0}
+.stend{max-width:640px;margin:28px auto 0;display:flex;flex-direction:column;gap:14px;border-top:1px solid var(--sl);padding-top:22px}
+.stmain{background:var(--sa);color:#fff;border:0;border-radius:16px;height:52px;font-weight:900;font-size:16px;font-family:inherit}
+.stov.dark .stmain{color:#241526}
+.stdone{text-align:center;font-weight:900;color:var(--sa)}
+.stnav{display:flex;justify-content:space-between;gap:8px}
+.stsoft{text-align:center;color:var(--sm);font-weight:700;margin:4px 0 0}
 .dmoney{background:var(--bg);border-radius:14px;padding:10px 12px}
 .dmoney summary{cursor:pointer;font-weight:700;list-style:none}
 .dmoney summary::-webkit-details-marker{display:none}
@@ -8403,7 +8413,6 @@ function stTonight(){
 
 VIEWS['me.stories'] = function(el){
   stMigrate();
-  if (ui.stOpen) return stReader(el);
   const T = S.stories, tn = stTonight();
   el.innerHTML = '<div class="card tint stbanner"><div class="greet">حواديت قبل النوم 🌙</div><span class="small muted" style="font-weight:700">ليلة واحدة كل يوم، 5 دقايق قراية. اقفلي النور، وكبّري الخط، وخلّي الباقي لبكرة.</span>' +
     (tn ? '<button class="btn" data-stgo="' + tn.id + '" data-n="' + stNext(tn) + '">▶ الليلة ' + NIGHT_AR[stNext(tn)] + ' من «' + esc(tn.t) + '»</button>' : '<span class="small" style="font-weight:800">خلّصتي كل الحواديت ✨ اطلبي من كلود حدوتة جديدة.</span>') + '</div>' +
@@ -8415,26 +8424,37 @@ VIEWS['me.stories'] = function(el){
         '<button class="btn soft" data-stgo="' + s.id + '" data-n="' + (done ? 0 : stNext(s)) + '">' + (done ? '↺ اقريها تاني' : r ? '▶ كمّلي' : '▶ ابدئي') + '</button></div>'; }).join('') +
     '<div class="card"><label class="row" style="justify-content:space-between;font-weight:800"><span>🔔 فكّريني بالحدوتة كل ليلة</span><input type="checkbox" id="stOn"' + (T.on ? ' checked' : '') + '></label>' +
     '<label class="row" style="justify-content:space-between;font-weight:700"><span class="small">الساعة</span><input type="time" id="stAt" value="' + T.remind + '" style="max-width:130px"></label></div>';
-  $$('[data-stgo]', el).forEach(b => b.onclick = () => { ui.stOpen = {id:b.dataset.stgo, n:+b.dataset.n}; VIEWS['me.stories'](el); scrollTo({top:0}); });
+  $$('[data-stgo]', el).forEach(b => b.onclick = () => { ui.stOpen = {id:b.dataset.stgo, n:+b.dataset.n}; stReader(el); });
   $('#stOn', el).onchange = e => { T.on = e.target.checked; save(); };
   $('#stAt', el).onchange = e => { T.remind = e.target.value || '23:00'; save(); };
+  if (ui.stOpen) stReader(el); else stClose();
 };
 
+/* the reader is a full-screen sheet over the whole app (header, tabs and tab bar hidden), light pink by default, 🌙 for a dim version */
+function stClose(){ const o = document.getElementById('stOv'); if (o) o.remove(); document.documentElement.classList.remove('stlock'); }
 function stReader(el){
-  const T = S.stories, s = stFind(ui.stOpen.id); if (!s){ ui.stOpen = null; return VIEWS['me.stories'](el); }
+  const T = S.stories, s = stFind(ui.stOpen && ui.stOpen.id); if (!s){ ui.stOpen = null; return stClose(); }
   const i = Math.min(Math.max(0, ui.stOpen.n), s.n.length - 1), n = s.n[i], key = s.id + '-' + i, last = i === s.n.length - 1;
   T.last = {id:s.id, n:i}; save();
-  const para = p => p === '---' ? '<div class="stbreak">✦ ✦ ✦</div>' : '<p' + (/^[–-] /.test(p) ? ' class="stq"' : '') + '>' + esc(p).replace(/\n/g, '<br>').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') + '</p>';
-  el.innerHTML = '<div class="stnight"><div class="stbar"><button class="stx" id="stBack" aria-label="رجوع">‹ الحواديت</button><span class="stsp"></span><button class="stx" data-fs="-1" aria-label="أصغر">A−</button><button class="stx" data-fs="1" aria-label="أكبر">A+</button></div>' +
-    '<article class="stbody" data-notr style="font-size:' + T.fs + 'px"><div class="stkick">' + s.e + ' ' + esc(s.t) + ' · ' + (i + 1) + ' من ' + s.n.length + ' · ' + stMins(n) + ' دقايق</div><h1>' + esc(n.t) + '</h1>' + n.p.map(para).join('') + '</article>' +
-    '<div class="stend">' + (T.read[key] ? '<span class="small">✓ قريتيها</span>' : '<button class="btn" id="stDone">' + (last ? '✓ خلّصت الحدوتة' : '✓ خلّصت الليلة دي') + '</button>') +
-    '<div class="row">' + (i > 0 ? '<button class="stx" data-go="-1">‹ الليلة اللي قبلها</button>' : '') + '<span class="stsp"></span>' + (!last ? '<button class="stx" data-go="1">الليلة اللي بعدها ›</button>' : '') + '</div>' +
-    (!last ? '<p class="small stsoft">نامي دلوقتي، والليلة ' + NIGHT_AR[i + 1] + ' مستنياكي بكرة 🌙</p>' : '<p class="small stsoft">تصبحي على خير يا مونمون 💗</p>') + '</div></div>';
+  const para = p => p === '---' ? '<div class="stbreak">✦ ✦ ✦</div>' : '<p>' + esc(p).replace(/\n/g, '<br>').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') + '</p>';
+  let o = document.getElementById('stOv');
+  if (!o){ o = document.createElement('div'); o.id = 'stOv'; o.setAttribute('dir', 'rtl'); document.body.appendChild(o); }
+  o.className = 'stov' + (T.dark ? ' dark' : '');
+  document.documentElement.classList.add('stlock');
+  o.innerHTML = '<div class="stbar"><button class="stx stclose" id="stBack" aria-label="اقفلي">✕</button><div class="sttitle">' + s.e + ' ' + esc(s.t) + '<small>الليلة ' + (i + 1) + ' من ' + s.n.length + '</small></div>' +
+      '<button class="stx" data-fs="-1" aria-label="أصغر">A−</button><button class="stx" data-fs="1" aria-label="أكبر">A+</button><button class="stx" id="stDark" aria-label="إضاءة">' + (T.dark ? '☀️' : '🌙') + '</button><i class="stprog"></i></div>' +
+    '<article class="stbody" data-notr style="font-size:' + T.fs + 'px"><div class="stkick">' + stMins(n) + ' دقايق قراية</div><h1>' + esc(n.t) + '</h1>' + n.p.map(para).join('') + '</article>' +
+    '<div class="stend">' + (T.read[key] ? '<span class="stdone">✓ قريتي الليلة دي</span>' : '<button class="stmain" id="stDone">' + (last ? '✓ خلّصت الحدوتة' : '✓ خلّصت الليلة دي') + '</button>') +
+      '<div class="stnav">' + (i > 0 ? '<button class="stx" data-go="-1">› الليلة اللي قبلها</button>' : '<span></span>') + (!last ? '<button class="stx" data-go="1">الليلة اللي بعدها ‹</button>' : '<span></span>') + '</div>' +
+      '<p class="stsoft">' + (!last ? 'نامي دلوقتي، والليلة ' + NIGHT_AR[i + 1] + ' مستنياكي بكرة 🌙' : 'تصبحي على خير يا مونمون 💗') + '</p></div>';
+  o.scrollTop = 0;
+  const bar = $('.stprog', o); o.onscroll = () => { const m = o.scrollHeight - o.clientHeight; bar.style.width = (m > 0 ? Math.min(100, o.scrollTop / m * 100) : 100) + '%'; };
   const again = () => stReader(el);
-  $('#stBack', el).onclick = () => { ui.stOpen = null; VIEWS['me.stories'](el); scrollTo({top:0}); };
-  $$('[data-fs]', el).forEach(b => b.onclick = () => { T.fs = Math.max(15, Math.min(28, T.fs + 2 * +b.dataset.fs)); save(); $('.stbody', el).style.fontSize = T.fs + 'px'; });
-  $$('[data-go]', el).forEach(b => b.onclick = () => { ui.stOpen = {id:s.id, n:i + +b.dataset.go}; again(); scrollTo({top:0}); });
-  const d = $('#stDone', el); if (d) d.onclick = () => { T.read[key] = todayStr(); save(); again(); };
+  $('#stBack', o).onclick = () => { ui.stOpen = null; stClose(); VIEWS['me.stories'](el); };
+  $('#stDark', o).onclick = () => { T.dark = !T.dark; save(); const y = o.scrollTop; again(); o.scrollTop = y; };
+  $$('[data-fs]', o).forEach(b => b.onclick = () => { T.fs = Math.max(15, Math.min(28, T.fs + 2 * +b.dataset.fs)); save(); $('.stbody', o).style.fontSize = T.fs + 'px'; });
+  $$('[data-go]', o).forEach(b => b.onclick = () => { ui.stOpen = {id:s.id, n:i + +b.dataset.go}; again(); });
+  const d = $('#stDone', o); if (d) d.onclick = () => { T.read[key] = todayStr(); save(); const y = o.scrollTop; again(); o.scrollTop = y; };
 }
 
 /* tonight's story on the home page, from 8 pm */
@@ -8446,7 +8466,7 @@ VIEWS.today = function(el){
   if (!tn || (h < 20 && h > 3)) return;
   const i = stNext(tn);
   el.insertAdjacentHTML('afterbegin', '<div class="card sthome"><span class="tag">🌙 حدوتة الليلة</span><h2 class="plain">' + esc(tn.t) + ' · الليلة ' + NIGHT_AR[i] + '</h2><span class="small">' + esc(tn.n[i].t.replace(/^[^:]*:\s*/, '')) + ' · ' + stMins(tn.n[i]) + ' دقايق</span><button class="btn" data-sthome>▶ اقريها في السرير</button></div>');
-  $('[data-sthome]', el).onclick = () => { ui.stOpen = {id:tn.id, n:i}; go('me', 'stories'); scrollTo({top:0}); };
+  $('[data-sthome]', el).onclick = () => { ui.stOpen = {id:tn.id, n:i}; go('me', 'stories'); };
 };
 
 /* bedtime reminder */

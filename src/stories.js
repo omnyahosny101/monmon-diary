@@ -18,7 +18,6 @@ function stTonight(){
 
 VIEWS['me.stories'] = function(el){
   stMigrate();
-  if (ui.stOpen) return stReader(el);
   const T = S.stories, tn = stTonight();
   el.innerHTML = '<div class="card tint stbanner"><div class="greet">حواديت قبل النوم 🌙</div><span class="small muted" style="font-weight:700">ليلة واحدة كل يوم، 5 دقايق قراية. اقفلي النور، وكبّري الخط، وخلّي الباقي لبكرة.</span>' +
     (tn ? '<button class="btn" data-stgo="' + tn.id + '" data-n="' + stNext(tn) + '">▶ الليلة ' + NIGHT_AR[stNext(tn)] + ' من «' + esc(tn.t) + '»</button>' : '<span class="small" style="font-weight:800">خلّصتي كل الحواديت ✨ اطلبي من كلود حدوتة جديدة.</span>') + '</div>' +
@@ -30,26 +29,37 @@ VIEWS['me.stories'] = function(el){
         '<button class="btn soft" data-stgo="' + s.id + '" data-n="' + (done ? 0 : stNext(s)) + '">' + (done ? '↺ اقريها تاني' : r ? '▶ كمّلي' : '▶ ابدئي') + '</button></div>'; }).join('') +
     '<div class="card"><label class="row" style="justify-content:space-between;font-weight:800"><span>🔔 فكّريني بالحدوتة كل ليلة</span><input type="checkbox" id="stOn"' + (T.on ? ' checked' : '') + '></label>' +
     '<label class="row" style="justify-content:space-between;font-weight:700"><span class="small">الساعة</span><input type="time" id="stAt" value="' + T.remind + '" style="max-width:130px"></label></div>';
-  $$('[data-stgo]', el).forEach(b => b.onclick = () => { ui.stOpen = {id:b.dataset.stgo, n:+b.dataset.n}; VIEWS['me.stories'](el); scrollTo({top:0}); });
+  $$('[data-stgo]', el).forEach(b => b.onclick = () => { ui.stOpen = {id:b.dataset.stgo, n:+b.dataset.n}; stReader(el); });
   $('#stOn', el).onchange = e => { T.on = e.target.checked; save(); };
   $('#stAt', el).onchange = e => { T.remind = e.target.value || '23:00'; save(); };
+  if (ui.stOpen) stReader(el); else stClose();
 };
 
+/* the reader is a full-screen sheet over the whole app (header, tabs and tab bar hidden), light pink by default, 🌙 for a dim version */
+function stClose(){ const o = document.getElementById('stOv'); if (o) o.remove(); document.documentElement.classList.remove('stlock'); }
 function stReader(el){
-  const T = S.stories, s = stFind(ui.stOpen.id); if (!s){ ui.stOpen = null; return VIEWS['me.stories'](el); }
+  const T = S.stories, s = stFind(ui.stOpen && ui.stOpen.id); if (!s){ ui.stOpen = null; return stClose(); }
   const i = Math.min(Math.max(0, ui.stOpen.n), s.n.length - 1), n = s.n[i], key = s.id + '-' + i, last = i === s.n.length - 1;
   T.last = {id:s.id, n:i}; save();
-  const para = p => p === '---' ? '<div class="stbreak">✦ ✦ ✦</div>' : '<p' + (/^[–-] /.test(p) ? ' class="stq"' : '') + '>' + esc(p).replace(/\n/g, '<br>').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') + '</p>';
-  el.innerHTML = '<div class="stnight"><div class="stbar"><button class="stx" id="stBack" aria-label="رجوع">‹ الحواديت</button><span class="stsp"></span><button class="stx" data-fs="-1" aria-label="أصغر">A−</button><button class="stx" data-fs="1" aria-label="أكبر">A+</button></div>' +
-    '<article class="stbody" data-notr style="font-size:' + T.fs + 'px"><div class="stkick">' + s.e + ' ' + esc(s.t) + ' · ' + (i + 1) + ' من ' + s.n.length + ' · ' + stMins(n) + ' دقايق</div><h1>' + esc(n.t) + '</h1>' + n.p.map(para).join('') + '</article>' +
-    '<div class="stend">' + (T.read[key] ? '<span class="small">✓ قريتيها</span>' : '<button class="btn" id="stDone">' + (last ? '✓ خلّصت الحدوتة' : '✓ خلّصت الليلة دي') + '</button>') +
-    '<div class="row">' + (i > 0 ? '<button class="stx" data-go="-1">‹ الليلة اللي قبلها</button>' : '') + '<span class="stsp"></span>' + (!last ? '<button class="stx" data-go="1">الليلة اللي بعدها ›</button>' : '') + '</div>' +
-    (!last ? '<p class="small stsoft">نامي دلوقتي، والليلة ' + NIGHT_AR[i + 1] + ' مستنياكي بكرة 🌙</p>' : '<p class="small stsoft">تصبحي على خير يا مونمون 💗</p>') + '</div></div>';
+  const para = p => p === '---' ? '<div class="stbreak">✦ ✦ ✦</div>' : '<p>' + esc(p).replace(/\n/g, '<br>').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') + '</p>';
+  let o = document.getElementById('stOv');
+  if (!o){ o = document.createElement('div'); o.id = 'stOv'; o.setAttribute('dir', 'rtl'); document.body.appendChild(o); }
+  o.className = 'stov' + (T.dark ? ' dark' : '');
+  document.documentElement.classList.add('stlock');
+  o.innerHTML = '<div class="stbar"><button class="stx stclose" id="stBack" aria-label="اقفلي">✕</button><div class="sttitle">' + s.e + ' ' + esc(s.t) + '<small>الليلة ' + (i + 1) + ' من ' + s.n.length + '</small></div>' +
+      '<button class="stx" data-fs="-1" aria-label="أصغر">A−</button><button class="stx" data-fs="1" aria-label="أكبر">A+</button><button class="stx" id="stDark" aria-label="إضاءة">' + (T.dark ? '☀️' : '🌙') + '</button><i class="stprog"></i></div>' +
+    '<article class="stbody" data-notr style="font-size:' + T.fs + 'px"><div class="stkick">' + stMins(n) + ' دقايق قراية</div><h1>' + esc(n.t) + '</h1>' + n.p.map(para).join('') + '</article>' +
+    '<div class="stend">' + (T.read[key] ? '<span class="stdone">✓ قريتي الليلة دي</span>' : '<button class="stmain" id="stDone">' + (last ? '✓ خلّصت الحدوتة' : '✓ خلّصت الليلة دي') + '</button>') +
+      '<div class="stnav">' + (i > 0 ? '<button class="stx" data-go="-1">› الليلة اللي قبلها</button>' : '<span></span>') + (!last ? '<button class="stx" data-go="1">الليلة اللي بعدها ‹</button>' : '<span></span>') + '</div>' +
+      '<p class="stsoft">' + (!last ? 'نامي دلوقتي، والليلة ' + NIGHT_AR[i + 1] + ' مستنياكي بكرة 🌙' : 'تصبحي على خير يا مونمون 💗') + '</p></div>';
+  o.scrollTop = 0;
+  const bar = $('.stprog', o); o.onscroll = () => { const m = o.scrollHeight - o.clientHeight; bar.style.width = (m > 0 ? Math.min(100, o.scrollTop / m * 100) : 100) + '%'; };
   const again = () => stReader(el);
-  $('#stBack', el).onclick = () => { ui.stOpen = null; VIEWS['me.stories'](el); scrollTo({top:0}); };
-  $$('[data-fs]', el).forEach(b => b.onclick = () => { T.fs = Math.max(15, Math.min(28, T.fs + 2 * +b.dataset.fs)); save(); $('.stbody', el).style.fontSize = T.fs + 'px'; });
-  $$('[data-go]', el).forEach(b => b.onclick = () => { ui.stOpen = {id:s.id, n:i + +b.dataset.go}; again(); scrollTo({top:0}); });
-  const d = $('#stDone', el); if (d) d.onclick = () => { T.read[key] = todayStr(); save(); again(); };
+  $('#stBack', o).onclick = () => { ui.stOpen = null; stClose(); VIEWS['me.stories'](el); };
+  $('#stDark', o).onclick = () => { T.dark = !T.dark; save(); const y = o.scrollTop; again(); o.scrollTop = y; };
+  $$('[data-fs]', o).forEach(b => b.onclick = () => { T.fs = Math.max(15, Math.min(28, T.fs + 2 * +b.dataset.fs)); save(); $('.stbody', o).style.fontSize = T.fs + 'px'; });
+  $$('[data-go]', o).forEach(b => b.onclick = () => { ui.stOpen = {id:s.id, n:i + +b.dataset.go}; again(); });
+  const d = $('#stDone', o); if (d) d.onclick = () => { T.read[key] = todayStr(); save(); const y = o.scrollTop; again(); o.scrollTop = y; };
 }
 
 /* tonight's story on the home page, from 8 pm */
@@ -61,7 +71,7 @@ VIEWS.today = function(el){
   if (!tn || (h < 20 && h > 3)) return;
   const i = stNext(tn);
   el.insertAdjacentHTML('afterbegin', '<div class="card sthome"><span class="tag">🌙 حدوتة الليلة</span><h2 class="plain">' + esc(tn.t) + ' · الليلة ' + NIGHT_AR[i] + '</h2><span class="small">' + esc(tn.n[i].t.replace(/^[^:]*:\s*/, '')) + ' · ' + stMins(tn.n[i]) + ' دقايق</span><button class="btn" data-sthome>▶ اقريها في السرير</button></div>');
-  $('[data-sthome]', el).onclick = () => { ui.stOpen = {id:tn.id, n:i}; go('me', 'stories'); scrollTo({top:0}); };
+  $('[data-sthome]', el).onclick = () => { ui.stOpen = {id:tn.id, n:i}; go('me', 'stories'); };
 };
 
 /* bedtime reminder */
