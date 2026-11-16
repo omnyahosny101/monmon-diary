@@ -4,7 +4,7 @@ Inside a night, blank lines separate paragraphs and '---' is a scene break.
 Run: python3 scripts/stories_to_js.py"""
 import json, pathlib, re
 root = pathlib.Path(__file__).resolve().parent.parent
-ORDER = ['divorce', 'takeover', 'undercover', 'qaid', 'ceo', 'zamalek', 'contract']
+ORDER = ['divorce2', 'divorce', 'takeover', 'undercover', 'qaid', 'ceo', 'zamalek', 'contract']
 out = []
 for sid in ORDER:
     lines = (root / 'stories' / (sid + '.md')).read_text().split('\n')
