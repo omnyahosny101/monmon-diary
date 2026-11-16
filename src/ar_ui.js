@@ -184,7 +184,7 @@ Object.assign(AR, {
   "From curious to confident. Time to show it off.": "من فضول لثقة. وقت تفرّجي الناس.", "Keep going. Every session builds on the last.": "كمّلي. كل مرة بتبني على اللي قبلها.",
 
   // ---------- me ----------
-  "My days": "أيامي", "Diary": "اليوميات", "Habits": "العادات", "Body": "جسمي", "My day": "يومي", "habits": "عادات", "kcal eaten": "سعرة اتاكلت", "EGP spent": "جنيه اتصرف", "Spent": "اتصرف",
+  "My days": "أيامي", "Stories": "الحواديت", "Diary": "اليوميات", "Habits": "العادات", "Body": "جسمي", "My day": "يومي", "habits": "عادات", "kcal eaten": "سعرة اتاكلت", "EGP spent": "جنيه اتصرف", "Spent": "اتصرف",
   "Read & listened": "قريت وسمعت", "Notes and draft for this day": "ملاحظات ومسودة لليوم ده", "Write anything about this day…": "اكتبي أي حاجة عن اليوم ده…", "Nothing logged for this day yet.": "لسه مفيش حاجة متسجلة لليوم ده.",
   "Mood calendar": "تقويم المود", "Tap a day to open its full record.": "دوسي على أي يوم تفتحي كل اللي فيه.", "pages this month": "صفحة الشهر ده", "episodes this month": "حلقة الشهر ده", "This month": "الشهر ده",
   "no-sugar streak": "أيام من غير سكر", "Customize my habits": "عدّلي عاداتي",
