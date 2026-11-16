@@ -7,6 +7,7 @@ const stReadN = s => s.n.filter((_, i) => S.stories.read[s.id + '-' + i]).length
 const stNext = s => { const i = s.n.findIndex((_, k) => !S.stories.read[s.id + '-' + k]); return i < 0 ? 0 : i; };
 const stMins = n => Math.max(3, Math.round(n.w / 130));
 const NIGHT_AR = ['الأولى', 'التانية', 'التالتة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'التامنة', 'التاسعة', 'العاشرة'];
+const stNight = i => NIGHT_AR[i] || ('رقم ' + (i + 1));
 /* the story whose next night is tonight's: the one you're in, else the first unfinished */
 function stTonight(){
   const L = S.stories.last, cur = L && stFind(L.id);
@@ -20,7 +21,7 @@ VIEWS['me.stories'] = function(el){
   stMigrate();
   const T = S.stories, tn = stTonight();
   el.innerHTML = '<div class="card tint stbanner"><div class="greet">حواديت قبل النوم 🌙</div><span class="small muted" style="font-weight:700">ليلة واحدة كل يوم، 5 دقايق قراية. اقفلي النور، وكبّري الخط، وخلّي الباقي لبكرة.</span>' +
-    (tn ? '<button class="btn" data-stgo="' + tn.id + '" data-n="' + stNext(tn) + '">▶ الليلة ' + NIGHT_AR[stNext(tn)] + ' من «' + esc(tn.t) + '»</button>' : '<span class="small" style="font-weight:800">خلّصتي كل الحواديت ✨ اطلبي من كلود حدوتة جديدة.</span>') + '</div>' +
+    (tn ? '<button class="btn" data-stgo="' + tn.id + '" data-n="' + stNext(tn) + '">▶ الليلة ' + stNight(stNext(tn)) + ' من «' + esc(tn.t) + '»</button>' : '<span class="small" style="font-weight:800">خلّصتي كل الحواديت ✨ اطلبي من كلود حدوتة جديدة.</span>') + '</div>' +
     STORIES.map(s => { const r = stReadN(s), done = r === s.n.length;
       return '<div class="card stcard"><div class="sthead"><span class="ste">' + s.e + '</span><div><h2 class="plain">' + esc(s.t) + '</h2><span class="sttags">' + esc(s.tags) + '</span></div></div>' +
         '<p class="stsub">' + esc(s.sub) + '</p><div class="bar"><i style="width:' + Math.round(r / s.n.length * 100) + '%"></i></div>' +
@@ -51,7 +52,7 @@ function stReader(el){
     '<article class="stbody" data-notr style="font-size:' + T.fs + 'px"><div class="stkick">' + stMins(n) + ' دقايق قراية</div><h1>' + esc(n.t) + '</h1>' + n.p.map(para).join('') + '</article>' +
     '<div class="stend">' + (T.read[key] ? '<span class="stdone">✓ قريتي الليلة دي</span>' : '<button class="stmain" id="stDone">' + (last ? '✓ خلّصت الحدوتة' : '✓ خلّصت الليلة دي') + '</button>') +
       '<div class="stnav">' + (i > 0 ? '<button class="stx" data-go="-1">› الليلة اللي قبلها</button>' : '<span></span>') + (!last ? '<button class="stx" data-go="1">الليلة اللي بعدها ‹</button>' : '<span></span>') + '</div>' +
-      '<p class="stsoft">' + (!last ? 'نامي دلوقتي، والليلة ' + NIGHT_AR[i + 1] + ' مستنياكي بكرة 🌙' : 'تصبحي على خير يا مونمون 💗') + '</p></div>';
+      '<p class="stsoft">' + (!last ? 'نامي دلوقتي، والليلة ' + stNight(i + 1) + ' مستنياكي بكرة 🌙' : 'تصبحي على خير يا مونمون 💗') + '</p></div>';
   o.scrollTop = 0;
   const bar = $('.stprog', o); o.onscroll = () => { const m = o.scrollHeight - o.clientHeight; bar.style.width = (m > 0 ? Math.min(100, o.scrollTop / m * 100) : 100) + '%'; };
   const again = () => stReader(el);
@@ -70,7 +71,7 @@ VIEWS.today = function(el){
   const h = new Date().getHours(), tn = stTonight();
   if (!tn || (h < 20 && h > 3)) return;
   const i = stNext(tn);
-  el.insertAdjacentHTML('afterbegin', '<div class="card sthome"><span class="tag">🌙 حدوتة الليلة</span><h2 class="plain">' + esc(tn.t) + ' · الليلة ' + NIGHT_AR[i] + '</h2><span class="small">' + esc(tn.n[i].t.replace(/^[^:]*:\s*/, '')) + ' · ' + stMins(tn.n[i]) + ' دقايق</span><button class="btn" data-sthome>▶ اقريها في السرير</button></div>');
+  el.insertAdjacentHTML('afterbegin', '<div class="card sthome"><span class="tag">🌙 حدوتة الليلة</span><h2 class="plain">' + esc(tn.t) + ' · الليلة ' + stNight(i) + '</h2><span class="small">' + esc(tn.n[i].t.replace(/^[^:]*:\s*/, '')) + ' · ' + stMins(tn.n[i]) + ' دقايق</span><button class="btn" data-sthome>▶ اقريها في السرير</button></div>');
   $('[data-sthome]', el).onclick = () => { ui.stOpen = {id:tn.id, n:i}; go('me', 'stories'); };
 };
 
@@ -82,5 +83,5 @@ lifeReminders = function(R, repeat, push, at){
   const tn = stTonight(); if (!tn) return;
   const [h, m] = (T.remind || '23:00').split(':').map(Number), i = stNext(tn), t = todayStr();
   for (let k = 0; k < 3; k++){ const j = Math.min(i + k, tn.n.length - 1), day = addDays(t, k);
-    push('story-' + day, '🌙 حدوتة الليلة · ' + tn.t, 'الليلة ' + NIGHT_AR[j] + ': ' + tn.n[j].t.replace(/^[^:]*:\s*/, '') + ' · ' + stMins(tn.n[j]) + ' دقايق قبل النوم 💗', at(parseD(day), h, m)); }
+    push('story-' + day, '🌙 حدوتة الليلة · ' + tn.t, 'الليلة ' + stNight(j) + ': ' + tn.n[j].t.replace(/^[^:]*:\s*/, '') + ' · ' + stMins(tn.n[j]) + ' دقايق قبل النوم 💗', at(parseD(day), h, m)); }
 };
