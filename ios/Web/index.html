@@ -5129,6 +5129,14 @@ function weddingJan4(){
 }
 /* 16 Nov: new quotes and facts start today from the top, so clear any old 'next quote' skips. */
 function freshQuotes16Nov(){ if (S.seed25) return; S.wisdomShift = 0; S.insightShift = 0; S.seed25 = true; }
+/* 24 Nov: her period started late on 23 Nov. Log 23 Nov as the start and fill to today, the same way the 'it started' button does. */
+function period23Nov(){
+  if (S.seed26) return;
+  S.cycle = S.cycle || {}; S.cycle.days = S.cycle.days || {};
+  const d = '2026-11-23', t = todayStr();
+  if (t >= d) for (let x = d; x <= t && x <= addDays(d, 4); x = addDays(x, 1)) if (!S.cycle.days[x] || S.cycle.days[x] === 'spot') S.cycle.days[x] = 'medium';
+  S.seed26 = true;
+}
 function mealsFix2Nov(){
   if (S.seed17) return;
   const fix = [[/اومليت|أومليت|omelet/i, 430, 21], [/مكرونة|مكرونه|pasta/i, 1000, 64]];
@@ -8547,6 +8555,7 @@ weddingJan4();
 freshQuotes16Nov();
 cycleMigrate();
 cycleImportFlo();
+period23Nov();
 photoMigrate();
 frMigrate();
 frPlusMigrate();
