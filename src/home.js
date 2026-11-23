@@ -432,6 +432,7 @@ function wkAdd(day, name, extra){
   const L = S.wlog[day] = S.wlog[day] || {items:[], note:''}, last = wkLast(name, day) || {};
   const it = {id:uid(), name, e:wkEmoji(name), type:wkType(name)};
   WK_FIELDS[it.type].forEach(([f]) => { it[f] = last[f] != null ? last[f] : ''; });
+  if (it.type === 's' && it.reps === '') it.reps = 10;   // her sets are always 10 reps
   Object.assign(it, extra || {}); L.items.push(it);
   if (!habitDone('gym', day) && S.habits.some(h => h.id === 'gym')) setHabit('gym', day, true);
   const a = S.daylog[day] = S.daylog[day] || []; if (!a.includes('gym')) a.push('gym');

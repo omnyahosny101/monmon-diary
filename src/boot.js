@@ -24,6 +24,7 @@ cycleMigrate();
 cycleImportFlo();
 period23Nov();
 gym23Nov();
+reps10();
 photoMigrate();
 frMigrate();
 frPlusMigrate();

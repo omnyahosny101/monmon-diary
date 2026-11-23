@@ -249,13 +249,19 @@ function gym23Nov(){
   const day = '2026-11-23';
   if (!(S.wlog && S.wlog[day] && S.wlog[day].items.length)){
     S.wlog = S.wlog || {};
-    const E = {reps:'', kg:''};
+    const E = {reps:10, kg:''};
     wkAdd(day, 'Running', {min:5, speed:5, inc:''});
     [['Leg press',2],['Hack squat',2],['Hip thrust',3],['Back extension',2],['Romanian deadlift',1],['Leg curl',3]].forEach(([n, st]) => wkAdd(day, n, Object.assign({sets:st}, E)));
     wkAdd(day, 'Ab crunch machine', {type:'s', sets:'', reps:'', kg:''});
     S.wlog[day].note = S.wlog[day].note || 'إحماء 5 دقايق جري على 5 ميل/ساعة. ماكينة البطن = Ab crunch machine.';
   }
   S.seed27 = true;
+}
+/* 24 Nov: her sets are always 10 reps. Fill 10 into any strength exercise she logged without reps. */
+function reps10(){
+  if (S.seed28) return;
+  Object.values(S.wlog || {}).forEach(L => (L.items || []).forEach(it => { if (it.type === 's' && (it.reps === '' || it.reps == null)) it.reps = 10; }));
+  S.seed28 = true;
 }
 function mealsFix2Nov(){
   if (S.seed17) return;
