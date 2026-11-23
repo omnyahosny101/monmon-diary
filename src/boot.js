@@ -23,6 +23,7 @@ freshQuotes16Nov();
 cycleMigrate();
 cycleImportFlo();
 period23Nov();
+gym23Nov();
 photoMigrate();
 frMigrate();
 frPlusMigrate();

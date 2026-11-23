@@ -5137,6 +5137,20 @@ function period23Nov(){
   if (t >= d) for (let x = d; x <= t && x <= addDays(d, 4); x = addDays(x, 1)) if (!S.cycle.days[x] || S.cycle.days[x] === 'spot') S.cycle.days[x] = 'medium';
   S.seed26 = true;
 }
+/* 24 Nov: her leg-day workout from 23 Nov, as she listed it (sets only; she didn't give reps or weights). */
+function gym23Nov(){
+  if (S.seed27) return;
+  const day = '2026-11-23';
+  if (!(S.wlog && S.wlog[day] && S.wlog[day].items.length)){
+    S.wlog = S.wlog || {};
+    const E = {reps:'', kg:''};
+    wkAdd(day, 'Running', {min:5, speed:5, inc:''});
+    [['Leg press',2],['Hack squat',2],['Hip thrust',3],['Back extension',2],['Romanian deadlift',1],['Leg curl',3]].forEach(([n, st]) => wkAdd(day, n, Object.assign({sets:st}, E)));
+    wkAdd(day, 'Ab crunch machine', {type:'s', sets:'', reps:'', kg:''});
+    S.wlog[day].note = S.wlog[day].note || 'إحماء 5 دقايق جري على 5 ميل/ساعة. ماكينة البطن = Ab crunch machine.';
+  }
+  S.seed27 = true;
+}
 function mealsFix2Nov(){
   if (S.seed17) return;
   const fix = [[/اومليت|أومليت|omelet/i, 430, 21], [/مكرونة|مكرونه|pasta/i, 1000, 64]];
@@ -8556,6 +8570,7 @@ freshQuotes16Nov();
 cycleMigrate();
 cycleImportFlo();
 period23Nov();
+gym23Nov();
 photoMigrate();
 frMigrate();
 frPlusMigrate();
