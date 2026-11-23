@@ -341,7 +341,7 @@ VIEWS.today = function(el){
     '<label class="field"><span>Podcast or episode</span><input class="in" id="mEp" placeholder="El Da7ee7, El Hadara…" value="' + esc(media.episode || '') + '"></label>' +
     '<p class="small muted" style="margin:0">5 pages or more ticks reading; an episode ticks listening.</p></div>' +
 
-  '<div class="card"><h2>What did I do today?</h2><div class="chips">' + DAYLOG.map(x => '<button class="chip' + (logs.includes(x.id) ? ' on' : '') + '" data-l="' + x.id + '">' + x.e + ' ' + x.name + '</button>').join('') + '</div></div>' +
+  '<div class="card"><h2>What did I do today?</h2><div class="chips">' + DAYLOG.filter(x => !(S.wedOff && x.id === 'fiance')).map(x => '<button class="chip' + (logs.includes(x.id) ? ' on' : '') + '" data-l="' + x.id + '">' + x.e + ' ' + x.name + '</button>').join('') + '</div></div>' +
 
   '<div class="card"><div class="card-head"><h2>Dear diary</h2><span class="small muted">' + nice(day) + '</span></div>' +
     '<div class="moods">' + MOODS.map((m, i) => '<button class="mood' + (diary.mood === i + 1 ? ' on' : '') + '" data-mood="' + (i + 1) + '" aria-label="' + m.t + '">' + m.e + '<span>' + m.t + '</span></button>').join('') + '</div>' +
@@ -714,7 +714,7 @@ VIEWS['plans.exp'] = function(el){
     '<div class="card"><h2>Add an experience</h2><div class="chips">' + EXP_IDEAS.map(i => '<button class="chip" data-idea="' + esc(i) + '">' + esc(i) + '</button>').join('') + '</div>' +
       '<label class="field"><span>What</span><input class="in" id="xT" placeholder="Try ice skating, visit a new museum…"></label>' +
       '<div class="row"><label class="field"><span>Where</span><input class="in" id="xW" placeholder="Optional"></label><label class="field"><span>When</span><input class="in" id="xD" type="date"></label></div>' +
-      '<div class="field"><span>With whom</span><div class="chips">' + WHO.map(w => '<button class="chip" data-who="' + esc(w) + '">' + esc(w) + '</button>').join('') + '</div></div>' +
+      '<div class="field"><span>With whom</span><div class="chips">' + WHO.filter(w => !(S.wedOff && /fianc/i.test(w))).map(w => '<button class="chip" data-who="' + esc(w) + '">' + esc(w) + '</button>').join('') + '</div></div>' +
       '<button class="btn full" id="xAdd">Add to my list</button></div>' +
     '<div class="card"><h2>Waiting for me</h2><div class="list">' + (up.length ? up.map(row).join('') : '<div class="empty">Add your first new experience.</div>') + '</div></div>' +
     (done.length ? '<div class="card"><h2>Lived it \u{1F496}</h2><div class="list">' + done.map(row).join('') + '</div></div>' : '');

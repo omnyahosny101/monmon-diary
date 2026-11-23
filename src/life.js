@@ -263,6 +263,30 @@ function reps10(){
   Object.values(S.wlog || {}).forEach(L => (L.items || []).forEach(it => { if (it.type === 's' && (it.reps === '' || it.reps == null)) it.reps = 10; }));
   S.seed28 = true;
 }
+/* 24 Nov: she ended the engagement. Everything about the wedding is switched off and kept in an archive, nothing is deleted:
+   the countdown and wedding page go away, planned wedding sessions lose their dates (so no reminders), unfinished wedding
+   errands move to the archive, self-care sessions lose the wedding tag, and the two wedding jars keep their money under neutral names. */
+const WED_RX = /محمود|خطيب|العريس|عروس|الفرح|فرحك|فرحي|جوزك|جوازك|بعد الجواز|fianc|wedding|bride|husband/i;
+function wedOK(x){ return !S.wedOff || !WED_RX.test(typeof x === 'string' ? x : JSON.stringify(x)); }
+function cancelWedding24Nov(){
+  if (S.seed29) return;
+  const A = S.weddingArchive = {date:(S.profile && S.profile.wedding) || '', at:todayStr(), mashawer:[], planned:{}};
+  S.profile = S.profile || {}; S.profile.wedding = ''; S.wedOff = true;
+  ((S.wedding && S.wedding.beauty) || []).forEach(b => { if (!b.done && b.planned){ A.planned[b.id] = b.planned; b.planned = ''; } });
+  A.mashawer = (S.mashawer || []).filter(m => m.wedding && !m.done);
+  S.mashawer = (S.mashawer || []).filter(m => !(m.wedding && !m.done));
+  Object.keys(S.selfcare || {}).forEach(k => (S.selfcare[k] || []).forEach(s => { if (s.wedding) s.wedding = false; }));
+  const ren = {'Wedding beauty':'Beauty & self-care', 'Wedding shopping':'Shopping fund'};
+  (S.jars || []).forEach(j => { if (ren[j.name]){ A['jar:' + j.id] = j.name; j.name = ren[j.name]; } });
+  (S.tasks || []).forEach(t => { if (!t.done && /فرح|wedding|عروس|خطيب/i.test(t.title || '')){ (A.tasks = A.tasks || []).push(t.id); t.done = true; t.cancelled = true; } });
+  S.seed29 = true;
+}
+function applyWedOff(){
+  document.body.classList.toggle('nowed', !!S.wedOff);
+  if (!S.wedOff) return;
+  const P = TABS.find(t => t.id === 'plans'); if (P && P.subs) P.subs = P.subs.filter(s => s[0] !== 'wedding');
+  if (nav.sub.plans === 'wedding') nav.sub.plans = 'tasks';
+}
 function mealsFix2Nov(){
   if (S.seed17) return;
   const fix = [[/اومليت|أومليت|omelet/i, 430, 21], [/مكرونة|مكرونه|pasta/i, 1000, 64]];
@@ -307,7 +331,7 @@ function weddingDays(){ if (!S.profile.wedding) return null; return daysBetween(
 
 /* ---------- payday: pay yourself first ---------- */
 function paydaySheet(amount, label, after){
-  const before2027 = todayStr() <= (S.profile.wedding || '2027-01-04');
+  const before2027 = !S.wedOff && todayStr() <= (S.profile.wedding || '2027-01-04');
   const def = jarByName(before2027 ? 'Wedding beauty' : 'Emergency fund') || S.jars[0];
   const pct = Math.round(amount * 0.3);
   sheet('<div style="text-align:center;font-size:46px">\u{1F4B8}</div><h2 class="plain" style="justify-content:center">Payday: pay yourself first</h2>' +
@@ -637,7 +661,7 @@ function lifeReminders(R, repeat, push, at){
   if (R.friday !== false) repeat.push({id:'friday', title:'Friday money check-in \u{1F4B0}', body:'10 minutes: log what you missed, check budgets, move savings.', weekday:6, hour:12, minute:0});
   if (R.night !== false) repeat.push({id:'night', title:'Shop-free hours \u{1F319}', body:'No shopping until 9 AM. Put wishes on the wait list and decide in the morning.', hour:23, minute:0});
   if (R.payday !== false) S.jobs.forEach(j => nextPaydays(j, 2).forEach(d => {
-    const body = d <= (S.profile.wedding || '2027-01-04') ? 'Move what’s left after your budget to the wedding fund first.' : 'Move 30% to savings within the hour, before anything else.';
+    const body = !S.wedOff && d <= (S.profile.wedding || '2027-01-04') ? 'Move what’s left after your budget to the wedding fund first.' : 'Move 30% to savings within the hour, before anything else.';
     push('pay-' + j.id + '-' + d, j.name + ' payday \u{1F4B8}', body, at(parseD(d), 10, 0));
   }));
   if (R.plans){

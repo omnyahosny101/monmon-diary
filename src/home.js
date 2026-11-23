@@ -57,6 +57,7 @@ function togglePrep(key){
   const all = prepItems(); if (all.length && all.every(x => x.done)) celebrate({key:'prep-all', e:'\u{1F470}', title:'Wedding prep complete!', msg:'Everything on your list is done. Now enjoy every moment, bride.'});
 }
 function weddingTrackerHTML(){
+  if (S.wedOff) return '';
   const W = S.profile.wedding, wd = weddingDays(), items = prepItems(), done = items.filter(x => x.done).length, t = todayStr();
   const next = items.filter(x => !x.done).sort((a, b) => (a.date || '9') < (b.date || '9') ? -1 : 1).slice(0, 4);
   return '<div class="card wedtrack">' +
@@ -672,13 +673,13 @@ const GYM_MSG = [
   ['متكسريش السلسلة ⛓\u{FE0F}', 'كل تمرينة ورا التانية هي اللي بتعمل الفرق، مش تمرينة واحدة جامدة.'],
 ];
 function gymReminders(push, at){
-  const slots = [[18,15],[19,45],[21,15]], W = S.profile.wedding || '2027-01-04';   // gym 7 am – 11 pm, a session is about 1½ h
+  const slots = [[18,15],[19,45],[21,15]], W = S.wedOff ? '2099-12-31' : (S.profile.wedding || '2027-01-04'), MSG = GYM_MSG.filter(wedOK), LAST = GYM_LAST.filter(wedOK);   // gym 7 am – 11 pm, a session is about 1½ h
   for (let o = 0; o < 3; o++){
     const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + o);
     const ds = ymd(d); if (ds > W) break;
     if ((S.workouts || []).some(w => w.date === ds)) continue;
     const left = daysBetween(ds, W), base = dayOfYear(d) * 3;
-    slots.forEach(([h, m], j) => { const [t, b] = j === 2 ? GYM_LAST[dayOfYear(d) % GYM_LAST.length] : GYM_MSG[(base + j) % GYM_MSG.length]; push('gym-' + ds + '-' + j, t, b.replace('{d}', left), at(d, h, m)); });
+    slots.forEach(([h, m], j) => { const [t, b] = j === 2 ? LAST[dayOfYear(d) % LAST.length] : MSG[(base + j) % MSG.length]; push('gym-' + ds + '-' + j, t, b.replace('{d}', left), at(d, h, m)); });
   }
 }
 
@@ -977,7 +978,7 @@ document.addEventListener('click', ev => {
 function photoMigrate(){ S.photos = S.photos && typeof S.photos === 'object' ? S.photos : {}; }
 
 /* ============ DAILY WISDOM (242) AND DAILY LESSON (301 lessons + facts) ============ */
-const wisdomList = () => isAr() ? WISDOM_NEW.concat(WISDOM, WISDOM_AR) : WISDOM;
+const wisdomList = () => (isAr() ? WISDOM_NEW.concat(WISDOM, WISDOM_AR) : WISDOM).filter(wedOK);
 /* From 16 Nov 2026 the quotes run in order from the new batch, then the older ones; facts the same way. */
 const WZ_START = '2026-11-16', FACT_START = '2026-11-16';
 function wisdomFor(d){ const WL = wisdomList(), n = WL.length, k = daysBetween(WZ_START, typeof d === 'string' ? d : ymd(d)) + (S.wisdomShift || 0); return WL[((k % n) + n) % n]; }
@@ -985,7 +986,7 @@ function wisdomFor(d){ const WL = wisdomList(), n = WL.length, k = daysBetween(W
 function mixTopics(list){ const g = {}, order = []; list.forEach(f => { if (!g[f[0]]){ g[f[0]] = []; order.push(f[0]); } g[f[0]].push(f); });
   const out = []; for (let i = 0; out.length < list.length; i++) order.forEach(c => { if (g[c][i]) out.push(g[c][i]); }); return out; }
 let _factPool = null;
-function factPool(){ return _factPool || (_factPool = mixTopics(INSIGHTS_NEW).concat(mixTopics(INSIGHTS.filter(f => f[0] !== 'Investing'))).map(f => ({f})).concat(LESSONS.filter(L => !LESSON_DONE.includes(L.f)).map(L => ({L})))); }
+function factPool(){ return _factPool || (_factPool = mixTopics(INSIGHTS_NEW.filter(wedOK)).concat(mixTopics(INSIGHTS.filter(f => f[0] !== 'Investing' && wedOK(f)))).map(f => ({f})).concat(LESSONS.filter(L => !LESSON_DONE.includes(L.f)).map(L => ({L})))); }
 function factItem(i, cut){ const P = factPool(), n = P.length, x = P[((i % n) + n) % n]; cut = cut || (s => s);
   return x.L ? {t:x.L.t, x:cut(x.L.x)} : {t:L2('تعرفي إن', 'Did you know') + ' · ' + tr(x.f[0]), x:cut(tr(x.f[1]))}; }
 const LESSON_START = '2026-10-28';

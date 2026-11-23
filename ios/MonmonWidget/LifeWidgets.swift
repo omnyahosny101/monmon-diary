@@ -98,6 +98,14 @@ struct WeddingView: View {
     let entry: LifeEntry
 
     var body: some View {
+        if entry.data?.wedding == "" {
+            Text("🌸").font(.system(size: 28))
+        } else {
+            countdown
+        }
+    }
+
+    @ViewBuilder var countdown: some View {
         let target = entry.data?.wedding ?? WidgetStore.weddingFallback
         let days = WidgetStore.daysUntil(target, from: entry.date)
         switch family {
@@ -400,7 +408,7 @@ struct DayView: View {
                 HStack(spacing: 8) {
                     Text("🌸 يومي").font(Pink.font(14, .heavy)).foregroundStyle(Pink.rose)
                     Spacer()
-                    Text("💍 \(max(days, 0)) يوم").font(Pink.font(12, .heavy)).foregroundStyle(Pink.ink)
+                    if !d.wedding.isEmpty { Text("💍 \(max(days, 0)) يوم").font(Pink.font(12, .heavy)).foregroundStyle(Pink.ink) }
                     if isToday && d.htotal > 0 { Text("✨ \(d.habits)/\(d.htotal)").font(Pink.font(12, .heavy)).foregroundStyle(Pink.ink) }
                     if isToday { Text("💧 \(d.water)/8").font(Pink.font(12, .heavy)).foregroundStyle(Pink.ink) }
                 }

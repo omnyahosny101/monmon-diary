@@ -105,7 +105,7 @@ Object.assign(AR, {
   "A value, not a leak": "قيمة، مش تسريب", "Add spending": "ضيفي مصروف", "Amount (EGP)": "المبلغ (جنيه)", "No spending logged this month yet.": "لسه مفيش مصاريف متسجلة الشهر ده.",
   "Set budgets per category in Me › Settings to see progress bars.": "حطي ميزانية لكل نوع من أنا ‹ الإعدادات عشان تشوفي الشريط.",
   "ALL MY JARS": "كل حصالاتي", "Every jar celebrates you at 25%, 50%, 75% and 100%.": "كل حصالة بتحتفل بيكي عند 25% و50% و75% و100%.",
-  "Emergency fund": "فلوس الطوارئ", "Add to this jar (EGP)": "ضيفي للحصالة دي (جنيه)", "Car down payment": "مقدم العربية", "Wedding shopping": "شوبينج الفرح", "Wedding beauty": "بيوتي الفرح",
+  "Emergency fund": "فلوس الطوارئ", "Beauty & self-care": "الجمال والعناية", "Shopping fund": "فلوس الشوبينج", "Add to this jar (EGP)": "ضيفي للحصالة دي (جنيه)", "Car down payment": "مقدم العربية", "Wedding shopping": "شوبينج الفرح", "Wedding beauty": "بيوتي الفرح",
   "New savings jar": "حصالة جديدة", "Car": "العربية", "Travel": "سفر", "Gold": "دهب", "Home": "البيت", "Target (EGP)": "الهدف (جنيه)", "Create jar": "اعملي الحصالة",
   "What are you saving for?": "بتحوّشي لإيه؟", "Name your jar": "سمّي الحصالة", "Jar created": "الحصالة اتعملت",
   "times this month": "مرات الشهر ده", "EGP this month": "جنيه الشهر ده", "average EGP": "متوسط بالجنيه", "Log sadaqa": "سجّلي صدقة", "Give": "اتصدّقي",
