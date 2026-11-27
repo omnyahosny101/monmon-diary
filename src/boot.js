@@ -28,6 +28,8 @@ reps10();
 cancelWedding24Nov();
 restoreWedding27Nov();
 photoMigrate();
+labsMigrate();
+seedLabs27Nov();
 frMigrate();
 frPlusMigrate();
 bookMigrate();
