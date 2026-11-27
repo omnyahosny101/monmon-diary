@@ -26,6 +26,7 @@ period23Nov();
 gym23Nov();
 reps10();
 cancelWedding24Nov();
+restoreWedding27Nov();
 photoMigrate();
 frMigrate();
 frPlusMigrate();

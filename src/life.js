@@ -281,6 +281,20 @@ function cancelWedding24Nov(){
   (S.tasks || []).forEach(t => { if (!t.done && /فرح|wedding|عروس|خطيب/i.test(t.title || '')){ (A.tasks = A.tasks || []).push(t.id); t.done = true; t.cancelled = true; } });
   S.seed29 = true;
 }
+/* 27 Nov: she's back with her fiancé. Undo the 24 Nov cancel from the archive (date, planned sessions, errands, jar names, tasks),
+   and log the 11,000 he gave her as income. */
+function restoreWedding27Nov(){
+  if (S.seed30) return;
+  const A = S.weddingArchive || {};
+  S.wedOff = false; S.profile = S.profile || {}; S.profile.wedding = A.date || '2027-01-04';
+  ((S.wedding && S.wedding.beauty) || []).forEach(b => { if (A.planned && A.planned[b.id] && !b.planned) b.planned = A.planned[b.id]; });
+  (A.mashawer || []).forEach(m => { if (!(S.mashawer || []).some(x => x.id === m.id)) (S.mashawer = S.mashawer || []).push(m); });
+  (S.jars || []).forEach(j => { if (A['jar:' + j.id]) j.name = A['jar:' + j.id]; });
+  (S.tasks || []).forEach(t => { if (t.cancelled && (A.tasks || []).includes(t.id)){ t.done = false; delete t.cancelled; } });
+  S.weddingArchive = null;
+  if (!(S.income || []).some(i => i.date === '2026-11-26' && +i.amount === 11000)) (S.income = S.income || []).push({id:uid(), date:'2026-11-26', job:'other', amount:11000, note:'من محمود'});
+  S.seed30 = true;
+}
 function applyWedOff(){
   document.body.classList.toggle('nowed', !!S.wedOff);
   if (!S.wedOff) return;
